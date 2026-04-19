@@ -49,12 +49,21 @@ Use the simplified compose setup for local development:
    - Admin portal: `http://localhost:4500`
    - API docs: `http://localhost:8000/docs`
 
-## Product Demo (placeholders)
-Add screenshots/GIFs here before publishing publicly:
-- `docs/media/chatbot-intake.png` — customer intake flow
-- `docs/media/manager-dashboard.png` — high-value lead view
-- `docs/media/admin-portal.png` — tenant management
-- `docs/media/ace-demo.gif` — 20–40 second product walkthrough
+## Product Demo
+### 1) Survey Intake
+![Survey intake screen](docs/media/chatbot-survey-screen.png)
+User starts with a short property questionnaire to capture intent and preferences.
+
+### 2) Chat Follow-up
+![Chat follow-up screen](docs/media/chatbot-chat-screen.png)
+After intake, the flow moves into chat for qualification and next-step coordination.
+
+### 3) Manager Dashboard
+![Manager dashboard screen](docs/media/dashboard-leads-screen.png)
+Lead responses are visible in the dashboard for filtering, prioritization, and takeover.
+
+### 4) Screencast (1 minute)
+- [Watch product walkthrough video (WebM)](docs/media/ace-demo-1min.webm)
 
 ## What This Project Demonstrates
 - Building and shipping a multi-app product, not just isolated scripts
