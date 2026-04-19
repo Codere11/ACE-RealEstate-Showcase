@@ -29,7 +29,7 @@ services:
     container_name: ace-backend-dev
     environment:
       DATABASE_URL: postgresql://ace_user:${POSTGRES_PASSWORD:-ace_dev_password}@postgres:5432/ace_production
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-sk-test-key}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       ACE_SECRET: ${ACE_SECRET:-dev-secret-key-not-for-production}
       ACE_LOG_LEVEL: ${ACE_LOG_LEVEL:-DEBUG}
       ACE_ENFORCE_DUAL_CONTACT: ${ACE_ENFORCE_DUAL_CONTACT:-0}

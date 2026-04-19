@@ -32,7 +32,7 @@ services:
     container_name: ace-backend
     environment:
       DATABASE_URL: postgresql://ace_user:${POSTGRES_PASSWORD:-test_password_123}@postgres:5432/ace_production
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-sk-test-key}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       ACE_SECRET: ${ACE_SECRET:-test_secret_key_for_local_testing_minimum_32_characters}
       ACE_LOG_LEVEL: ${ACE_LOG_LEVEL:-INFO}
       ACE_ENFORCE_DUAL_CONTACT: ${ACE_ENFORCE_DUAL_CONTACT:-0}
