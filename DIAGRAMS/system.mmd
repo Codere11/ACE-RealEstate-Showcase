@@ -1,0 +1,9 @@
+%% Created: 2026-03-14T20:44:39Z
+%% System overview for ACE Real Estate
+graph TD
+    User[User] -->|Survey| SurveyPage[Survey Page (Angular)]
+    SurveyPage --> API[FastAPI Backend]
+    API --> DB[(PostgreSQL)]
+    API --> LeadScoring[Lead Scoring Service]
+    LeadScoring --> OperatorDash[Operator Dashboard]
+    OperatorDash --> API

@@ -1,0 +1,860 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+import random
+import time
+import json
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+
+from app.core.config import FLOW
+from app.core import sessions  # legacy memory store
+from app.core.db import get_db
+from app.models import chat as chat_models
+from app.models.chat import ChatRequest, SurveyRequest, SurveySubmitRequest, StaffMessage
+from app.models.orm import Survey, Organization
+from app.services import lead_service, chat_store, event_bus, takeover
+from app.services import scoring_service
+
+logger = logging.getLogger("ace.api.chat")
+router = APIRouter()
+
+logger.info(
+    "Chat models: version=%s fingerprint=%s modules=%s",
+    chat_models.SCHEMA_VERSION,
+    chat_models.schema_fingerprint()[:12],
+    chat_models.model_modules(),
+)
+
+# ---------------- Helpers ----------------
+def _now() -> int:
+    return int(time.time())
+
+def make_response(
+    reply: Optional[str],
+    ui: Dict[str, Any] | None = None,
+    chat_mode: str = "guided",
+    story_complete: bool = False,
+    image_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    return {
+        "reply": reply,
+        "ui": ui or {},
+        "chatMode": chat_mode,
+        "storyComplete": story_complete,
+        "imageUrl": image_url,
+    }
+
+def get_node_by_id(node_id: str) -> Dict[str, Any] | None:
+    return next((n for n in FLOW["nodes"] if n["id"] == node_id), None)
+
+def _trace(sid: str, stage: str, node_id: str | None, state: dict, msg: str = ""):
+    logger.info("[FLOW] sid=%s %s node=%s waiting_input=%s awaiting_node=%s msg='%s'",
+                sid, stage, node_id, state.get("waiting_input"), state.get("awaiting_node"), msg)
+
+def _ensure_lead(sid: str):
+    leads = lead_service.get_all_leads()
+    lead = next((l for l in leads if l.id == sid), None)
+    if lead:
+        return lead
+    from app.models.lead import Lead
+    lead = Lead(
+        id=sid,
+        name="Unknown",
+        industry="Unknown",
+        score=50,
+        stage="Pogovori",
+        compatibility=True,
+        interest="Medium",
+        phone=False,
+        email=False,
+        adsExp=False,
+        lastMessage="",
+        lastSeenSec=_now(),
+        notes=""
+    )
+    lead_service.add_lead(lead)
+    logger.info("lead_created sid=%s (ensure)", sid)
+    return lead
+
+def _touch_lead_message(sid: str, message: str | None):
+    lead = _ensure_lead(sid)
+    if message:
+        lead.lastMessage = message
+    lead.lastSeenSec = _now()
+
+def _append_lead_notes(sid: str, note: str):
+    lead = _ensure_lead(sid)
+    if not note:
+        return
+    lead.notes = (" | ".join([p for p in [lead.notes, note] if p])).strip(" |")
+
+def _apply_score_to_lead(sid: str, result: dict | None, *, silent: bool = False):
+    """
+    Persist deterministic interest/score.
+    If silent=True, do NOT overwrite lastMessage (to avoid visible noise).
+    """
+    if not result:
+        return
+    lead = _ensure_lead(sid)
+
+    interest = (result or {}).get("interest")
+    if isinstance(interest, str) and interest:
+        lead.interest = interest
+
+    comp = (result or {}).get("compatibility")
+    try:
+        if comp is not None:
+            lead.score = max(0, min(100, int(round(float(comp)))))
+    except Exception:
+        pass
+
+    pitch = (result or {}).get("pitch", "") or ""
+    reasons = (result or {}).get("reasons", "") or ""
+
+    # Only set lastMessage on final compute_fit (silent=False), and NEVER include reasons
+    if not silent and pitch:
+        lead.lastMessage = pitch
+
+    # Keep internal breadcrumb for dashboard/audit
+    try:
+        _append_lead_notes(sid, f"Score: {lead.score} | interest: {lead.interest}" + (f" | reasons: {reasons}" if reasons else ""))
+    except Exception:
+        pass
+
+def _set_node(flow_sessions: Dict[str, Dict[str, Any]], sid: str, node_id: str, **extra):
+    fs = flow_sessions.setdefault(sid, {})
+    fs["node"] = node_id
+    if "waiting_input" not in extra:
+        fs.pop("waiting_input", None)
+    if "awaiting_node" not in extra:
+        fs.pop("awaiting_node", None)
+    fs.update(extra)
+    return fs
+
+def _realtime_score(sid: str, qual: Dict[str, Any]):
+    try:
+        result = scoring_service.score_from_qual(qual or {})
+        _apply_score_to_lead(sid, result, silent=True)
+    except Exception:
+        logger.exception("realtime scoring failed sid=%s", sid)
+
+# ---------------- Flow engine ----------------
+def _execute_action_node(sid: str, node: Dict[str, Any], flow_sessions: Dict[str, Dict[str, Any]]) -> dict:
+    action = (node.get("action") or "").strip()
+    next_key = node.get("next")
+    node_id = node.get("id")
+
+    # Deterministic scoring (final)
+    if action in ("compute_fit", "deepseek_score"):
+        qual = (flow_sessions.get(sid, {}) or {}).get("qual", {})
+        _ensure_lead(sid)
+
+        qual_pairs = "; ".join(f"{k}={v}" for k, v in qual.items())
+        if qual_pairs:
+            _append_lead_notes(sid, f"qual: {qual_pairs}")
+
+        result = scoring_service.score_from_qual(qual)
+        _apply_score_to_lead(sid, result, silent=False)
+
+        # USER-FACING reply: pitch only (no numbers, no reasons)
+        reply = (result or {}).get("pitch") or \
+                "Super — zdi se, da ustreza vašim željam. Lahko uskladimo termin za ogled ali pošljem več informacij."
+
+        _set_node(flow_sessions, sid, node_id)
+        if node.get("choices"):
+            return make_response(
+                reply,
+                ui={"type": "choices", "buttons": node["choices"]},
+                chat_mode="guided",
+                story_complete=False,
+            )
+        if next_key:
+            _set_node(flow_sessions, sid, next_key)
+            nxt = get_node_by_id(next_key)
+            base = format_node(nxt, story_complete=False)
+            base["reply"] = (reply + "\n\n" + (base.get("reply") or "")).strip()
+            return base
+        return make_response(reply, ui={"openInput": True}, chat_mode="open", story_complete=False)
+
+    return format_node(node, story_complete=False)
+
+def handle_flow(req: ChatRequest, flow_sessions: Dict[str, Dict[str, Any]]) -> dict:
+    sid = req.sid
+    msg = (req.message or "").strip()
+
+    if sid not in flow_sessions:
+        flow_sessions[sid] = {"node": "welcome"}
+        node = get_node_by_id("welcome")
+        _trace(sid, "init", "welcome", flow_sessions[sid], msg)
+        return format_node(node, story_complete=False)
+
+    state = flow_sessions[sid]
+    node_key = state.get("node")
+    node = get_node_by_id(node_key) if node_key else None
+    _trace(sid, "enter", node_key, state, msg)
+
+    if not node:
+        logger.error("Flow node missing sid=%s node_key=%s", sid, node_key)
+        return make_response("⚠️ Napaka v pogovornem toku.", ui={}, chat_mode="guided", story_complete=True)
+
+    if "choices" in node:
+        chosen = next((c for c in node["choices"]
+                       if c.get("title") == msg or c.get("payload") == msg), None)
+        if chosen:
+            # Capture structured signals
+            choice_action = (chosen.get("action") or "").strip()
+            if choice_action == "qualify_tag":
+                payload = (chosen.get("payload") or {})
+                q = flow_sessions.setdefault(sid, {}).setdefault("qual", {})
+                q.update(payload)
+                if payload:
+                    pairs = "; ".join(f"{k}={v}" for k, v in payload.items())
+                    _append_lead_notes(sid, f"qual: {pairs}")
+                # Real-time scoring (silent)
+                _realtime_score(sid, q)
+
+            next_key = chosen.get("next")
+            next_node = get_node_by_id(next_key) if next_key else None
+            if not next_node:
+                _set_node(flow_sessions, sid, next_key or "done")
+                _trace(sid, "choice->missing_next", next_key, flow_sessions[sid], msg)
+                return make_response("⚠️ Manjka naslednji korak.", ui={}, chat_mode="guided", story_complete=True)
+
+            if next_node.get("openInput"):
+                _set_node(flow_sessions, sid, next_key, waiting_input=True, awaiting_node=next_key)
+                _trace(sid, "choice->openInput(armed)", next_key, flow_sessions[sid], msg)
+                return format_node(next_node, story_complete=False)
+
+            if next_node.get("action"):
+                _set_node(flow_sessions, sid, next_key)
+                _trace(sid, "choice->action(exec)", next_key, flow_sessions[sid], msg)
+                return _execute_action_node(sid, next_node, flow_sessions)
+
+            _set_node(flow_sessions, sid, next_key)
+            _trace(sid, "choice->next", next_key, flow_sessions[sid], msg)
+            return format_node(next_node, story_complete=False)
+
+        _trace(sid, "choice->repeat", node_key, state, msg)
+        return format_node(node, story_complete=False)
+
+    if node.get("openInput"):
+        next_key = node.get("next")
+        current_id = node.get("id")
+
+        if state.get("waiting_input") is None:
+            state["waiting_input"] = True
+            state["awaiting_node"] = current_id
+            _trace(sid, "ask", current_id, state)
+            return format_node(node, story_complete=False)
+
+        state.pop("waiting_input", None)
+        _trace(sid, "answer", current_id, state, msg)
+
+        if state.get("awaiting_node") == current_id:
+            state.pop("awaiting_node", None)
+
+        if node.get("action") == "store_answer":
+            _append_lead_notes(sid, msg)
+            _touch_lead_message(sid, msg)
+
+        if next_key:
+            next_node = get_node_by_id(next_key)
+            _set_node(flow_sessions, sid, next_key)
+
+            if next_node and next_node.get("openInput"):
+                _set_node(flow_sessions, sid, next_key, waiting_input=True, awaiting_node=next_key)
+                _trace(sid, "armed_next_openInput", next_key, flow_sessions[sid])
+                return format_node(next_node, story_complete=False)
+
+            if next_node and next_node.get("action"):
+                _trace(sid, "goto_next->action(exec)", next_key, flow_sessions[sid])
+                return _execute_action_node(sid, next_node, flow_sessions)
+
+            _trace(sid, "goto_next", next_key, flow_sessions[sid])
+            return format_node(next_node, story_complete=False)
+
+        _trace(sid, "dup_or_mismatch", current_id, state, msg)
+        if next_key:
+            next_node = get_node_by_id(next_key)
+            _set_node(flow_sessions, sid, next_key)
+            if next_node and next_node.get("action"):
+                _trace(sid, "dup_or_mismatch->action(exec)", next_key, flow_sessions[sid])
+                return _execute_action_node(sid, next_node, flow_sessions)
+            return format_node(next_node, story_complete=False)
+
+        return make_response("", ui={}, chat_mode="guided", story_complete=False)
+
+    if node.get("action"):
+        _trace(sid, "action(exec at enter)", node_key, state, msg)
+        return _execute_action_node(sid, node, flow_sessions)
+
+    _trace(sid, "default", node_key, state)
+    return format_node(node, story_complete=False)
+
+def format_node(node: Dict[str, Any] | None, story_complete: bool) -> Dict[str, Any]:
+    if not node:
+        return make_response("⚠️ Manjka vozlišče v pogovornem toku.", ui={}, chat_mode="guided", story_complete=True)
+
+    if node.get("openInput"):
+        ui = {"openInput": True, "inputType": node.get("inputType", "single")}
+        mode = "open"
+    elif "choices" in node:
+        ui = {"type": "choices", "buttons": node["choices"]}
+        mode = "guided"
+    else:
+        ui = {}
+        mode = "guided"
+
+    if isinstance(node.get("texts"), list) and node["texts"]:
+        reply = random.choice(node["texts"])
+    else:
+        reply = node.get("text", "")
+
+    return make_response(reply or "", ui=ui, chat_mode=mode, story_complete=story_complete)
+
+# ---------------- In-memory flow sessions ----------------
+FLOW_SESSIONS: Dict[str, Dict[str, Any]] = {}
+
+# ---------------- Route impls ----------------
+async def _chat_impl(req: ChatRequest):
+    sid = req.sid
+    message = (req.message or "").strip()
+    logger.info("POST /chat sid=%s len=%d", sid, len(message or ""))
+
+    if message.startswith("/contact"):
+        try:
+            json_str = message[len("/contact"):].strip()
+            data = json.loads(json_str) if json_str else {}
+            name = (data.get("name") or "").strip()
+            email = (data.get("email") or "").strip()
+            phone = (data.get("phone") or "").strip()
+            channel = (data.get("channel") or "email").strip()
+
+            lead = lead_service.upsert_contact(sid, name=name, email=email, phone=phone, channel=channel)
+
+            try:
+                await event_bus.publish(sid, "lead.touched", {
+                    "lastMessage": "Kontakt posodobljen",
+                    "lastSeenSec": lead.lastSeenSec,
+                    "phone": bool(lead.phone),
+                    "email": bool(lead.email),
+                    "phoneText": lead.phoneText,
+                    "emailText": lead.emailText,
+                })
+            except Exception:
+                logger.exception("lead.touched publish failed sid=%s", sid)
+
+            curr = FLOW_SESSIONS.get(sid) or {}
+            curr_node_id = curr.get("node")
+            curr_node = get_node_by_id(curr_node_id) if curr_node_id else None
+            if curr_node and curr_node.get("openInput") and curr_node.get("inputType") in ("dual-contact", "contact"):
+                next_key = curr_node.get("next") or "done"
+                _set_node(FLOW_SESSIONS, sid, next_key)
+                next_node = get_node_by_id(next_key)
+                if next_node and next_node.get("openInput"):
+                    _set_node(FLOW_SESSIONS, sid, next_key, waiting_input=True, awaiting_node=next_key)
+                _trace(sid, "contact->advance", next_key, FLOW_SESSIONS[sid], "advance after /contact")
+                return format_node(next_node, story_complete=False)
+
+            return make_response("Kontakt shranjen ✅ — nadaljujeva. 🔥", ui=None, chat_mode="guided", story_complete=False)
+        except Exception:
+            logger.exception("contact parse/save failed sid=%s", sid)
+            return make_response("⚠️ Ni uspelo shraniti kontakta. Poskusi znova ali preskoči v klepet.", ui=None, chat_mode="guided", story_complete=False)
+
+    if message.strip() == "/skip_to_human":
+        try:
+            takeover.enable(sid)
+            await event_bus.publish(sid, "lead.touched", {
+                "lastMessage": "Uporabnik želi 1-na-1 pogovor",
+                "lastSeenSec": _now(),
+            })
+        except Exception:
+            logger.exception("skip_to_human publish failed sid=%s", sid)
+        return make_response(reply=None, ui={"openInput": True}, chat_mode="open", story_complete=False)
+
+    _touch_lead_message(sid, message)
+
+    try:
+        user_msg = chat_store.append_message(sid, role="user", text=message)
+        await event_bus.publish(sid, "message.created", user_msg)
+    except Exception:
+        logger.exception("persist/publish user message failed sid=%s", sid)
+        raise
+
+    if takeover.is_active(sid):
+        logger.info("human-mode active sid=%s -> skipping bot", sid)
+        return make_response(reply=None, ui={"openInput": True}, chat_mode="open", story_complete=False)
+
+    try:
+        result = handle_flow(req, FLOW_SESSIONS)
+    except Exception:
+        logger.exception("flow error sid=%s", sid)
+        raise
+
+    reply_text = (result.get("reply") or "").strip()
+    if reply_text:
+        try:
+            assistant_msg = chat_store.append_message(sid, role="assistant", text=reply_text)
+            await event_bus.publish(sid, "message.created", assistant_msg)
+            _touch_lead_message(sid, reply_text)
+        except Exception:
+            logger.exception("persist/publish assistant message failed sid=%s", sid)
+
+    logger.info("POST /chat sid=%s done reply_len=%d", sid, len(reply_text))
+    return result
+
+@router.post("/", name="chat")
+async def chat(req: ChatRequest):
+    return await _chat_impl(req)
+
+@router.post("", include_in_schema=False, name="chat_no_slash")
+async def chat_no_slash(req: ChatRequest):
+    return await _chat_impl(req)
+
+# ---- stream ----
+async def _chat_stream_impl(req: ChatRequest):
+    sid = req.sid
+    message = (req.message or "").strip()
+    logger.info("POST /chat/stream sid=%s len=%d", sid, len(message or ""))
+
+    if message.startswith("/contact"):
+        try:
+            json_str = message[len("/contact"):].strip()
+            data = json.loads(json_str) if json_str else {}
+            name = (data.get("name") or "").strip()
+            email = (data.get("email") or "").strip()
+            phone = (data.get("phone") or "").strip()
+            channel = (data.get("channel") or "email").strip()
+
+            lead = lead_service.upsert_contact(sid, name=name, email=email, phone=phone, channel=channel)
+
+            try:
+                await event_bus.publish(sid, "lead.touched", {
+                    "lastMessage": "Kontakt posodobljen",
+                    "lastSeenSec": lead.lastSeenSec,
+                    "phone": bool(lead.phone),
+                    "email": bool(lead.email),
+                    "phoneText": lead.phoneText,
+                    "emailText": lead.emailText,
+                })
+            except Exception:
+                logger.exception("lead.touched publish failed (stream) sid=%s", sid)
+
+            curr = FLOW_SESSIONS.get(sid) or {}
+            curr_node_id = curr.get("node")
+            curr_node = get_node_by_id(curr_node_id) if curr_node_id else None
+            if curr_node and curr_node.get("openInput") and curr_node.get("inputType") in ("dual-contact", "contact"):
+                next_key = curr_node.get("next") or "done"
+                _set_node(FLOW_SESSIONS, sid, next_key)
+                next_node = get_node_by_id(next_key)
+                if next_node and next_node.get("openInput"):
+                    _set_node(FLOW_SESSIONS, sid, next_key, waiting_input=True, awaiting_node=next_key)
+                _trace(sid, "contact->advance(stream)", next_key, FLOW_SESSIONS[sid], "advance after /contact")
+                reply_text = (format_node(next_node, story_complete=False).get("reply") or "").strip()
+
+                async def ok():
+                    yield reply_text or "Nadaljujva. 🔥"
+                return StreamingResponse(ok(), media_type="text/plain; charset=utf-8")
+
+            async def ok_fallback():
+                yield "Kontakt shranjen ✅ — nadaljujeva. 🔥"
+            return StreamingResponse(ok_fallback(), media_type="text/plain; charset=utf-8")
+        except Exception:
+            logger.exception("contact parse/save failed (stream) sid=%s", sid)
+            async def err():
+                yield "⚠️ Ni uspelo shraniti kontakta. Poskusi znova ali preskoči v klepet."
+            return StreamingResponse(err(), media_type="text/plain; charset=utf-8")
+
+    if message.strip() == "/skip_to_human":
+        try:
+            takeover.enable(sid)
+            await event_bus.publish(sid, "lead.touched", {
+                "lastMessage": "Uporabnik želi 1-na-1 pogovor",
+                "lastSeenSec": _now(),
+            })
+        except Exception:
+            logger.exception("skip_to_human publish failed (stream) sid=%s", sid)
+
+        async def human_notice():
+            yield "Agent je prevzel pogovor. 🤝\n"
+        return StreamingResponse(human_notice(), media_type="text/plain; charset=utf-8")
+
+    _touch_lead_message(sid, message)
+
+    try:
+        user_msg = chat_store.append_message(sid, role="user", text=message)
+        await event_bus.publish(sid, "message.created", user_msg)
+    except Exception:
+        logger.exception("persist/publish user message failed (stream) sid=%s", sid)
+
+    if takeover.is_active(sid):
+        logger.info("human-mode active sid=%s -> streaming notice", sid)
+        async def human_notice2():
+            yield "Agent je prevzel pogovor. 🤝\n"
+        return StreamingResponse(human_notice2(), media_type="text/plain; charset=utf-8")
+
+    try:
+        result = handle_flow(req, FLOW_SESSIONS)
+    except Exception:
+        logger.exception("flow error (stream) sid=%s", sid)
+        raise
+
+    reply_text = (result.get("reply") or "").strip()
+
+    async def streamer():
+        try:
+            if not reply_text:
+                return
+            step = 24
+            for i in range(0, len(reply_text), step):
+                yield reply_text[i:i+step]
+                await asyncio.sleep(0.02)
+        except Exception:
+            logger.exception("stream send error sid=%s", sid)
+            raise
+
+    if reply_text:
+        try:
+            assistant_msg = chat_store.append_message(sid, role="assistant", text=reply_text)
+            await event_bus.publish(sid, "message.created", assistant_msg)
+            _touch_lead_message(sid, reply_text)
+        except Exception:
+            logger.exception("persist/publish assistant failed (stream) sid=%s", sid)
+
+    logger.info("POST /chat/stream sid=%s done reply_len=%d", sid, len(reply_text))
+    return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8")
+
+@router.post("/stream", name="chat_stream")
+async def chat_stream(req: ChatRequest):
+    return await _chat_stream_impl(req)
+
+@router.post("/stream/", include_in_schema=False, name="chat_stream_slash")
+async def chat_stream_slash(req: ChatRequest):
+    return await _chat_stream_impl(req)
+
+# ---- survey (notes only) ----
+async def _survey_impl(body: SurveyRequest):
+    sid = body.sid
+    logger.info("POST /chat/survey sid=%s", sid)
+
+    if takeover.is_active(sid):
+        return {"ok": True, "human_mode": True}
+
+    parts = []
+    if getattr(body, "industry", None):   parts.append(f"Industry: {body.industry}")
+    if getattr(body, "budget", None):     parts.append(f"Budget: {body.budget}")
+    if getattr(body, "experience", None): parts.append(f"Experience: {body.experience}")
+    if getattr(body, "question1", None):  parts.append(f"Q1: {body.question1}")
+    if getattr(body, "question2", None):  parts.append(f"Q2: {body.question2}")
+    survey_text = " | ".join(parts) if parts else "No answers provided."
+
+    _ensure_lead(sid)
+    _append_lead_notes(sid, survey_text)
+    _touch_lead_message(sid, getattr(body, "question2", None) or getattr(body, "question1", None) or getattr(body, "industry", None) or "")
+
+    try:
+        user_msg = chat_store.append_message(sid, role="user", text=f"[Survey] {survey_text}")
+        await event_bus.publish(sid, "message.created", user_msg)
+    except Exception:
+        logger.exception("persist/publish survey message failed sid=%s", sid)
+
+    reply = "Hvala za odgovore! Nadaljujeva z naslednjimi koraki ali terminom ogleda."
+    story_complete = True
+
+    try:
+        assistant_msg = chat_store.append_message(sid, role="assistant", text=reply)
+        await event_bus.publish(sid, "message.created", assistant_msg)
+        _touch_lead_message(sid, reply)
+    except Exception:
+        logger.exception("persist/publish survey assistant failed sid=%s", sid)
+
+    logger.info("POST /chat/survey sid=%s done", sid)
+    return make_response(
+        reply=reply,
+        ui={"openInput": True},
+        chat_mode="open",
+        story_complete=story_complete
+    )
+
+@router.post("/survey", name="survey")
+async def survey(body: SurveyRequest):
+    return await _survey_impl(body)
+
+@router.post("/survey/", include_in_schema=False, name="survey_slash")
+async def survey_slash(body: SurveyRequest):
+    return await _survey_impl(body)
+
+# ---- staff ----
+async def _staff_impl(body: StaffMessage):
+    sid = body.sid
+    text = (body.text or "").strip()
+
+    takeover.enable(sid)
+
+    if not text:
+        return {"ok": False}
+
+    _touch_lead_message(sid, text)
+
+    saved = None
+    try:
+        saved = chat_store.append_message(sid, role="staff", text=text)
+        sessions.add_chat(sid, "staff", text)
+        await event_bus.publish(sid, "message.created", saved)
+    except Exception:
+        logger.exception("persist/publish staff message failed sid=%s", sid)
+
+    return {"ok": True, "message": saved}
+
+@router.post("/staff", name="staff_message")
+async def staff_message(body: StaffMessage):
+    return await _staff_impl(body)
+
+@router.post("/staff/", include_in_schema=False, name="staff_message_slash")
+async def staff_message_slash(body: StaffMessage):
+    return await _staff_impl(body)
+
+# ---- survey/submit (NEW structured survey system) ----
+async def _survey_submit_impl(body: SurveySubmitRequest, db: Session = None):
+    """
+    Submit survey answer for a specific node.
+    Stores answer, updates progress, and returns next node or completion status.
+    """
+    sid = body.sid
+    node_id = body.node_id
+    answer = body.answer
+    progress = body.progress
+    org_slug = body.org_slug
+    survey_slug = body.survey_slug
+    
+    logger.info("POST /survey/submit sid=%s node=%s progress=%d org=%s survey=%s", 
+                sid, node_id, progress, org_slug, survey_slug)
+    
+    # Check takeover - if human mode, pause survey
+    if takeover.is_active(sid):
+        logger.info("Human mode active sid=%s - survey paused", sid)
+        try:
+            await event_bus.publish(sid, "survey.paused", {"sid": sid, "node_id": node_id})
+        except Exception:
+            logger.exception("survey.paused event failed sid=%s", sid)
+        return {
+            "ok": True,
+            "human_mode": True,
+            "paused": True,
+            "message": "Agent prevzel pogovor - anketa začasno ustavljena"
+        }
+    
+    # Ensure lead exists
+    _ensure_lead(sid)
+    
+    # Store the answer
+    lead_service.update_survey_answer(sid, node_id, answer)
+    
+    # Extract contact info from answer if present
+    lead = _ensure_lead(sid)
+    if isinstance(answer, dict):
+        if 'email' in answer and answer['email']:
+            lead.emailText = answer['email']
+            lead.email = True
+            logger.info("Extracted email from answer: %s", answer['email'])
+        if 'phone' in answer and answer['phone']:
+            lead.phoneText = answer['phone']
+            lead.phone = True
+            logger.info("Extracted phone from answer: %s", answer['phone'])
+        # Also check text field for email/phone-type questions
+        if 'text' in answer and answer['text']:
+            text = str(answer['text']).strip()
+            # Simple detection: if contains @, treat as email
+            if '@' in text and '.' in text:
+                lead.emailText = text
+                lead.email = True
+                logger.info("Extracted email from text field: %s", text)
+            # If looks like phone (mostly digits/spaces/dashes)
+            elif text and len([c for c in text if c.isdigit()]) >= 8:
+                lead.phoneText = text
+                lead.phone = True
+                logger.info("Extracted phone from text field: %s", text)
+    
+    # Extract score directly from answer (chatbot includes it)
+    answer_score = 0
+    try:
+        if isinstance(answer, dict) and 'score' in answer:
+            answer_score = answer['score']
+            logger.info("Extracted score from answer: %d", answer_score)
+        # Fallback: try to load from flow if score not in answer
+        elif db and org_slug and survey_slug:
+            # Fetch survey from database
+            org = db.query(Organization).filter(
+                Organization.slug == org_slug,
+                Organization.active == True
+            ).first()
+            
+            if org:
+                survey = db.query(Survey).filter(
+                    Survey.slug == survey_slug,
+                    Survey.organization_id == org.id,
+                    Survey.status == "live"
+                ).first()
+                
+                if survey and survey.flow_json:
+                    # Get node from survey flow
+                    survey_flow = survey.flow_json
+                    flow_nodes = survey_flow.get('nodes', [])
+                    flow_node = next((n for n in flow_nodes if n.get('id') == node_id), None)
+                    logger.info("Loaded flow node from survey database: %s", node_id)
+        
+        # Fallback to global FLOW if survey-specific flow not found
+        if not flow_node:
+            flow_node = get_node_by_id(node_id)
+            logger.info("Using global FLOW for node: %s", node_id)
+        
+        if flow_node:
+            if isinstance(answer, str) and flow_node.get('choices'):
+                # Multiple choice - find the matching choice and get its score
+                for choice in flow_node['choices']:
+                    if choice.get('title') == answer:
+                        answer_score = choice.get('score', 0)
+                        logger.info("Choice answer score for '%s': %d", answer, answer_score)
+                        break
+            elif flow_node.get('openInput'):
+                # Open-ended question - use base score
+                answer_score = flow_node.get('score', 0)
+                logger.info("Open input base score: %d", answer_score)
+    except Exception as e:
+        logger.warning("Failed to get score for answer: %s", e)
+    
+    # Update progress and cumulative score
+    all_answers = body.all_answers if body.all_answers else {node_id: answer}
+    lead = lead_service.update_survey_progress(sid, progress, all_answers)
+    
+    # Recalculate TOTAL score from ALL answers using survey-specific flow
+    # This ensures score is calculated properly even if user goes back/forth
+    try:
+        lead = _ensure_lead(sid)
+        total_score = 50  # Start at base 50
+        answer_count = 0
+        
+        # Load survey flow to get all node scores
+        survey_flow_nodes = []
+        if db and org_slug and survey_slug:
+            org = db.query(Organization).filter(
+                Organization.slug == org_slug,
+                Organization.active == True
+            ).first()
+            if org:
+                survey = db.query(Survey).filter(
+                    Survey.slug == survey_slug,
+                    Survey.organization_id == org.id,
+                    Survey.status == "live"
+                ).first()
+                if survey and survey.flow_json:
+                    survey_flow_nodes = survey.flow_json.get('nodes', [])
+        
+        # Fallback to global FLOW
+        if not survey_flow_nodes:
+            survey_flow_nodes = FLOW.get('nodes', [])
+        
+        # Calculate total score from all survey answers
+        for ans_node_id, ans_value in (lead.survey_answers or {}).items():
+            # Extract score from answer object if available
+            if isinstance(ans_value, dict) and 'score' in ans_value:
+                total_score += ans_value['score']
+                answer_count += 1
+                continue
+            
+            # Fallback: Find the node definition and match answer text
+            node_def = next((n for n in survey_flow_nodes if n.get('id') == ans_node_id), None)
+            if not node_def:
+                continue
+            
+            # Get score for this answer
+            if isinstance(ans_value, str) and node_def.get('choices'):
+                # Multiple choice - find matching choice score
+                for choice in node_def['choices']:
+                    if choice.get('title') == ans_value:
+                        total_score += choice.get('score', 0)
+                        answer_count += 1
+                        break
+            elif node_def.get('openInput'):
+                # Open-ended or contact question - use base score
+                total_score += node_def.get('score', 0)
+                answer_count += 1
+        
+        # Just use the total score directly
+        lead.score = total_score
+        
+        # Update interest level based on score
+        if lead.score >= 20:
+            lead.interest = 'High'
+        elif lead.score >= 0:
+            lead.interest = 'Medium'
+        else:
+            lead.interest = 'Low'
+        
+        logger.info("Recalculated lead score from %d answers: total=%d, interest=%s", 
+                   answer_count, total_score, lead.interest)
+    except Exception as e:
+        logger.exception("Failed to recalculate lead score: %s", e)
+    
+    # Store answer in notes for audit trail
+    answer_str = json.dumps(answer) if not isinstance(answer, str) else answer
+    _append_lead_notes(sid, f"Survey [{node_id}]: {answer_str}")
+    
+    # Publish event for real-time dashboard updates with score
+    try:
+        await event_bus.publish(sid, "survey.progress", {
+            "sid": sid,
+            "node_id": node_id,
+            "progress": progress,
+            "completed": progress >= 100,
+            "score": lead.score,
+            "interest": lead.interest
+        })
+    except Exception:
+        logger.exception("survey.progress event failed sid=%s", sid)
+    
+    # If completed, publish completion event
+    if progress >= 100:
+        logger.info("Survey completed sid=%s", sid)
+        try:
+            await event_bus.publish(sid, "survey.completed", {
+                "sid": sid,
+                "answers": lead.survey_answers,
+                "completed_at": lead.survey_completed_at
+            })
+        except Exception:
+            logger.exception("survey.completed event failed sid=%s", sid)
+        
+        return {
+            "ok": True,
+            "completed": True,
+            "progress": 100,
+            "message": "Hvala za sodelovanje! Kmalu se oglasimo.",
+            "lead": {
+                "stage": lead.stage,
+                "score": lead.score,
+                "progress": lead.survey_progress
+            }
+        }
+    
+    # Return success with current progress
+    return {
+        "ok": True,
+        "completed": False,
+        "progress": progress,
+        "answers_count": len(lead.survey_answers) if lead.survey_answers else 0
+    }
+
+@router.post("/survey/submit", name="survey_submit")
+async def survey_submit(body: SurveySubmitRequest, db: Session = Depends(get_db)):
+    """Submit survey answer and track progress"""
+    return await _survey_submit_impl(body, db)
+
+@router.post("/survey/submit/", include_in_schema=False, name="survey_submit_slash")
+async def survey_submit_slash(body: SurveySubmitRequest, db: Session = Depends(get_db)):
+    return await _survey_submit_impl(body, db)

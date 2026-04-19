@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "start": "q1",
+  "nodes": [
+    {
+      "id": "q1",
+      "texts": [
+        "Katera vrsta nepremičnine vas"
+      ],
+      "choices": [
+        {
+          "title": "Stanovanje",
+          "score": 20,
+          "next": "q2"
+        },
+        {
+          "title": "Hiša",
+          "score": 0,
+          "next": "q2"
+        },
+        {
+          "title": "Poslovni prostor",
+          "score": 0,
+          "next": "q2"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "texts": [
+        "Prosimo vnesite vaš kontakt:"
+      ],
+      "openInput": true,
+      "inputType": "dual-contact",
+      "score": 30,
+      "next": "thanks"
+    },
+    {
+      "id": "thanks",
+      "texts": [
+        "Hvala! Kmalu se oglasimo."
+      ],
+      "openInput": true,
+      "inputType": "text",
+      "score": 0
+    }
+  ]
+}

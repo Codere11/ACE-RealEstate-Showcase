@@ -1,0 +1,110 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import logging
+import os
+
+from app.api import chat, chats, leads, kpis, funnel, objections
+from app.middleware.request_logger import RequestLoggerMiddleware
+from app.api import agent, chat_events
+from app.api import health
+from app.api import survey_flow
+from app.services.bootstrap_db import create_all
+
+# New multi-tenant API endpoints
+from app.api import organizations, users, surveys, public_survey, avatar, org_avatar
+from app.auth import routes as auth_routes
+
+# 👉 NEW: portal imports (adds login/admin/manager + public flow + static mounting)
+# These do NOT affect your existing endpoints; they only add new ones.
+from app.portal.routes import (
+    router as portal_router,            # /api/admin/* and /api/manager/*
+    auth_router as portal_auth_router,  # /api/auth/*
+    public_router as portal_public_router,  # /api/instances/{slug}/conversation_flow
+    mount_instance_chatbots,            # mounts /instances/<slug>/chatbot
+)
+
+# ---- Logging config ---------------------------------------------------------
+LOG_LEVEL = os.getenv("ACE_LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format="%(asctime)s %(levelname)s %(name)s:%(lineno)d - %(message)s",
+)
+logger = logging.getLogger("ace.main")
+logger.info("Starting ACE Real Estate Backend with LOG_LEVEL=%s", LOG_LEVEL)
+
+# ---- FastAPI app ------------------------------------------------------------
+app = FastAPI(title="ACE Real Estate Backend")
+app.add_middleware(RequestLoggerMiddleware)
+
+# ---- CORS -------------------------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+        "http://localhost:4300",  # Mobile app
+        "http://127.0.0.1:4300",
+        "http://10.127.138.51:4300",  # Mobile app on network
+        "http://localhost:4400",
+        "http://127.0.0.1:4400",
+        "http://localhost:4500",
+        "http://127.0.0.1:4500",
+        "capacitor://localhost",  # Capacitor app
+        "http://localhost",  # Capacitor app
+        # add more origins here if you serve the portal on a different port
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---- Routers (EXISTING – unchanged) ----------------------------------------
+# Keep business chat endpoints on /chat
+app.include_router(chat.router,        prefix="/chat",        tags=["Chat"])
+# All-history reads
+app.include_router(chats.router,       prefix="/chats",       tags=["Chats"])
+# Other API
+app.include_router(leads.router,       prefix="/leads",       tags=["Leads"])
+app.include_router(kpis.router,        prefix="/kpis",        tags=["KPIs"])
+app.include_router(funnel.router,      prefix="/funnel",      tags=["Funnel"])
+app.include_router(objections.router,  prefix="/objections",  tags=["Objections"])
+app.include_router(agent.router,       prefix="/agent",       tags=["Agent"])
+# 👇 Moved off /chat to avoid path collisions (as you had)
+app.include_router(chat_events.router, prefix="/chat-events", tags=["ChatEvents"])
+# Health + introspection
+app.include_router(health.router,      prefix="/health",      tags=["Health"])
+# Survey flow management
+app.include_router(survey_flow.router, tags=["Survey"])
+
+# ---- Routers (NEW – additive only) -----------------------------------------
+# Auth for portal (login + me) - DISABLED: Using new auth system
+# app.include_router(portal_auth_router)        # /api/auth/*
+app.include_router(auth_routes.router)        # /api/auth/* (new auth system)
+# Admin + Manager endpoints (file-based instances)
+app.include_router(portal_router)             # /api/admin/* and /api/manager/*
+# Public per-instance flow (for static chatbot UIs)
+app.include_router(portal_public_router)      # /api/instances/{slug}/conversation_flow
+
+# Multi-tenant SaaS API endpoints
+app.include_router(organizations.router)      # /api/organizations
+app.include_router(users.router)              # /api/organizations/{org_id}/users
+app.include_router(surveys.router)            # /api/organizations/{org_id}/surveys
+app.include_router(public_survey.router)      # /s/{survey_slug}
+app.include_router(avatar.router)             # /api/users/me/avatar
+app.include_router(org_avatar.router)         # /api/organizations/{slug}/avatar
+
+logger.info("Routers registered.")
+
+# ---- Static Files -----------------------------------------------------------
+# Mount static directory for avatars and other files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ---- Startup ----------------------------------------------------------------
+@app.on_event("startup")
+def _startup() -> None:
+    # Auto-create tables (safe to run repeatedly) – existing behavior
+    create_all()
+    # Mount static per-instance chat UIs at /instances/<slug>/chatbot – NEW
+    mount_instance_chatbots(app)
+    logger.info("Startup completed.")

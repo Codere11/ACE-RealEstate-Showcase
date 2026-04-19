@@ -1,0 +1,297 @@
+<!-- TOP BAR (client logo • centered tabs • agent menu) -->
+<header class="topbar">
+  <div class="left">
+    <img class="client-logo" [src]="clientLogoUrl" alt="Client Logo" (error)="onClientLogoError($event)" />
+  </div>
+
+  <!-- Tab Navigation (centered) -->
+  <nav class="tabs">
+  <button [class.active]="activeTab==='leads'" (click)="activeTab='leads'">
+    <span>LEADI</span>
+  </button>
+
+  <button [class.active]="activeTab==='flow'" (click)="activeTab='flow'">
+    <span>ANKETE</span>
+  </button>
+
+  <!-- Unclickable tabs with "coming soon" -->
+  <button class="disabled" disabled>
+    <span>ANALIZA</span>
+    <small class="soon"> - Prihaja kmalu</small>
+  </button>
+</nav>
+
+
+  <div class="right">
+    <div class="user-menu" (click)="agentMenuOpen=!agentMenuOpen" tabindex="0">
+      <img class="agent-logo" 
+           [src]="currentUser?.avatar_url ? ('http://localhost:8000' + currentUser.avatar_url) : agentLogoUrl" 
+           alt="Agent" 
+           (error)="onAgentLogoError($event)" />
+      <span class="username" *ngIf="currentUser">{{ currentUser.username }}</span>
+      <div class="dropdown" *ngIf="agentMenuOpen">
+        <div class="user-info" *ngIf="currentUser">
+          <strong>{{ currentUser.username }}</strong>
+          <small>{{ currentUser.email }}</small>
+          <small>{{ currentUser.organization_slug }}</small>
+        </div>
+        <button (mousedown)="onChangeAccount(); $event.stopPropagation()">Zamenjaj račun</button>
+        <button (mousedown)="onLogout(); $event.stopPropagation()">Odjava</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="dashboard-background">
+  <div class="dashboard-container">
+    <h1 class="title">📊 ACE Real Estate Intelligence</h1>
+    <p class="subtitle">AI prodajni nadzor za lead gen kampanje</p>
+
+    <!-- TAB 1: Leads -->
+    <section *ngIf="activeTab==='leads'">
+      <!-- NEW LAYOUT: top row (Filter | spacer | Tags), then leads span full width -->
+      <div class="leads-grid-2">
+
+        <!-- LEFT: FILTER card -->
+        <aside class="card filter-card" style="grid-area: filter;">
+          <h3>FILTER</h3>
+
+          <label class="row">
+            <span>Interes</span>
+            <select [(ngModel)]="interestFilter">
+              <option value="All">Vsi</option>
+              <option value="High">Visok</option>
+              <option value="Medium">Srednji</option>
+              <option value="Low">Nizek</option>
+            </select>
+          </label>
+
+          <!-- Ocena OD–DO -->
+          <div class="row scorerow">
+            <div>
+              <span class="lbl">Ocena od</span>
+              <input type="number" min="0" max="100" [(ngModel)]="minScore" />
+            </div>
+            <div>
+              <span class="lbl">do</span>
+              <input type="number" min="0" max="100" [(ngModel)]="maxScore" />
+            </div>
+          </div>
+
+          <div class="row checkrow">
+            <label><input type="checkbox" [(ngModel)]="mustHavePhone" /> Telefon</label>
+            <label><input type="checkbox" [(ngModel)]="mustHaveEmail" /> E‑pošta</label>
+          </div>
+
+          <div class="row daterow">
+            <div>
+              <span class="lbl">Datum od</span>
+              <input type="date" [(ngModel)]="dateFrom" />
+            </div>
+            <div>
+              <span class="lbl">do</span>
+              <input type="date" [(ngModel)]="dateTo" />
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="apply-btn" (click)="applyFilters()">UPORABI</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <label class="row">
+            <span>Iskanje po imenu</span>
+            <input type="text" [(ngModel)]="searchName" (ngModelChange)="applyFilters()" placeholder="Vnesite ime…" />
+          </label>
+        </aside>
+
+        <!-- RIGHT: Quick Stats card -->
+        <aside class="card tags-card" style="grid-area: tags;">
+          <h3>📊 HITRI PREGLED</h3>
+
+          <div class="stats-grid" *ngIf="kpis">
+            <div class="stat-item">
+              <div class="stat-value">{{ kpis.activeLeads }}</div>
+              <div class="stat-label">Aktivni leadi</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ kpis.contacts }}</div>
+              <div class="stat-label">Skupaj kontaktov</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ displayedLeads.length }}</div>
+              <div class="stat-label">Filtrirani rezultati</div>
+            </div>
+          </div>
+          
+          <div class="divider" style="margin: 16px 0;"></div>
+          
+          <div class="info-note">
+            <small>💡 Namig: Uporabite filtre za iskanje po oceni, kontaktih ali datumu</small>
+          </div>
+        </aside>
+
+        <!-- FULL-WIDTH LEADS under both cards -->
+        <main class="leads-span" style="grid-area: leads;">
+          <h2>📋 Odgovori anket (v živo)</h2>
+
+          <div *ngIf="loadingLeads" class="spinner">⏳ Nalagam leade...</div>
+          <div *ngIf="!loadingLeads && displayedLeads.length === 0" class="empty">
+            🚀 Ni leadov za izbrane filtre.
+          </div>
+
+          <div class="lead-list" *ngIf="!loadingLeads && displayedLeads.length > 0">
+            <div *ngFor="let lead of displayedLeads" class="lead-entry">
+              <div class="lead-hover-zone"
+                   (mouseenter)="onLeadHover(lead.id)"
+                   (mouseleave)="onLeadLeave()">
+
+                <div class="lead-main">
+                  <div class="lead-top">
+                    <div class="lead-name">{{ lead.name }} ({{ lead.industry }})</div>
+                    <div class="lead-score">🔥 {{ lead.score }}</div>
+                  </div>
+                  <div class="lead-summary">
+                    {{ lead.stage }} <span class="dot">•</span>
+                    {{ formatAgo(lead.lastSeenSec) }}
+                    <span *ngIf="lead.survey_started_at" class="dot">•</span>
+                    <span *ngIf="lead.survey_started_at" class="date-info">📅 {{ formatDate(lead.survey_started_at) }}</span>
+                  </div>
+                  <div class="lead-lastmsg">„{{ lead.lastMessage }}”</div>
+                  <div class="tags">
+                    <span class="tag" [class.good]="lead.interest==='High'">⭐ {{ translateInterest(lead.interest) }}</span>
+
+                    <ng-container *ngIf="lead.phoneText?.trim(); else phoneBadge">
+                      <a class="tag good" [href]="'tel:' + lead.phoneText!.trim()">📞 {{ lead.phoneText }}</a>
+                    </ng-container>
+                    <ng-template #phoneBadge>
+                      <span class="tag" [class.good]="lead.phone">📞 Telefon</span>
+                    </ng-template>
+
+                    <ng-container *ngIf="lead.emailText?.trim(); else emailBadge">
+                      <a class="tag good" [href]="'mailto:' + lead.emailText!.trim()">📧 {{ lead.emailText }}</a>
+                    </ng-container>
+                    <ng-template #emailBadge>
+                      <span class="tag" [class.good]="lead.email">📧 E-pošta</span>
+                    </ng-template>
+
+                  </div>
+                  
+                  <!-- Survey Answers - only last answer until takeover -->
+                  <app-survey-answers
+                    [answers]="lead.survey_answers ?? null"
+                    [progress]="lead.survey_progress"
+                    [startedAt]="lead.survey_started_at ?? null"
+                    [completedAt]="lead.survey_completed_at ?? null"
+                    [showOnlyLast]="!(takeoverOpen && takeoverLead?.id === lead.id)"
+                  ></app-survey-answers>
+                </div>
+
+                <div class="chat-preview" *ngIf="hoveredLead === lead.id && leadChats[lead.id] && leadChats[lead.id].length > 0">
+                  <div [ngClass]="{
+                        'user': leadChats[lead.id][leadChats[lead.id].length - 1].role==='user',
+                        'assistant': leadChats[lead.id][leadChats[lead.id].length - 1].role==='assistant',
+                        'staff': leadChats[lead.id][leadChats[lead.id].length - 1].role==='staff'
+                      }">
+                    <strong>{{ leadChats[lead.id][leadChats[lead.id].length - 1].role }}</strong>: {{ leadChats[lead.id][leadChats[lead.id].length - 1].text }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="lead-actions">
+                <button class="chat-btn" (click)="openTakeover(lead)">Prevzemi pogovor</button>
+                <button class="delete-btn" (click)="deleteLead(lead, $event)" title="Izbriši lead">🗑️</button>
+              </div>
+            </div>
+          </div>
+
+          <section class="kpi-line" *ngIf="kpis">
+            <span>Aktivni leadi: <strong>{{ kpis.activeLeads }}</strong></span>
+            <span class="dot">•</span>
+            <span>Skupaj zajetih kontaktov: <strong>{{ kpis.contacts }}</strong></span>
+          </section>
+        </main>
+      </div>
+    </section>
+
+    <!-- TAB 2: Notes & Stages -->
+    <section *ngIf="activeTab==='notes'">
+      <h2>📓 Notes & Stage Tracking</h2>
+
+      <div class="notes-toolbar" *ngIf="rankedLeads.length > 0; else noLeads">
+        <label>
+          Lead/Session:
+          <select [(ngModel)]="selectedLeadSid" (ngModelChange)="selectLeadSid($event)">
+            <option *ngFor="let l of rankedLeads" [ngValue]="l.id">
+              {{ l.name }} — {{ l.industry }}
+            </option>
+          </select>
+        </label>
+        <small class="sid">sid: {{ selectedLeadSid }}</small>
+      </div>
+
+      <ng-container *ngIf="selectedLeadSid; else pickOne">
+        <ace-notes-table [sid]="selectedLeadSid"></ace-notes-table>
+      </ng-container>
+
+      <ng-template #pickOne>
+        <div class="empty">Izberite lead zgoraj, da uredite njegove zapiske.</div>
+      </ng-template>
+
+      <ng-template #noLeads>
+        <div class="empty">🚀 Še ni leadov, zato ni stage-ov ali notes-ov.</div>
+      </ng-template>
+    </section>
+
+    <!-- TAB 3: Surveys -->
+    <section *ngIf="activeTab==='flow'">
+      <app-survey-list></app-survey-list>
+    </section>
+  </div>
+</div>
+
+<!-- Takeover bottom panel -->
+<section class="takeover" *ngIf="takeoverOpen && takeoverLead">
+  <header class="takeover-header">
+    <div class="takeover-title">
+      Prevzem pogovora — {{ takeoverLead.name }} ({{ takeoverLead.industry }})
+      <span class="score">🔥 {{ takeoverLead.score }}</span>
+    </div>
+    <button class="close-btn" (click)="closeTakeover()">Zapri</button>
+  </header>
+
+  <div id="takeover-body" class="takeover-body">
+    <ng-container *ngIf="!takeoverLoading; else taking">
+      <div *ngIf="!leadChats[takeoverLead.id] || leadChats[takeoverLead.id].length === 0" class="empty">
+        Ni sporočil za ta pogovor.
+      </div>
+
+      <div *ngFor="let m of getVisibleThread(takeoverLead.id)">
+        <div class="bubble" [ngClass]="{'user': m.role==='user', 'assistant': m.role==='assistant', 'staff': m.role==='staff'}">
+          <div class="meta">
+            <strong>{{ m.role }}</strong>
+            <small>{{ formatAgo(m.timestamp) }}</small>
+          </div>
+          <div class="text">{{ m.text }}</div>
+        </div>
+      </div>
+
+      <div class="inline-input">
+        <input
+          type="text"
+          placeholder="Napiši sporočilo kot osebje…"
+          [(ngModel)]="takeoverInput"
+          (keyup.enter)="!takeoverSending && sendStaffMessage()"
+          [disabled]="takeoverSending"
+        />
+        <button class="send-btn" (click)="sendStaffMessage()" [disabled]="takeoverSending || !takeoverInput.trim()">
+          {{ takeoverSending ? 'Pošiljam…' : 'Pošlji' }}
+        </button>
+      </div>
+    </ng-container>
+    <ng-template #taking>
+      <div class="spinner">⏳ Nalagam pogovor…</div>
+    </ng-template>
+  </div>
+</section>

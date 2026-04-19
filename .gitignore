@@ -1,0 +1,36 @@
+classifiers
+models/
+venv/
+__pycache__/
+*.pt
+*.safetensors
+
+# Environment
+.env
+.env.*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.jsonl
+
+# Docker
+nginx/ssl/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Frontend
+node_modules/
+dist/
+.angular/
+
+# Backups
+*.sql
+*.tar.gz
+ace-mobile/
+frontend/manager-dashboard-BACKUP-*/
+.deploy-config

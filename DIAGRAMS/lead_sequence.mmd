@@ -1,0 +1,19 @@
+%% Created: 2026-03-14T20:44:39Z
+%% Lead qualification sequence for ACE Real Estate
+sequenceDiagram
+    participant U as User
+    participant FE as Survey Page (Angular)
+    participant BE as FastAPI API
+    participant LS as Lead Scoring
+    participant DB as PostgreSQL
+    participant OD as Operator Dashboard
+
+    U->>FE: Submit survey
+    FE->>BE: POST /leads (payload)
+    BE->>DB: Insert lead (status=pending)
+    BE->>LS: Score lead (async/sync)
+    LS-->>BE: score=0..100, qualifiers
+    BE->>DB: Update lead (score, status)
+    BE-->>FE: 200 Created + lead_id
+    BE-->>OD: WebSocket/event: "high-score lead"
+    OD->>BE: Operator engage (takeover)

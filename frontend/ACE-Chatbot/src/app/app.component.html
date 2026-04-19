@@ -1,0 +1,140 @@
+<section class="agent-hero">
+  <img class="agent-hero__photo" [src]="agentPhotoUrl" alt="{{agentName}}" />
+  <h1 class="agent-hero__title">{{ appMode === 'survey' && !surveyCompleted ? 'Complete a short questionnaire' : 'You are chatting with ' + agentName }}</h1>
+  <p class="agent-hero__subtitle">
+    {{ appMode === 'survey' && !surveyCompleted ? 'Help us understand your fitness goals and preferences so we can create the perfect training plan for you.' : 'This conversation helps us understand your fitness goals and recommend the best training approach for you.' }}
+  </p>
+</section>
+
+<!-- Survey Mode -->
+<div class="agent-page" *ngIf="appMode === 'survey'">
+  <ng-container *ngIf="surveyFlowKey">
+    <app-survey-form
+      *ngIf="surveyFlow"
+      [flow]="surveyFlow"
+      [sid]="sid"
+      [backendUrl]="backendUrl"
+      [orgSlug]="organizationSlug"
+      [surveySlug]="surveySlug"
+      (completed)="onSurveyCompleted()"
+      (paused)="onSurveyPaused()"
+    ></app-survey-form>
+  </ng-container>
+</div>
+
+<!-- Chat Mode -->
+<div class="agent-page" *ngIf="appMode === 'chat'">
+  <div class="chat-card">
+    <!-- 1) Scrollable messages (fixed box) -->
+    <div class="messages" #messagesRef>
+      <div
+        *ngFor="let m of messages"
+        class="msg"
+        [class.user]="m.role==='user'"
+        [class.typing]="m.typing"
+        [attr.data-id]="m._id"
+      >
+        <ng-container *ngIf="!m.typing; else typingTpl">
+          <!-- Plain text -->
+          <div *ngIf="m.text">{{ m.text }}</div>
+
+          <!-- Single image block -->
+          <figure *ngIf="m.image" class="msg-image">
+            <img
+              [src]="m.image.src"
+              alt="image"
+              loading="lazy"
+              (load)="onImgLoad(m.image!.src)"
+              (error)="onImgError($event, m.image!.src)"
+            />
+            <figcaption *ngIf="m.image.label">{{ m.image.label }}</figcaption>
+          </figure>
+
+          <!-- Gallery block -->
+          <div *ngIf="m.gallery?.length" class="gallery">
+            <img
+              *ngFor="let src of m.gallery; let i = index"
+              [src]="src"
+              [alt]="'gallery image ' + (i+1)"
+              loading="lazy"
+              (load)="onImgLoad(src)"
+              (error)="onImgError($event, src)"
+            />
+          </div>
+
+          <!-- Map block (embed by address) -->
+          <div *ngIf="m.map" class="map-embed">
+            <iframe
+              [src]="mapSrc(m.map.address)"
+              width="100%" height="240" style="border:0;" loading="lazy">
+            </iframe>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- 2) Quick replies -->
+    <div *ngIf="ui && ($any(ui).type === 'choices')" class="choices-row">
+      <div class="choices">
+        <button
+          *ngFor="let q of $any(ui).buttons"
+          type="button"
+          class="chip"
+          (click)="clickQuickReply(q)"
+          [disabled]="loading"
+        >
+          {{ q.title }}
+        </button>
+
+        <button type="button" class="chip alt-skip" (click)="skipToHuman()" [disabled]="loading">
+          Preskoči → 1-na-1
+        </button>
+      </div>
+    </div>
+
+    <!-- 3) Composer -->
+    <!-- Dual-contact composer -->
+    <form *ngIf="chatMode==='open' && ui?.inputType==='dual-contact'"
+          class="composer dual-input"
+          (ngSubmit)="sendContactDual(contactEmail.value, contactPhone.value)">
+      <div class="contact-capture"><input #contactEmail type="email" placeholder="Vaš e-mail" [disabled]="loading"/></div>
+      <div class="contact-capture"><input #contactPhone type="tel" placeholder="Telefon (+386 ...)" [disabled]="loading"/></div>
+      <div class="composer-actions">
+        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Preskoči</button>
+        <button type="submit" [disabled]="loading">Pošlji</button>
+      </div>
+    </form>
+
+    <!-- Dual open input -->
+    <form *ngIf="chatMode==='open' && ui?.inputType==='dual'"
+          class="composer dual-input"
+          (ngSubmit)="onSubmitSurvey(msgInput1, msgInput2)">
+      <input #msgInput1 type="text" placeholder="Odgovor 1" [disabled]="loading" />
+      <input #msgInput2 type="text" placeholder="Odgovor 2" [disabled]="loading" />
+      <div class="composer-actions">
+        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Preskoči</button>
+        <button type="submit" [disabled]="loading">Pošlji</button>
+      </div>
+    </form>
+
+    <!-- Single open input -->
+    <form *ngIf="chatMode==='open' && ui?.type!=='choices' && ui?.inputType!=='dual' && ui?.inputType!=='dual-contact'"
+          class="composer"
+          (ngSubmit)="onSubmitSingle(msgInput)">
+      <input #msgInput type="text" placeholder="Vnesite odgovor..." [disabled]="loading" />
+      <div class="composer-actions">
+        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Preskoči</button>
+        <button type="submit" [disabled]="loading">Pošlji</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<ng-template #typingTpl>
+  <div class="typing-dots-wrap">
+    <span class="typing-label" *ngIf="typingLabel">{{ typingLabel }}</span>
+    <div class="typing-dots">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+  </div>
+</ng-template>
