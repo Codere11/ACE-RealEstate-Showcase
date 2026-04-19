@@ -98,3 +98,10 @@ Lead responses are visible in the dashboard for filtering, prioritization, and t
 - Keep secrets out of git (`.env` is local-only)
 - Use `.env.example` as the template
 - Prefer `docker-compose-simple.yml` for onboarding and demos
+
+## Author
+Maks Ponikvar
+
+## Contact
+- Email: `maks.ponikvar@gmail.com`
+- GitHub: `https://github.com/Codere11`
