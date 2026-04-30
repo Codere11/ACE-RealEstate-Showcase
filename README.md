@@ -1,12 +1,18 @@
 <!-- Created: 2026-03-14T20:44:39Z -->
 # ACE Real Estate
-A multi-tenant lead qualification platform for real-estate teams.  
-This project demonstrates end-to-end product engineering: backend architecture, multi-app frontend setup, event-driven handoff, and containerized local deployment.
+A multi-tenant real-estate lead qualification platform with a customer chatbot, manager dashboard, and tenant-aware backend.  
+It demonstrates end-to-end product engineering: multi-app frontend architecture, DB-backed configuration, AI-assisted qualification, event-driven handoff, and containerized local deployment.
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
 ![Angular](https://img.shields.io/badge/Angular-Frontend-DD0031?logo=angular&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Local%20Stack-2496ED?logo=docker&logoColor=white)
+
+## At a Glance
+- **Built now:** manager-driven AI qualifier MVP with open chat mode, structured lead extraction, deterministic scoring, and dashboard visibility
+- **Architecture:** FastAPI + PostgreSQL backend, Angular chatbot + manager dashboard, Dockerized local stack
+- **Why it matters:** shows how to design a configurable, multi-tenant product instead of a one-off chatbot demo
+- **In progress:** 🚧 V izdelavi: LangChain AI kvalifikacija
 
 ## Problem
 Real-estate teams lose time and revenue when inbound leads are qualified manually and followed up too late.
