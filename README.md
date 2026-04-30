@@ -11,6 +11,11 @@ This project demonstrates end-to-end product engineering: backend architecture, 
 ## Problem
 Real-estate teams lose time and revenue when inbound leads are qualified manually and followed up too late.
 
+## Update
+- ✅ Manager-driven AI qualifier MVP is now integrated into the product
+- 🚧 V izdelavi: LangChain AI kvalifikacija
+- 🚧 Next up: grounded listing/retrieval answers and non-intrusive takeover/video escalation
+
 ## Solution
 ACE Real Estate automates intake, qualification, and routing:
 - Customer-facing chatbot can run either survey intake or open AI qualification
