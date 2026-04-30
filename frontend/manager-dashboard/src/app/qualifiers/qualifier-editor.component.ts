@@ -73,15 +73,24 @@ type TrackedField = { name: string; type: 'string' | 'boolean' | 'array' | 'numb
             <span>What should the agent capture?</span>
             <button type="button" class="btn-secondary" (click)="addField()">+ Add field</button>
           </div>
+          <div class="field-builder__columns" *ngIf="trackedFields.length">
+            <span>Field</span>
+            <span>Answer format</span>
+            <span>Required</span>
+            <span></span>
+          </div>
           <div class="field-row" *ngFor="let field of trackedFields; let i = index">
             <input [(ngModel)]="field.name" placeholder="field name (e.g. budget)" />
-            <select [(ngModel)]="field.type">
-              <option value="string">string</option>
-              <option value="boolean">boolean</option>
-              <option value="array">array</option>
-              <option value="number">number</option>
-            </select>
-            <label class="req-toggle"><input type="checkbox" [(ngModel)]="field.required" /> required</label>
+            <div class="field-type-wrap">
+              <select class="field-type-select" [(ngModel)]="field.type">
+                <option value="string">Text answer</option>
+                <option value="boolean">Yes / No</option>
+                <option value="array">List / multiple items</option>
+                <option value="number">Number</option>
+              </select>
+              <div class="field-type-hint">{{ fieldTypeHint(field.type) }}</div>
+            </div>
+            <label class="req-toggle"><input type="checkbox" [(ngModel)]="field.required" /> <span>required</span></label>
             <button type="button" class="btn-close small" (click)="removeField(i)">✕</button>
           </div>
         </div>
@@ -138,15 +147,24 @@ type TrackedField = { name: string; type: 'string' | 'boolean' | 'array' | 'numb
     .grid.three{ grid-template-columns:1fr 1fr 1fr; }
     label{ display:flex; flex-direction:column; gap:6px; font-size:13px; color:#374151; }
     span{ font-weight:600; }
-    input, textarea{ width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; }
+    input, textarea, select{ width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; box-sizing:border-box; background:#fff; }
     textarea{ resize:vertical; }
     .checkline{ flex-direction:row; align-items:center; gap:10px; padding-top:26px; }
     .checkline input{ width:auto; }
-    .field-builder{ border:1px solid #e5e7eb; border-radius:10px; padding:14px; background:#fafafa; }
+    .field-builder{ border:1px solid #e5e7eb; border-radius:10px; padding:14px; background:#fafafa; overflow:hidden; }
     .field-builder__header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-weight:700; }
-    .field-row{ display:grid; grid-template-columns: 2fr 1fr auto auto; gap:10px; align-items:center; margin-bottom:10px; }
-    .req-toggle{ flex-direction:row; align-items:center; gap:8px; }
-    .small{ font-size:16px; padding:4px 8px; }
+    .field-builder__columns,
+    .field-row{ display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(0, 1.2fr) 110px 40px; gap:10px; align-items:start; }
+    .field-builder__columns{ margin-bottom:8px; color:#6b7280; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .field-row{ margin-bottom:10px; padding:10px; background:#fff; border:1px solid #e5e7eb; border-radius:10px; }
+    .field-row > input{ min-width:0; }
+    .field-type-wrap{ min-width:0; }
+    .field-type-select{ appearance:none; -webkit-appearance:none; -moz-appearance:none; padding-right:36px; background-image:linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%); background-position:calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px); background-size:6px 6px, 6px 6px; background-repeat:no-repeat; }
+    .field-type-hint{ margin-top:4px; font-size:12px; line-height:1.35; color:#6b7280; }
+    .req-toggle{ flex-direction:row; align-items:center; justify-self:start; gap:8px; white-space:nowrap; padding-top:10px; }
+    .req-toggle input{ width:auto; }
+    .req-toggle span{ font-weight:500; }
+    .small{ font-size:16px; padding:4px 8px; justify-self:end; align-self:start; }
     details{ border:1px solid #e5e7eb; border-radius:8px; padding:12px; background:#fafafa; }
     summary{ cursor:pointer; font-weight:700; margin-bottom:10px; }
     .actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
@@ -156,6 +174,12 @@ type TrackedField = { name: string; type: 'string' | 'boolean' | 'array' | 'numb
     .btn-close{ background:transparent; font-size:22px; padding:2px 8px; }
     .error{ color:#b91c1c; background:#fee2e2; padding:10px 12px; border-radius:8px; }
     .success{ color:#166534; background:#dcfce7; padding:10px 12px; border-radius:8px; }
+    @media (max-width: 820px){
+      .grid.two, .grid.three{ grid-template-columns:1fr; }
+      .field-builder__columns{ display:none; }
+      .field-row{ grid-template-columns:1fr; }
+      .req-toggle{ white-space:normal; }
+    }
   `]
 })
 export class QualifierEditorComponent implements OnChanges {
@@ -236,6 +260,20 @@ export class QualifierEditorComponent implements OnChanges {
 
   removeField(index: number) {
     this.trackedFields = this.trackedFields.filter((_, i) => i !== index);
+  }
+
+  fieldTypeHint(type: TrackedField['type']): string {
+    switch (type) {
+      case 'boolean':
+        return 'Best for yes/no signals like “asked for human help”.';
+      case 'array':
+        return 'Best when the agent may capture multiple items, like objections or preferred areas.';
+      case 'number':
+        return 'Best for values like budget amount, room count, or square meters.';
+      case 'string':
+      default:
+        return 'Best for normal text like budget range, timeline, location, or intent.';
+    }
   }
 
   generatedFieldSchemaText(): string {
