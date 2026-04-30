@@ -19,6 +19,7 @@ from app.models.chat import ChatRequest, SurveyRequest, SurveySubmitRequest, Sta
 from app.models.orm import Survey, Organization
 from app.services import lead_service, chat_store, event_bus, takeover
 from app.services import scoring_service
+from app.services.qualifier_service import service as qualifier_service, QualificationResult
 
 logger = logging.getLogger("ace.api.chat")
 router = APIRouter()
@@ -52,9 +53,71 @@ def make_response(
 def get_node_by_id(node_id: str) -> Dict[str, Any] | None:
     return next((n for n in FLOW["nodes"] if n["id"] == node_id), None)
 
+async def _publish_qualifier_events(sid: str, q: QualificationResult | None):
+    if not q:
+        return
+    try:
+        await event_bus.publish(sid, "lead.profile.updated", {
+            "profile": q.profile,
+            "field_confidence": q.field_confidence,
+            "confidence_overall": q.confidence_overall,
+            "missing_fields": q.missing_fields,
+            "qualifier_id": q.qualifier_id,
+            "qualifier_version": q.qualifier_version,
+        })
+        await event_bus.publish(sid, "lead.qualified", {
+            "qualification_score": q.qualification_score,
+            "qualification_band": q.qualification_band,
+            "reasoning": q.reasoning,
+            "recommended_next_action": q.recommended_next_action,
+            "takeover_eligible": q.takeover_eligible,
+            "video_offer_eligible": q.video_offer_eligible,
+            "confidence_overall": q.confidence_overall,
+            "qualifier_id": q.qualifier_id,
+            "qualifier_version": q.qualifier_version,
+        })
+        if q.takeover_eligible:
+            await event_bus.publish(sid, "takeover.offered", {
+                "mode": "text_or_video" if q.video_offer_eligible else "text",
+                "reason": q.recommended_next_action,
+                "video_offer_eligible": q.video_offer_eligible,
+            })
+        if q.video_offer_eligible:
+            await event_bus.publish(sid, "video.offer.created", {
+                "offer_origin": "qualifier",
+                "rep_available": True,
+                "cta_label": "Talk now",
+                "expires_in_sec": 300,
+            })
+    except Exception:
+        logger.exception("qualifier event publish failed sid=%s", sid)
+
+
+def _attach_qualifier_meta(result: dict, q: QualificationResult | None) -> dict:
+    if not q:
+        return result
+    result["qualifier"] = {
+        "band": q.qualification_band,
+        "confidence": q.confidence_overall,
+        "takeoverEligible": q.takeover_eligible,
+        "videoOfferEligible": q.video_offer_eligible,
+        "reasoning": q.reasoning,
+    }
+    result["takeover"] = {
+        "eligible": q.takeover_eligible,
+        "videoEligible": q.video_offer_eligible,
+        "offerState": "available" if q.takeover_eligible else "hidden",
+    }
+    return result
+
+
 def _trace(sid: str, stage: str, node_id: str | None, state: dict, msg: str = ""):
     logger.info("[FLOW] sid=%s %s node=%s waiting_input=%s awaiting_node=%s msg='%s'",
                 sid, stage, node_id, state.get("waiting_input"), state.get("awaiting_node"), msg)
+
+
+def _build_qualifier_reply(q: QualificationResult, message: str) -> str:
+    return (q.assistant_reply or "Razumem. Nadaljujeva v prostem pogovoru — povej mi čim bolj konkretno, kaj iščeš, kakšen je okviren budget in kako hitro želiš ukrepati, jaz pa te usmerim naprej ali povežem z agentom.").strip()
 
 def _ensure_lead(sid: str):
     leads = lead_service.get_all_leads()
@@ -188,9 +251,10 @@ def handle_flow(req: ChatRequest, flow_sessions: Dict[str, Dict[str, Any]]) -> d
     msg = (req.message or "").strip()
 
     if sid not in flow_sessions:
-        flow_sessions[sid] = {"node": "welcome"}
-        node = get_node_by_id("welcome")
-        _trace(sid, "init", "welcome", flow_sessions[sid], msg)
+        start_node = FLOW.get("start") or "welcome"
+        flow_sessions[sid] = {"node": start_node}
+        node = get_node_by_id(start_node)
+        _trace(sid, "init", start_node, flow_sessions[sid], msg)
         return format_node(node, story_complete=False)
 
     state = flow_sessions[sid]
@@ -321,7 +385,7 @@ def format_node(node: Dict[str, Any] | None, story_complete: bool) -> Dict[str, 
 FLOW_SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 # ---------------- Route impls ----------------
-async def _chat_impl(req: ChatRequest):
+async def _chat_impl(req: ChatRequest, db: Session | None = None):
     sid = req.sid
     message = (req.message or "").strip()
     logger.info("POST /chat sid=%s len=%d", sid, len(message or ""))
@@ -386,12 +450,35 @@ async def _chat_impl(req: ChatRequest):
         logger.exception("persist/publish user message failed sid=%s", sid)
         raise
 
+    q_result: QualificationResult | None = None
+    if db is not None:
+        try:
+            q_result = qualifier_service.qualify_message(
+                db,
+                sid=sid,
+                message=message,
+                tenant_slug=req.tenant_slug,
+                meta=req.meta,
+                trigger="user_message",
+            )
+            await _publish_qualifier_events(sid, q_result)
+        except Exception:
+            logger.exception("qualifier runtime failed sid=%s", sid)
+
     if takeover.is_active(sid):
         logger.info("human-mode active sid=%s -> skipping bot", sid)
         return make_response(reply=None, ui={"openInput": True}, chat_mode="open", story_complete=False)
 
     try:
-        result = handle_flow(req, FLOW_SESSIONS)
+        if q_result is not None:
+            result = make_response(
+                reply=_build_qualifier_reply(q_result, message),
+                ui={"openInput": True, "inputType": "single"},
+                chat_mode="open",
+                story_complete=False,
+            )
+        else:
+            result = handle_flow(req, FLOW_SESSIONS)
     except Exception:
         logger.exception("flow error sid=%s", sid)
         raise
@@ -405,19 +492,20 @@ async def _chat_impl(req: ChatRequest):
         except Exception:
             logger.exception("persist/publish assistant message failed sid=%s", sid)
 
+    result = _attach_qualifier_meta(result, q_result)
     logger.info("POST /chat sid=%s done reply_len=%d", sid, len(reply_text))
     return result
 
 @router.post("/", name="chat")
-async def chat(req: ChatRequest):
-    return await _chat_impl(req)
+async def chat(req: ChatRequest, db: Session = Depends(get_db)):
+    return await _chat_impl(req, db)
 
 @router.post("", include_in_schema=False, name="chat_no_slash")
-async def chat_no_slash(req: ChatRequest):
-    return await _chat_impl(req)
+async def chat_no_slash(req: ChatRequest, db: Session = Depends(get_db)):
+    return await _chat_impl(req, db)
 
 # ---- stream ----
-async def _chat_stream_impl(req: ChatRequest):
+async def _chat_stream_impl(req: ChatRequest, db: Session | None = None):
     sid = req.sid
     message = (req.message or "").strip()
     logger.info("POST /chat/stream sid=%s len=%d", sid, len(message or ""))
@@ -492,6 +580,20 @@ async def _chat_stream_impl(req: ChatRequest):
     except Exception:
         logger.exception("persist/publish user message failed (stream) sid=%s", sid)
 
+    if db is not None:
+        try:
+            q_result = qualifier_service.qualify_message(
+                db,
+                sid=sid,
+                message=message,
+                tenant_slug=req.tenant_slug,
+                meta=req.meta,
+                trigger="user_message",
+            )
+            await _publish_qualifier_events(sid, q_result)
+        except Exception:
+            logger.exception("qualifier runtime failed (stream) sid=%s", sid)
+
     if takeover.is_active(sid):
         logger.info("human-mode active sid=%s -> streaming notice", sid)
         async def human_notice2():
@@ -499,7 +601,15 @@ async def _chat_stream_impl(req: ChatRequest):
         return StreamingResponse(human_notice2(), media_type="text/plain; charset=utf-8")
 
     try:
-        result = handle_flow(req, FLOW_SESSIONS)
+        if q_result is not None:
+            result = make_response(
+                reply=_build_qualifier_reply(q_result, message),
+                ui={"openInput": True, "inputType": "single"},
+                chat_mode="open",
+                story_complete=False,
+            )
+        else:
+            result = handle_flow(req, FLOW_SESSIONS)
     except Exception:
         logger.exception("flow error (stream) sid=%s", sid)
         raise
@@ -530,12 +640,12 @@ async def _chat_stream_impl(req: ChatRequest):
     return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8")
 
 @router.post("/stream", name="chat_stream")
-async def chat_stream(req: ChatRequest):
-    return await _chat_stream_impl(req)
+async def chat_stream(req: ChatRequest, db: Session = Depends(get_db)):
+    return await _chat_stream_impl(req, db)
 
 @router.post("/stream/", include_in_schema=False, name="chat_stream_slash")
-async def chat_stream_slash(req: ChatRequest):
-    return await _chat_stream_impl(req)
+async def chat_stream_slash(req: ChatRequest, db: Session = Depends(get_db)):
+    return await _chat_stream_impl(req, db)
 
 # ---- survey (notes only) ----
 async def _survey_impl(body: SurveyRequest):

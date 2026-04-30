@@ -44,8 +44,13 @@ export class ChatService {
     console.debug('[FE][ChatService] init', { base: this.base });
   }
 
-  chat(sid: string, message: string, firstVisit = false) {
-    const payload = { sid, message };
+  chat(sid: string, message: string, firstVisit = false, tenant_slug?: string | null) {
+    const payload = {
+      sid,
+      message,
+      tenant_slug: tenant_slug ?? null,
+      meta: { organization_slug: tenant_slug ?? null }
+    };
     console.debug('[FE][ChatService] POST /chat/ payload', payload);
     return this.http.post<ChatResponse>(`${this.base}/chat/`, payload).pipe(
       tap({

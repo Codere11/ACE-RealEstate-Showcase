@@ -8,12 +8,13 @@ import { DashboardService, Lead, KPIs, Funnel, ChatLog } from './services/dashbo
 import { AuthService } from './services/auth.service';
 import { NotesTableComponent } from './notes-table/notes-table.component';
 import { LiveEventsService, ChatEvent } from './services/live-events.service';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin, of } from 'rxjs';
 import { Router } from '@angular/router';
 // ✅ Flow Designer
 import { SimpleSurveyBuilderComponent } from './simple-survey-builder/simple-survey-builder.component';
 import { SurveyAnswersComponent } from './survey-answers/survey-answers.component';
 import { SurveyListComponent } from './surveys/survey-list.component';
+import { QualifierListComponent } from './qualifiers/qualifier-list.component';
 
 const SELECT_KEY = 'ace_notes_selected_lead_sid';
 
@@ -27,7 +28,8 @@ const SELECT_KEY = 'ace_notes_selected_lead_sid';
     RouterModule,
     NotesTableComponent,
     SurveyAnswersComponent,
-    SurveyListComponent
+    SurveyListComponent,
+    QualifierListComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
@@ -35,7 +37,7 @@ const SELECT_KEY = 'ace_notes_selected_lead_sid';
 export class AppComponent implements OnInit, OnDestroy {
   private LOG = true; // flip to false to silence logs
 
-  activeTab: 'leads' | 'notes' | 'flow' | 'chats' = 'leads';
+  activeTab: 'leads' | 'notes' | 'flow' | 'qualifiers' | 'chats' = 'leads';
 
   // --- Logos + menu ---
   clientLogoUrl = '/assets/client-logo.png';
@@ -183,6 +185,48 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
 
+      if (type === 'lead.profile.updated') {
+        const idx = this.rankedLeads.findIndex(l => l.id === sid);
+        if (idx >= 0) {
+          const lead = { ...this.rankedLeads[idx] };
+          if (payload?.profile != null) lead.qualifier_profile = payload.profile;
+          if (payload?.missing_fields != null) lead.qualifier_missing_fields = payload.missing_fields;
+          if (payload?.confidence_overall != null) lead.qualification_confidence = payload.confidence_overall;
+          this.rankedLeads = [
+            ...this.rankedLeads.slice(0, idx),
+            lead,
+            ...this.rankedLeads.slice(idx + 1),
+          ];
+          this.applyFilters();
+          this.log('live: lead.profile.updated applied', sid);
+        } else {
+          this.fetchLeads();
+        }
+      }
+
+      if (type === 'lead.qualified') {
+        const idx = this.rankedLeads.findIndex(l => l.id === sid);
+        if (idx >= 0) {
+          const lead = { ...this.rankedLeads[idx] };
+          if (payload?.qualification_score != null) lead.score = payload.qualification_score;
+          if (payload?.qualification_band != null) lead.qualification_band = payload.qualification_band;
+          if (payload?.reasoning != null) lead.qualification_reasoning = payload.reasoning;
+          if (payload?.confidence_overall != null) lead.qualification_confidence = payload.confidence_overall;
+          if (payload?.recommended_next_action != null) lead.recommended_next_action = payload.recommended_next_action;
+          if (payload?.takeover_eligible != null) lead.takeover_eligible = payload.takeover_eligible;
+          if (payload?.video_offer_eligible != null) lead.video_offer_eligible = payload.video_offer_eligible;
+          this.rankedLeads = [
+            ...this.rankedLeads.slice(0, idx),
+            lead,
+            ...this.rankedLeads.slice(idx + 1),
+          ].sort((a, b) => b.score - a.score);
+          this.applyFilters();
+          this.log('live: lead.qualified applied', sid);
+        } else {
+          this.fetchLeads();
+        }
+      }
+
       if (type === 'lead.notes' || type === 'lead.ai_summary') {
         const idx = this.rankedLeads.findIndex(l => l.id === sid);
         if (idx >= 0) {
@@ -297,12 +341,32 @@ export class AppComponent implements OnInit, OnDestroy {
   fetchLeads() {
     this.loadingLeads = true;
     this.log('fetchLeads()');
-    this.dashboardService.getLeads().subscribe({
-      next: data => {
+    forkJoin({
+      leads: this.dashboardService.getLeads(),
+      profiles: this.dashboardService.getLeadProfiles(),
+    }).subscribe({
+      next: ({ leads, profiles }) => {
         const prevSel = this.selectedLeadSid;
-        
-        // Just use scores from backend directly
-        this.rankedLeads = data.sort((a, b) => b.score - a.score);
+        const profileMap = new Map((profiles || []).map(p => [p.sid, p]));
+
+        const merged = (leads || []).map(lead => {
+          const p = profileMap.get(lead.id);
+          if (!p) return lead;
+          return {
+            ...lead,
+            score: Math.max(lead.score || 0, p.qualification_score || 0),
+            qualification_band: p.qualification_band,
+            qualification_confidence: p.confidence_overall,
+            qualification_reasoning: p.reasoning,
+            recommended_next_action: p.recommended_next_action,
+            takeover_eligible: p.takeover_eligible,
+            video_offer_eligible: p.video_offer_eligible,
+            qualifier_profile: p.profile,
+            qualifier_missing_fields: p.missing_fields,
+          };
+        });
+
+        this.rankedLeads = merged.sort((a, b) => b.score - a.score);
         this.log('fetchLeads ok ->', this.rankedLeads.length);
 
         const exists = this.rankedLeads.some(l => l.id === prevSel);

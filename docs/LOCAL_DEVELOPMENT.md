@@ -15,7 +15,9 @@ cp .env.example .env
 
 Minimum fields to review in `.env`:
 - `DATABASE_URL`
-- `DEEPSEEK_API_KEY`
+- `OPENAI_API_KEY`
+- `ACE_LLM_PROVIDER`
+- `ACE_LLM_MODEL`
 - `ACE_SECRET`
 - `ACE_LOG_LEVEL`
 - `ACE_ENFORCE_DUAL_CONTACT`
@@ -33,6 +35,11 @@ docker compose -f docker-compose-simple.yml up -d --build
 - Chatbot frontend: `http://localhost:4200`
 - Manager dashboard: `http://localhost:4400`
 - Admin portal: `http://localhost:4500`
+
+Useful demo routes:
+- Demo chatbot org route: `http://localhost:4200/demo-agency/nepremicnine`
+- Manager login: `http://localhost:4400/login`
+- Demo manager credentials: `admin / test123`
 
 ## 4) Health Checks
 Quick checks:
@@ -73,6 +80,15 @@ docker compose -f docker-compose-simple.yml down
 - Local PostgreSQL is mapped in Docker volume `postgres_data`
 - Keep secrets out of git
 - Use `.env.example` as baseline for sharing config
+- The AI qualifier is DB-backed and can be seeded for local demo/testing
+
+Seed the default demo qualifier:
+
+```bash
+docker compose -f docker-compose-simple.yml exec backend python scripts/seed_default_qualifier.py
+```
+
+The chatbot will switch to open qualifier mode automatically when a live qualifier exists for the organization.
 
 ## 7) Alternative Compose Files
 - `docker-compose-simple.yml`: easiest full-stack local run

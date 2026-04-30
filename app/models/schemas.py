@@ -107,6 +107,119 @@ class SurveyResponse(SurveyBase):
         from_attributes = True
 
 
+# ---------- Qualifier Schemas ----------
+class QualifierBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=160)
+    slug: str = Field(..., min_length=1, max_length=80)
+    status: Literal["draft", "live", "archived"] = "draft"
+    system_prompt: str = ""
+    assistant_style: str = "friendly, concise, consultative"
+    goal_definition: str = ""
+    field_schema: Optional[Dict[str, Any]] = None
+    required_fields: Optional[List[str]] = None
+    scoring_rules: Optional[Dict[str, Any]] = None
+    band_thresholds: Optional[Dict[str, Any]] = None
+    confidence_thresholds: Optional[Dict[str, Any]] = None
+    takeover_rules: Optional[Dict[str, Any]] = None
+    video_offer_rules: Optional[Dict[str, Any]] = None
+    rag_enabled: bool = False
+    knowledge_source_ids: Optional[List[Any]] = None
+    max_clarifying_questions: int = Field(default=3, ge=0, le=20)
+    contact_capture_policy: str = Field(default="when_high_intent_or_explicit", max_length=64)
+    version: int = Field(default=1, ge=1)
+    version_notes: str = ""
+
+
+class QualifierCreate(QualifierBase):
+    organization_id: int
+
+
+class QualifierUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=160)
+    slug: Optional[str] = Field(None, min_length=1, max_length=80)
+    status: Optional[Literal["draft", "live", "archived"]] = None
+    system_prompt: Optional[str] = None
+    assistant_style: Optional[str] = None
+    goal_definition: Optional[str] = None
+    field_schema: Optional[Dict[str, Any]] = None
+    required_fields: Optional[List[str]] = None
+    scoring_rules: Optional[Dict[str, Any]] = None
+    band_thresholds: Optional[Dict[str, Any]] = None
+    confidence_thresholds: Optional[Dict[str, Any]] = None
+    takeover_rules: Optional[Dict[str, Any]] = None
+    video_offer_rules: Optional[Dict[str, Any]] = None
+    rag_enabled: Optional[bool] = None
+    knowledge_source_ids: Optional[List[Any]] = None
+    max_clarifying_questions: Optional[int] = Field(default=None, ge=0, le=20)
+    contact_capture_policy: Optional[str] = Field(default=None, max_length=64)
+    version: Optional[int] = Field(default=None, ge=1)
+    version_notes: Optional[str] = None
+
+
+class QualifierResponse(QualifierBase):
+    id: int
+    organization_id: int
+    created_at: datetime
+    updated_at: datetime
+    published_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class LeadProfileResponse(BaseModel):
+    id: int
+    organization_id: int
+    sid: str
+    qualifier_id: Optional[int] = None
+    qualifier_version: int
+    profile: Optional[Dict[str, Any]] = None
+    field_confidence: Optional[Dict[str, float]] = None
+    qualification_score: int
+    qualification_band: Literal["hot", "warm", "cold"]
+    confidence_overall: float
+    reasoning: str = ""
+    recommended_next_action: str = ""
+    missing_fields: Optional[List[str]] = None
+    takeover_eligible: bool = False
+    video_offer_eligible: bool = False
+    last_qualified_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class QualifierRunResponse(BaseModel):
+    id: int
+    organization_id: int
+    sid: str
+    qualifier_id: Optional[int] = None
+    qualifier_version: int
+    trigger: str
+    input_message_ids: Optional[List[Any]] = None
+    input_excerpt: str = ""
+    output_profile_patch: Optional[Dict[str, Any]] = None
+    score_before: Optional[int] = None
+    score_after: Optional[int] = None
+    band_before: Optional[Literal["hot", "warm", "cold"]] = None
+    band_after: Optional[Literal["hot", "warm", "cold"]] = None
+    confidence_overall: float
+    reasoning: str = ""
+    takeover_eligible: bool = False
+    video_offer_eligible: bool = False
+    model_name: Optional[str] = None
+    latency_ms: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
 class SurveyStats(BaseModel):
     """Statistics for a survey"""
     survey_id: int

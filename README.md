@@ -13,9 +13,9 @@ Real-estate teams lose time and revenue when inbound leads are qualified manuall
 
 ## Solution
 ACE Real Estate automates intake, qualification, and routing:
-- Customer-facing chatbot/survey collects lead data
-- Backend scores and stores leads
-- Manager dashboard gets real-time high-value lead signals
+- Customer-facing chatbot can run either survey intake or open AI qualification
+- Backend scores, stores, and continuously enriches lead profiles
+- Manager dashboard gets real-time high-value lead signals and qualifier reasoning
 - Admin portal manages tenant-specific configuration
 
 ## Tech Stack
@@ -49,18 +49,34 @@ Use the simplified compose setup for local development:
    - Admin portal: `http://localhost:4500`
    - API docs: `http://localhost:8000/docs`
 
+## AI Qualifier Snapshot
+The current first-step AI qualifier implementation adds a manager-driven, DB-backed qualification system:
+- live qualifier per organization
+- free-text chat mode when a live qualifier exists
+- LangGraph-style runtime: `extract -> score -> reply`
+- LLM extraction + LLM reply generation
+- deterministic lead scoring / banding / takeover flags
+- manager dashboard editor for qualifier goals, tone, fields, and thresholds
+- manager lead view with score, confidence, reasoning, takeover/video eligibility
+
+See also:
+- `docs/AI_QUALIFIER_SPEC.md`
+- `docs/DATA_CONTRACTS.md`
+- `docs/EVENTS.md`
+- `docs/VIDEO_TAKEOVER_SPEC.md`
+
 ## Product Demo
 ### 1) Survey Intake
 ![Survey intake screen](docs/media/chatbot-survey-screen.png)
-User starts with a short property questionnaire to capture intent and preferences.
+User can still start with a short property questionnaire when no active AI qualifier is configured.
 
-### 2) Chat Follow-up
+### 2) Open AI Qualification Chat
 ![Chat follow-up screen](docs/media/chatbot-chat-screen.png)
-After intake, the flow moves into chat for qualification and next-step coordination.
+When an organization has a live qualifier, the chatbot starts directly in free-text mode and qualifies the lead conversationally.
 
 ### 3) Manager Dashboard
 ![Manager dashboard screen](docs/media/dashboard-leads-screen.png)
-Lead responses are visible in the dashboard for filtering, prioritization, and takeover.
+Managers can configure qualifiers and inspect lead profile quality, confidence, reasoning, and takeover status.
 
 ### 4) Screencast (1 minute)
 - [Watch product walkthrough video (WebM)](docs/media/ace-demo-1min.webm)
@@ -82,6 +98,10 @@ Lead responses are visible in the dashboard for filtering, prioritization, and t
 - Architecture diagrams: `ARCHITECTURE.md`
 - Local setup and runbook: `docs/LOCAL_DEVELOPMENT.md`
 - API route map: `docs/API_OVERVIEW.md`
+- AI qualifier spec: `docs/AI_QUALIFIER_SPEC.md`
+- AI qualifier data contracts: `docs/DATA_CONTRACTS.md`
+- Qualifier/takeover events: `docs/EVENTS.md`
+- Video takeover spec: `docs/VIDEO_TAKEOVER_SPEC.md`
 - Recruiter/product presentation guide: `docs/PROJECT_PRESENTATION.md`
 - GitHub launch pack (profile + pinned repo text): `docs/GITHUB_LAUNCH_PACK.md`
 - Archived legacy docs: `docs/archive/README.md`

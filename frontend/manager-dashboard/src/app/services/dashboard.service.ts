@@ -1,8 +1,30 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
+import { AuthService } from './auth.service';
 
 // Types
+export type LeadProfile = {
+  id: number;
+  organization_id: number;
+  sid: string;
+  qualifier_id?: number | null;
+  qualifier_version: number;
+  profile?: Record<string, any> | null;
+  field_confidence?: Record<string, number> | null;
+  qualification_score: number;
+  qualification_band: 'hot' | 'warm' | 'cold';
+  confidence_overall: number;
+  reasoning: string;
+  recommended_next_action: string;
+  missing_fields?: string[] | null;
+  takeover_eligible: boolean;
+  video_offer_eligible: boolean;
+  last_qualified_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -27,6 +49,16 @@ export type Lead = {
   survey_completed_at?: string | null;
   survey_answers?: Record<string, any> | null;
   survey_progress?: number;
+
+  // AI qualifier fields
+  qualification_band?: 'hot' | 'warm' | 'cold';
+  qualification_confidence?: number;
+  qualification_reasoning?: string;
+  recommended_next_action?: string;
+  takeover_eligible?: boolean;
+  video_offer_eligible?: boolean;
+  qualifier_profile?: Record<string, any> | null;
+  qualifier_missing_fields?: string[] | null;
 };
 
 export type KPIs = {
@@ -57,7 +89,14 @@ export type ChatLog = {
 export class DashboardService {
   private baseUrl = 'http://127.0.0.1:8000';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
+
+  private getOrgId(): number {
+    return this.authService.getCurrentUser()?.organization_id || 1;
+  }
 
   getLeads(): Observable<Lead[]> {
     return this.http.get<Lead[]>(`${this.baseUrl}/leads/`).pipe(
@@ -97,6 +136,11 @@ export class DashboardService {
   /** Send a STAFF message (dashboard takeover) -> persisted as role=staff */
   sendStaffMessage(sid: string, text: string): Observable<{ ok: boolean; message?: ChatLog }> {
     return this.http.post<{ ok: boolean; message?: ChatLog }>(`${this.baseUrl}/chat/staff`, { sid, text });
+  }
+
+  getLeadProfiles(): Observable<LeadProfile[]> {
+    const orgId = this.getOrgId();
+    return this.http.get<LeadProfile[]>(`${this.baseUrl}/api/organizations/${orgId}/qualifiers/lead-profiles`);
   }
 
   /** Delete a lead by ID */

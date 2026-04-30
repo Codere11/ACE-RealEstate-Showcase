@@ -6,6 +6,10 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
+from app.core.env import load_local_env
+
+load_local_env()
+
 # --- Connection string
 DATABASE_URL = os.getenv(
     "DATABASE_URL",

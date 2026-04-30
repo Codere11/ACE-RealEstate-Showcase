@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -90,6 +91,15 @@ class Organization(Base):
     leads: Mapped[list["Lead"]] = relationship(
         "Lead", back_populates="organization", cascade="all, delete-orphan"
     )
+    qualifiers: Mapped[list["Qualifier"]] = relationship(
+        "Qualifier", back_populates="organization", cascade="all, delete-orphan"
+    )
+    lead_profiles: Mapped[list["LeadProfile"]] = relationship(
+        "LeadProfile", back_populates="organization", cascade="all, delete-orphan"
+    )
+    qualifier_runs: Mapped[list["QualifierRun"]] = relationship(
+        "QualifierRun", back_populates="organization", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("ix_organizations_active_slug", "active", "slug"),
@@ -142,6 +152,133 @@ class Survey(Base):
         CheckConstraint("status IN ('draft', 'live', 'archived')", name="chk_surveys_status"),
         UniqueConstraint("organization_id", "slug", name="uq_surveys_org_slug"),
         Index("ix_surveys_org_status", "organization_id", "status"),
+    )
+
+
+# ---------- AI Qualifiers ----------
+class Qualifier(Base):
+    __tablename__ = "qualifiers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(160), index=True)
+    slug: Mapped[str] = mapped_column(String(80), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="draft")
+
+    system_prompt: Mapped[str] = mapped_column(Text, default="")
+    assistant_style: Mapped[str] = mapped_column(String(255), default="friendly, concise, consultative")
+    goal_definition: Mapped[str] = mapped_column(Text, default="")
+    field_schema: Mapped[Optional[dict]] = mapped_column(JSON)
+    required_fields: Mapped[Optional[list]] = mapped_column(JSON)
+    scoring_rules: Mapped[Optional[dict]] = mapped_column(JSON)
+    band_thresholds: Mapped[Optional[dict]] = mapped_column(JSON)
+    confidence_thresholds: Mapped[Optional[dict]] = mapped_column(JSON)
+    takeover_rules: Mapped[Optional[dict]] = mapped_column(JSON)
+    video_offer_rules: Mapped[Optional[dict]] = mapped_column(JSON)
+    rag_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    knowledge_source_ids: Mapped[Optional[list]] = mapped_column(JSON)
+    max_clarifying_questions: Mapped[int] = mapped_column(Integer, default=3)
+    contact_capture_policy: Mapped[str] = mapped_column(String(64), default="when_high_intent_or_explicit")
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    version_notes: Mapped[str] = mapped_column(Text, default="")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="qualifiers")
+    lead_profiles: Mapped[list["LeadProfile"]] = relationship(
+        "LeadProfile", back_populates="qualifier"
+    )
+    runs: Mapped[list["QualifierRun"]] = relationship(
+        "QualifierRun", back_populates="qualifier"
+    )
+
+    __table_args__ = (
+        CheckConstraint("status IN ('draft', 'live', 'archived')", name="chk_qualifiers_status"),
+        UniqueConstraint("organization_id", "slug", name="uq_qualifiers_org_slug"),
+        Index("ix_qualifiers_org_status", "organization_id", "status"),
+    )
+
+
+class LeadProfile(Base):
+    __tablename__ = "lead_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    sid: Mapped[str] = mapped_column(String(64), index=True)
+    qualifier_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("qualifiers.id", ondelete="SET NULL"), index=True
+    )
+    qualifier_version: Mapped[int] = mapped_column(Integer, default=1)
+
+    profile: Mapped[Optional[dict]] = mapped_column(JSON)
+    field_confidence: Mapped[Optional[dict]] = mapped_column(JSON)
+    qualification_score: Mapped[int] = mapped_column(Integer, default=0)
+    qualification_band: Mapped[str] = mapped_column(String(16), default="cold")
+    confidence_overall: Mapped[float] = mapped_column(Float, default=0.0)
+    reasoning: Mapped[str] = mapped_column(Text, default="")
+    recommended_next_action: Mapped[str] = mapped_column(String(64), default="")
+    missing_fields: Mapped[Optional[list]] = mapped_column(JSON)
+    takeover_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    video_offer_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_qualified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="lead_profiles")
+    qualifier: Mapped[Optional[Qualifier]] = relationship("Qualifier", back_populates="lead_profiles")
+
+    __table_args__ = (
+        CheckConstraint("qualification_band IN ('hot', 'warm', 'cold')", name="chk_lead_profiles_band"),
+        UniqueConstraint("organization_id", "sid", name="uq_lead_profiles_org_sid"),
+        Index("ix_lead_profiles_org_band_score", "organization_id", "qualification_band", "qualification_score"),
+    )
+
+
+class QualifierRun(Base):
+    __tablename__ = "qualifier_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    sid: Mapped[str] = mapped_column(String(64), index=True)
+    qualifier_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("qualifiers.id", ondelete="SET NULL"), index=True
+    )
+    qualifier_version: Mapped[int] = mapped_column(Integer, default=1)
+    trigger: Mapped[str] = mapped_column(String(40), default="user_message")
+    input_message_ids: Mapped[Optional[list]] = mapped_column(JSON)
+    input_excerpt: Mapped[str] = mapped_column(Text, default="")
+    output_profile_patch: Mapped[Optional[dict]] = mapped_column(JSON)
+    score_before: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    score_after: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    band_before: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    band_after: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    confidence_overall: Mapped[float] = mapped_column(Float, default=0.0)
+    reasoning: Mapped[str] = mapped_column(Text, default="")
+    takeover_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    video_offer_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    model_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="qualifier_runs")
+    qualifier: Mapped[Optional[Qualifier]] = relationship("Qualifier", back_populates="runs")
+
+    __table_args__ = (
+        CheckConstraint("band_before IS NULL OR band_before IN ('hot', 'warm', 'cold')", name="chk_qualifier_runs_band_before"),
+        CheckConstraint("band_after IS NULL OR band_after IN ('hot', 'warm', 'cold')", name="chk_qualifier_runs_band_after"),
+        Index("ix_qualifier_runs_org_sid_created", "organization_id", "sid", "created_at"),
     )
 
 

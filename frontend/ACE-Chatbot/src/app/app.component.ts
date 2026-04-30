@@ -80,7 +80,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   typingLabel: string | null = null;
 
   // Survey mode (NEW)
-  appMode: 'survey' | 'chat' = 'survey';  // Default to survey mode
+  appMode: 'survey' | 'chat' = 'survey';  // Decided at runtime
   surveyFlow: any = null;
   surveyFlowKey: string | null = 'flow_' + Date.now();  // Key to force component remount
   surveyCompleted = false;
@@ -133,9 +133,9 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.d('ngOnInit → starting LiveEvents for SID', this.sid);
     this.live.start(this.sid);
-    
-    // Load survey flow from backend
-    this.loadSurveyFlow();
+
+    // Decide entry mode: qualifier-first chat or survey
+    this.loadEntryMode();
     
     this.liveSub = this.live.events$.subscribe((evt: ChatEvent | null) => {
       if (!evt) return;
@@ -275,7 +275,12 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startTyping('Razmišljam…');
     this.loading = true;
 
-    const body = { message: text, sid: this.sid };
+    const body = {
+      message: text,
+      sid: this.sid,
+      tenant_slug: this.organizationSlug,
+      meta: { organization_slug: this.organizationSlug }
+    };
 
     this.http.post<ChatResponse>(`${this.backendUrl}/chat/`, body, { headers: this.headers(rid) })
       .subscribe({
@@ -296,7 +301,12 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       const response = await fetch(`${this.backendUrl}/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Req-Id': rid, 'X-Sid': this.sid },
-        body: JSON.stringify({ message: text, sid: this.sid })
+        body: JSON.stringify({
+          message: text,
+          sid: this.sid,
+          tenant_slug: this.organizationSlug,
+          meta: { organization_slug: this.organizationSlug }
+        })
       });
 
       if (!response.body) throw new Error('No response body');
@@ -344,7 +354,12 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startTyping();
     this.loading = true;
 
-    const body = { sid: this.sid, message: answer };
+    const body = {
+      sid: this.sid,
+      message: answer,
+      tenant_slug: this.organizationSlug,
+      meta: { organization_slug: this.organizationSlug }
+    };
 
     this.http.post<ChatResponse>(`${this.backendUrl}/chat/`, body, { headers: this.headers(rid) })
       .subscribe({
@@ -742,6 +757,39 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // ===== Survey Mode Methods (NEW) =====
+  private loadEntryMode() {
+    if (!this.organizationSlug) {
+      this.loadSurveyFlow();
+      return;
+    }
+
+    this.http.get<any>(`${this.backendUrl}/api/public/organizations/${this.organizationSlug}/qualifier-active`).subscribe({
+      next: (res) => {
+        if (res?.enabled) {
+          this.i('Active qualifier found → entering chat mode');
+          this.appMode = 'chat';
+          this.chatMode = 'open';
+          this.ui = { inputType: 'single' };
+          if (this.messages.length === 0) {
+            this.messages.push({
+              role: 'assistant',
+              text: 'Živjo — tukaj sem, da ti hitro pomagam. Kar napiši svoje vprašanje ali situacijo, jaz pa te usmerim naprej.',
+              _id: this.rid('MSG')
+            });
+            this.scrollToBottomSoon();
+          }
+          return;
+        }
+        this.i('No active qualifier → loading survey flow');
+        this.loadSurveyFlow();
+      },
+      error: (err) => {
+        this.w('Qualifier check failed → falling back to survey flow', err);
+        this.loadSurveyFlow();
+      }
+    });
+  }
+
   private loadSurveyFlow() {
     this.i('=== LOADING SURVEY FLOW FROM BACKEND ==>');
     

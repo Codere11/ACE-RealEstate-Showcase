@@ -14,6 +14,10 @@
     <span>ANKETE</span>
   </button>
 
+  <button [class.active]="activeTab==='qualifiers'" (click)="activeTab='qualifiers'">
+    <span>AI KVALIFIKATOR</span>
+  </button>
+
   <!-- Unclickable tabs with "coming soon" -->
   <button class="disabled" disabled>
     <span>ANALIZA</span>
@@ -45,7 +49,7 @@
 <div class="dashboard-background">
   <div class="dashboard-container">
     <h1 class="title">📊 ACE Real Estate Intelligence</h1>
-    <p class="subtitle">AI prodajni nadzor za lead gen kampanje</p>
+    <p class="subtitle">Prodajni nadzor za lead gen kampanje</p>
 
     <!-- TAB 1: Leads -->
     <section *ngIf="activeTab==='leads'">
@@ -159,6 +163,22 @@
                     <span *ngIf="lead.survey_started_at" class="date-info">📅 {{ formatDate(lead.survey_started_at) }}</span>
                   </div>
                   <div class="lead-lastmsg">„{{ lead.lastMessage }}”</div>
+
+                  <div class="ai-qualifier" *ngIf="lead.qualification_band || lead.qualification_reasoning">
+                    <div class="ai-qualifier__top">
+                      <span class="tag qualifier" [class.good]="lead.qualification_band==='hot'" [class.warm]="lead.qualification_band==='warm'" [class.cold]="lead.qualification_band==='cold'">
+                        🤖 {{ lead.qualification_band || 'qualified' }}
+                      </span>
+                      <span class="tag" *ngIf="lead.qualification_confidence != null">🎯 {{ (lead.qualification_confidence * 100) | number:'1.0-0' }}%</span>
+                      <span class="tag good" *ngIf="lead.takeover_eligible">🤝 takeover</span>
+                      <span class="tag good" *ngIf="lead.video_offer_eligible">🎥 video</span>
+                    </div>
+                    <div class="ai-qualifier__reason" *ngIf="lead.qualification_reasoning">{{ lead.qualification_reasoning }}</div>
+                    <div class="ai-qualifier__missing" *ngIf="lead.qualifier_missing_fields?.length">
+                      Missing: {{ lead.qualifier_missing_fields?.join(', ') }}
+                    </div>
+                  </div>
+
                   <div class="tags">
                     <span class="tag" [class.good]="lead.interest==='High'">⭐ {{ translateInterest(lead.interest) }}</span>
 
@@ -247,6 +267,10 @@
     <!-- TAB 3: Surveys -->
     <section *ngIf="activeTab==='flow'">
       <app-survey-list></app-survey-list>
+    </section>
+
+    <section *ngIf="activeTab==='qualifiers'">
+      <app-qualifier-list></app-qualifier-list>
     </section>
   </div>
 </div>

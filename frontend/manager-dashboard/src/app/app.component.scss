@@ -349,6 +349,33 @@ html, body {
   word-break: break-word;
 }
 
+.ai-qualifier {
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.ai-qualifier__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ai-qualifier__reason {
+  color: #334155;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.ai-qualifier__missing {
+  margin-top: 6px;
+  color: #64748B;
+  font-size: 0.78rem;
+}
+
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tags .tag {
   background: #F6F4EF; color: #22252A;
@@ -362,6 +389,24 @@ html, body {
 }
 .tags .tag.good {
   background: #FBF7EE; color: #7E663B; border-color: #C1A46C;
+}
+
+.tags .tag.qualifier.good {
+  background: #DCFCE7;
+  color: #166534;
+  border-color: #86EFAC;
+}
+
+.tags .tag.qualifier.warm {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+
+.tags .tag.qualifier.cold {
+  background: #E5E7EB;
+  color: #374151;
+  border-color: #D1D5DB;
 }
 
 /* Hover chat preview */

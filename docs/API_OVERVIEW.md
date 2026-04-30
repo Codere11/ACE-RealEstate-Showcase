@@ -28,6 +28,8 @@ Base URL (local): `http://localhost:8000`
 - `/api/organizations/*` — organization lifecycle
 - `/api/organizations/{org_id}/users/*` — tenant user management
 - `/api/organizations/{org_id}/surveys/*` — tenant survey management
+- `/api/organizations/{org_id}/qualifiers/*` — tenant AI qualifier CRUD, publish/archive, lead-profile reads
+- `/api/public/organizations/{org_slug}/qualifier-active` — public live-qualifier check for chatbot entry mode
 - `/api/organizations/{slug}/avatar/*` — organization avatar endpoints
 - `/api/users/me/avatar/*` — authenticated user avatar endpoints
 
@@ -41,6 +43,11 @@ Local origins allowed include:
 - `localhost:4400` (manager dashboard)
 - `localhost:4500` (admin portal)
 - mobile/capacitor local origins
+
+## Qualifier Runtime Notes
+- `/chat/` now returns open chat mode when a live qualifier is active for the organization
+- chat responses can include qualifier metadata such as band, confidence, reasoning, and takeover flags
+- the active qualifier path currently runs a lightweight LangGraph-style flow: `extract -> score -> reply`
 
 ## API Docs
 - Swagger/OpenAPI: `http://localhost:8000/docs`
