@@ -32,11 +32,17 @@ If you want to test Stripe Connect locally, also review:
 - `STRIPE_CONNECT_CLIENT_ID`
 - `STRIPE_WEBHOOK_SECRET`
 
-## 2) Start the Full Stack
-Recommended onboarding command:
+## 2) Boot
+This is the default boot command after a reboot, fresh terminal session, or first local run:
 
 ```bash
 docker compose -f docker-compose-simple.yml up -d --build
+```
+
+If you already built the images and just want to start the stack again, this is usually enough:
+
+```bash
+docker compose -f docker-compose-simple.yml up -d
 ```
 
 ## 3) Service Endpoints
@@ -85,6 +91,31 @@ Full walkthrough:
 Important distinction:
 - `.env` / ngrok / Stripe CLI setup is **platform/developer setup**
 - the intended business-owner UX is still just **Connect Stripe** inside the dashboard
+
+### Boot with Stripe demo enabled
+If you want the full local Stripe demo after a reboot, the boot sequence is:
+
+1. start the stack
+   ```bash
+   docker compose -f docker-compose-simple.yml up -d --build
+   ```
+2. start a public backend tunnel
+   ```bash
+   ngrok http 8000
+   ```
+3. if ngrok gives you a new URL, update `ACE_PUBLIC_BASE_URL` in `.env`
+4. start Stripe webhook forwarding
+   ```bash
+   stripe listen --forward-to localhost:8000/api/payments/webhooks/stripe
+   ```
+5. if you changed `.env`, restart backend/dashboard
+   ```bash
+   docker compose -f docker-compose-simple.yml up -d --build backend dashboard
+   ```
+
+This keeps the product boot process simple:
+- plain local app boot for normal development
+- extra tunnel/webhook boot only when you want the Stripe demo flow
 
 ## 6) Logs and Troubleshooting
 View all logs:

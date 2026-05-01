@@ -520,11 +520,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   openPaymentModal(lead: Lead) {
-    if (!this.paymentSettings?.payments_enabled) {
-      this.activeTab = 'payments';
-      this.paymentSettingsError = 'Stripe še ni povezan za to organizacijo.';
-      return;
-    }
     this.paymentLead = lead;
     this.paymentModalOpen = true;
     this.paymentAmount = 150;
@@ -557,7 +552,7 @@ export class AppComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.paymentSettingsLoading = false;
-        this.paymentSettingsError = err?.error?.detail || 'Nalaganje payment settings ni uspelo.';
+        this.paymentSettingsError = err?.error?.detail || 'Failed to load payment settings.';
       }
     });
   }
@@ -571,7 +566,7 @@ export class AppComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.paymentConnectLoading = false;
-        this.paymentSettingsError = err?.error?.detail || 'Stripe connect ni uspelo začeti.';
+        this.paymentSettingsError = err?.error?.detail || 'Failed to start Stripe Connect.';
       }
     });
   }
@@ -586,7 +581,7 @@ export class AppComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.paymentConnectLoading = false;
-        this.paymentSettingsError = err?.error?.detail || 'Osvežitev Stripe statusa ni uspela.';
+        this.paymentSettingsError = err?.error?.detail || 'Failed to refresh Stripe status.';
       }
     });
   }
@@ -608,11 +603,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.paymentSuccess = '';
     const amount = Number(this.paymentAmount);
     if (!(amount > 0)) {
-      this.paymentError = 'Znesek mora biti večji od 0.';
+      this.paymentError = 'Amount must be greater than 0.';
       return;
     }
     if (!(this.paymentPurpose || '').trim()) {
-      this.paymentError = 'Namen plačila je obvezen.';
+      this.paymentError = 'Payment purpose is required.';
       return;
     }
 
@@ -627,12 +622,14 @@ export class AppComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (paymentRequest) => {
         this.paymentSending = false;
-        this.paymentSuccess = 'Plačilni zahtevek je poslan v pogovor.';
+        this.paymentSuccess = paymentRequest.provider === 'mock'
+          ? 'Demo payment link was sent into the chat.'
+          : 'Stripe payment link was sent into the chat.';
         this.paymentRequestsForLead = [paymentRequest, ...(this.paymentRequestsForLead || [])];
       },
       error: (err) => {
         this.paymentSending = false;
-        this.paymentError = err?.error?.detail || 'Pošiljanje plačilnega zahtevka ni uspelo.';
+        this.paymentError = err?.error?.detail || 'Failed to send payment request.';
       }
     });
   }
@@ -703,7 +700,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('sl-SI', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
     } catch {
       return '';
     }
@@ -715,9 +712,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   translateInterest(interest: string): string {
     const translations: Record<string, string> = {
-      'High': 'Visok',
-      'Medium': 'Srednji',
-      'Low': 'Nizek'
+      'High': 'High',
+      'Medium': 'Medium',
+      'Low': 'Low'
     };
     return translations[interest] || interest;
   }
@@ -844,7 +841,7 @@ export class AppComponent implements OnInit, OnDestroy {
   deleteLead(lead: Lead, event: Event) {
     event.stopPropagation();
     
-    if (!confirm(`Ali ste prepričani, da želite izbrisati lead "${lead.name}"?`)) {
+    if (!confirm(`Are you sure you want to delete lead "${lead.name}"?`)) {
       return;
     }
 

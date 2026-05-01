@@ -276,6 +276,8 @@ class PaymentService:
     def _resolve_provider(self, settings: OrganizationPaymentSettings) -> str:
         if settings.stripe_account_id and settings.payments_enabled and self.stripe_secret_key:
             return "stripe_connect"
+        if self.stripe_secret_key:
+            return "stripe_demo"
         return self.fallback_provider if self.fallback_provider in {"mock"} else "mock"
 
     def _build_link(self, payment_request: PaymentRequest, *, settings: OrganizationPaymentSettings) -> CreatedPaymentLink:
@@ -288,6 +290,8 @@ class PaymentService:
                 settings.payments_enabled = False
                 settings.last_synced_at = datetime.utcnow()
                 raise
+        if payment_request.provider == "stripe_demo" and self.stripe_secret_key:
+            return self._create_platform_stripe_checkout(payment_request)
         return self._create_mock_link(payment_request)
 
     def _create_mock_link(self, payment_request: PaymentRequest) -> CreatedPaymentLink:
@@ -297,7 +301,7 @@ class PaymentService:
             provider_payload={"mode": "mock"},
         )
 
-    def _create_stripe_checkout(self, payment_request: PaymentRequest, *, settings: OrganizationPaymentSettings) -> CreatedPaymentLink:
+    def _stripe_checkout_payload(self, payment_request: PaymentRequest) -> dict:
         success_url = (
             f"{self.public_base_url}/pay/success"
             f"?payment_request_id={payment_request.id}&session_id={{CHECKOUT_SESSION_ID}}"
@@ -318,12 +322,35 @@ class PaymentService:
         }
         if payment_request.note:
             payload["line_items[0][price_data][product_data][description]"] = payment_request.note[:500]
+        return payload
 
+    def _create_platform_stripe_checkout(self, payment_request: PaymentRequest) -> CreatedPaymentLink:
+        response = requests.post(
+            "https://api.stripe.com/v1/checkout/sessions",
+            auth=(self.stripe_secret_key, ""),
+            data=self._stripe_checkout_payload(payment_request),
+            timeout=20,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return CreatedPaymentLink(
+            provider="stripe_demo",
+            payment_url=data["url"],
+            provider_payment_id=data.get("payment_intent"),
+            provider_session_id=data.get("id"),
+            provider_payload={
+                "mode": "stripe_demo_checkout",
+                "session_id": data.get("id"),
+                "livemode": data.get("livemode", False),
+            },
+        )
+
+    def _create_stripe_checkout(self, payment_request: PaymentRequest, *, settings: OrganizationPaymentSettings) -> CreatedPaymentLink:
         response = requests.post(
             "https://api.stripe.com/v1/checkout/sessions",
             auth=(self.stripe_secret_key, ""),
             headers={"Stripe-Account": settings.stripe_account_id},
-            data=payload,
+            data=self._stripe_checkout_payload(payment_request),
             timeout=20,
         )
         response.raise_for_status()
