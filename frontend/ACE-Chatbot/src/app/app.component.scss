@@ -126,6 +126,21 @@ body {
   border: 1px solid #E6E2D6; box-shadow: 0 8px 18px rgba(0,0,0,.06);
 }
 
+.payment-card{
+  margin-top: 8px; padding: 14px; border-radius: 14px; background: #FBF7EE;
+  border: 1px solid #E6E2D6; display:flex; flex-direction:column; gap:8px; min-width: 260px;
+}
+.payment-card__eyebrow{ font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color:#7E663B; font-weight: 800; }
+.payment-card__amount{ font-size: 1.45rem; font-weight: 900; color:#111827; }
+.payment-card__purpose{ font-weight: 700; color:#1F2937; }
+.payment-card__note{ color:#6B7280; font-size: .95rem; }
+.payment-card__meta{ color:#166534; font-weight: 700; }
+.payment-card__cta{
+  align-self:flex-start; text-decoration:none; background:#12B981; color:#fff; border:2px solid #0E9F6E;
+  padding:.55rem .95rem; border-radius: 10px; font-weight: 900; box-shadow: 0 10px 18px rgba(16,185,129,.25);
+}
+.payment-card__cta:hover{ transform: translateY(-1px); }
+
 /* ---------- Quick Replies ---------- */
 .choices-row{ margin: 0; }
 .choices{

@@ -100,6 +100,12 @@ class Organization(Base):
     qualifier_runs: Mapped[list["QualifierRun"]] = relationship(
         "QualifierRun", back_populates="organization", cascade="all, delete-orphan"
     )
+    payment_requests: Mapped[list["PaymentRequest"]] = relationship(
+        "PaymentRequest", back_populates="organization", cascade="all, delete-orphan"
+    )
+    payment_settings: Mapped[Optional["OrganizationPaymentSettings"]] = relationship(
+        "OrganizationPaymentSettings", back_populates="organization", cascade="all, delete-orphan", uselist=False
+    )
 
     __table_args__ = (
         Index("ix_organizations_active_slug", "active", "slug"),
@@ -449,3 +455,88 @@ class Event(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     conversation: Mapped[Conversation] = relationship("Conversation", back_populates="events")
+
+
+# ---------- Organization Payment Settings ----------
+class OrganizationPaymentSettings(Base):
+    __tablename__ = "organization_payment_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(32), default="stripe")
+    mode: Mapped[str] = mapped_column(String(32), default="stripe_connect_standard")
+    payments_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    default_currency: Mapped[str] = mapped_column(String(8), default="EUR")
+
+    stripe_account_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    stripe_connect_status: Mapped[str] = mapped_column(String(24), default="not_connected")
+    stripe_onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    stripe_details_submitted: Mapped[bool] = mapped_column(Boolean, default=False)
+    stripe_charges_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    stripe_payouts_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    stripe_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    stripe_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    stripe_publishable_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    stripe_scope: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    stripe_livemode: Mapped[bool] = mapped_column(Boolean, default=False)
+    stripe_oauth_state: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    stripe_last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="payment_settings")
+
+    __table_args__ = (
+        CheckConstraint("provider IN ('stripe')", name="chk_org_payment_settings_provider"),
+        CheckConstraint("mode IN ('stripe_connect_standard')", name="chk_org_payment_settings_mode"),
+        CheckConstraint("stripe_connect_status IN ('not_connected', 'pending', 'connected', 'restricted', 'error')", name="chk_org_payment_settings_status"),
+    )
+
+
+# ---------- Payment Requests ----------
+class PaymentRequest(Base):
+    __tablename__ = "payment_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    sid: Mapped[str] = mapped_column(String(64), index=True)
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    provider: Mapped[str] = mapped_column(String(32), default="mock")
+    provider_payment_id: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    provider_session_id: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    public_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(8), default="EUR")
+    purpose: Mapped[str] = mapped_column(String(160), default="Payment request")
+    note: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default="sent")
+    payment_url: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    provider_payload: Mapped[Optional[dict]] = mapped_column(JSON)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="payment_requests")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('draft', 'sent', 'paid', 'failed', 'expired', 'cancelled')", name="chk_payment_requests_status"),
+        CheckConstraint("amount_cents > 0", name="chk_payment_requests_amount_positive"),
+        Index("ix_payment_requests_org_sid_created", "organization_id", "sid", "created_at"),
+        Index("ix_payment_requests_org_status", "organization_id", "status"),
+    )

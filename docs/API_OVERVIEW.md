@@ -29,6 +29,8 @@ Base URL (local): `http://localhost:8000`
 - `/api/organizations/{org_id}/users/*` — tenant user management
 - `/api/organizations/{org_id}/surveys/*` — tenant survey management
 - `/api/organizations/{org_id}/qualifiers/*` — tenant AI qualifier CRUD, publish/archive, lead-profile reads
+- `/api/organizations/{org_id}/payment-settings/*` — tenant Stripe Connect/payment configuration state
+- `/api/organizations/{org_id}/payment-requests/*` — tenant payment request creation/listing
 - `/api/public/organizations/{org_slug}/qualifier-active` — public live-qualifier check for chatbot entry mode
 - `/api/organizations/{slug}/avatar/*` — organization avatar endpoints
 - `/api/users/me/avatar/*` — authenticated user avatar endpoints
@@ -48,6 +50,16 @@ Local origins allowed include:
 - `/chat/` now returns open chat mode when a live qualifier is active for the organization
 - chat responses can include qualifier metadata such as band, confidence, reasoning, and takeover flags
 - the active qualifier path currently runs a lightweight LangGraph-style flow: `extract -> score -> reply`
+
+## Payments / Stripe Connect Notes
+- Stripe Connect is configured at the **organization** level, not per lead
+- local platform setup may require `.env`, but tenant/business-owner setup should be only a dashboard **Connect Stripe** action
+- public routes include Stripe callback/webhook/payment pages:
+  - `/api/public/payments/stripe/connect/callback`
+  - `/api/payments/webhooks/stripe`
+  - `/pay/{public_token}`
+  - `/pay/success`
+  - `/pay/cancel`
 
 ## API Docs
 - Swagger/OpenAPI: `http://localhost:8000/docs`

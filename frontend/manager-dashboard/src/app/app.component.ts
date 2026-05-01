@@ -4,7 +4,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
-import { DashboardService, Lead, KPIs, Funnel, ChatLog } from './services/dashboard.service';
+import { DashboardService, Lead, KPIs, Funnel, ChatLog, PaymentRequest, OrganizationPaymentSettings } from './services/dashboard.service';
 import { AuthService } from './services/auth.service';
 import { NotesTableComponent } from './notes-table/notes-table.component';
 import { LiveEventsService, ChatEvent } from './services/live-events.service';
@@ -37,7 +37,7 @@ const SELECT_KEY = 'ace_notes_selected_lead_sid';
 export class AppComponent implements OnInit, OnDestroy {
   private LOG = true; // flip to false to silence logs
 
-  activeTab: 'leads' | 'notes' | 'flow' | 'qualifiers' | 'chats' = 'leads';
+  activeTab: 'leads' | 'notes' | 'flow' | 'qualifiers' | 'payments' | 'chats' = 'leads';
 
   // --- Logos + menu ---
   clientLogoUrl = '/assets/client-logo.png';
@@ -61,6 +61,22 @@ export class AppComponent implements OnInit, OnDestroy {
   takeoverLoading = false;
   takeoverInput = '';
   takeoverSending = false;
+
+  paymentModalOpen = false;
+  paymentLead: Lead | null = null;
+  paymentAmount = 150;
+  paymentCurrency = 'EUR';
+  paymentPurpose = 'Reservation deposit';
+  paymentNote = '';
+  paymentSending = false;
+  paymentError = '';
+  paymentSuccess = '';
+  paymentRequestsForLead: PaymentRequest[] = [];
+
+  paymentSettings: OrganizationPaymentSettings | null = null;
+  paymentSettingsLoading = false;
+  paymentSettingsError = '';
+  paymentConnectLoading = false;
 
   loadingLeads = true;
   loadingKPIs = true;
@@ -131,12 +147,17 @@ export class AppComponent implements OnInit, OnDestroy {
       this.currentUser = user;
     });
 
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get('tab');
+    if (requestedTab === 'payments') this.activeTab = 'payments';
+
     // Initial fetches (canonical state on load)
     this.fetchLeads();
     this.fetchKPIs();
     this.fetchFunnel();
     this.fetchObjections();
     this.fetchChats();
+    this.loadPaymentSettings();
 
     // NO periodic polling - rely entirely on live events for updates
 
@@ -224,6 +245,12 @@ export class AppComponent implements OnInit, OnDestroy {
           this.log('live: lead.qualified applied', sid);
         } else {
           this.fetchLeads();
+        }
+      }
+
+      if (type === 'payment.request.sent' || type === 'payment.request.paid') {
+        if (this.paymentModalOpen && this.paymentLead?.id === sid) {
+          this.loadPaymentRequestsForLead(sid);
         }
       }
 
@@ -489,7 +516,125 @@ export class AppComponent implements OnInit, OnDestroy {
     this.takeoverOpen = false;
     this.takeoverLead = null;
     this.takeoverInput = '';
-       this.takeoverSending = false;
+    this.takeoverSending = false;
+  }
+
+  openPaymentModal(lead: Lead) {
+    if (!this.paymentSettings?.payments_enabled) {
+      this.activeTab = 'payments';
+      this.paymentSettingsError = 'Stripe še ni povezan za to organizacijo.';
+      return;
+    }
+    this.paymentLead = lead;
+    this.paymentModalOpen = true;
+    this.paymentAmount = 150;
+    this.paymentCurrency = this.paymentSettings?.default_currency || 'EUR';
+    this.paymentPurpose = 'Reservation deposit';
+    this.paymentNote = '';
+    this.paymentSending = false;
+    this.paymentError = '';
+    this.paymentSuccess = '';
+    this.paymentRequestsForLead = [];
+    this.loadPaymentRequestsForLead(lead.id);
+  }
+
+  closePaymentModal() {
+    this.paymentModalOpen = false;
+    this.paymentLead = null;
+    this.paymentSending = false;
+    this.paymentError = '';
+    this.paymentSuccess = '';
+    this.paymentRequestsForLead = [];
+  }
+
+  loadPaymentSettings() {
+    this.paymentSettingsLoading = true;
+    this.paymentSettingsError = '';
+    this.dashboardService.getPaymentSettings().subscribe({
+      next: (settings) => {
+        this.paymentSettingsLoading = false;
+        this.paymentSettings = settings;
+      },
+      error: (err) => {
+        this.paymentSettingsLoading = false;
+        this.paymentSettingsError = err?.error?.detail || 'Nalaganje payment settings ni uspelo.';
+      }
+    });
+  }
+
+  connectStripe() {
+    this.paymentConnectLoading = true;
+    this.paymentSettingsError = '';
+    this.dashboardService.startStripeConnect().subscribe({
+      next: ({ url }) => {
+        window.location.href = url;
+      },
+      error: (err) => {
+        this.paymentConnectLoading = false;
+        this.paymentSettingsError = err?.error?.detail || 'Stripe connect ni uspelo začeti.';
+      }
+    });
+  }
+
+  refreshStripeSettings() {
+    this.paymentConnectLoading = true;
+    this.paymentSettingsError = '';
+    this.dashboardService.refreshStripeConnect().subscribe({
+      next: (settings) => {
+        this.paymentConnectLoading = false;
+        this.paymentSettings = settings;
+      },
+      error: (err) => {
+        this.paymentConnectLoading = false;
+        this.paymentSettingsError = err?.error?.detail || 'Osvežitev Stripe statusa ni uspela.';
+      }
+    });
+  }
+
+  loadPaymentRequestsForLead(sid: string) {
+    this.dashboardService.getPaymentRequests(sid).subscribe({
+      next: (items) => {
+        this.paymentRequestsForLead = items || [];
+      },
+      error: (err) => {
+        this.log('loadPaymentRequestsForLead err', err);
+      }
+    });
+  }
+
+  sendPaymentRequest() {
+    if (!this.paymentLead) return;
+    this.paymentError = '';
+    this.paymentSuccess = '';
+    const amount = Number(this.paymentAmount);
+    if (!(amount > 0)) {
+      this.paymentError = 'Znesek mora biti večji od 0.';
+      return;
+    }
+    if (!(this.paymentPurpose || '').trim()) {
+      this.paymentError = 'Namen plačila je obvezen.';
+      return;
+    }
+
+    this.paymentSending = true;
+    this.dashboardService.createPaymentRequest({
+      sid: this.paymentLead.id,
+      amount,
+      currency: (this.paymentCurrency || 'EUR').trim().toUpperCase(),
+      purpose: this.paymentPurpose.trim(),
+      note: this.paymentNote.trim(),
+      expires_in_hours: 24,
+    }).subscribe({
+      next: (paymentRequest) => {
+        this.paymentSending = false;
+        this.paymentSuccess = 'Plačilni zahtevek je poslan v pogovor.';
+        this.paymentRequestsForLead = [paymentRequest, ...(this.paymentRequestsForLead || [])];
+      },
+      error: (err) => {
+        this.paymentSending = false;
+        this.paymentError = err?.error?.detail || 'Pošiljanje plačilnega zahtevka ni uspelo.';
+      }
+    });
   }
 
   // -------- Staff send (dashboard) --------
@@ -564,6 +709,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
+  formatMoney(amountCents: number, currency: string): string {
+    return `${(amountCents / 100).toFixed(2)} ${currency}`;
+  }
+
   translateInterest(interest: string): string {
     const translations: Record<string, string> = {
       'High': 'Visok',

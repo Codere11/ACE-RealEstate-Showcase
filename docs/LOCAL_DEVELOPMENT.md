@@ -22,6 +22,13 @@ Minimum fields to review in `.env`:
 - `ACE_LOG_LEVEL`
 - `ACE_ENFORCE_DUAL_CONTACT`
 
+If you want to test Stripe Connect locally, also review:
+- `ACE_PUBLIC_BASE_URL`
+- `ACE_MANAGER_DASHBOARD_URL`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_CONNECT_CLIENT_ID`
+- `STRIPE_WEBHOOK_SECRET`
+
 ## 2) Start the Full Stack
 Recommended onboarding command:
 
@@ -51,7 +58,28 @@ curl -sf http://localhost:4400
 curl -sf http://localhost:4500
 ```
 
-## 5) Logs and Troubleshooting
+## 5) Stripe Connect Local Notes
+For local Stripe Connect testing:
+- keep dashboard/chatbot local
+- expose **only the backend** publicly (recommended: `ngrok http 8000`)
+- point `ACE_PUBLIC_BASE_URL` to that public backend URL
+- keep `ACE_MANAGER_DASHBOARD_URL=http://localhost:4400`
+- use Stripe CLI for webhooks:
+
+```bash
+stripe listen --forward-to localhost:8000/api/payments/webhooks/stripe
+```
+
+After changing Stripe-related env vars, rebuild/restart backend:
+
+```bash
+docker compose -f docker-compose-simple.yml up -d --build backend dashboard
+```
+
+Full walkthrough:
+- `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
+
+## 6) Logs and Troubleshooting
 View all logs:
 
 ```bash
@@ -76,7 +104,7 @@ Stop stack:
 docker compose -f docker-compose-simple.yml down
 ```
 
-## 6) Data Notes
+## 7) Data Notes
 - Local PostgreSQL is mapped in Docker volume `postgres_data`
 - Keep secrets out of git
 - Use `.env.example` as baseline for sharing config
@@ -90,7 +118,7 @@ docker compose -f docker-compose-simple.yml exec backend python scripts/seed_def
 
 The chatbot will switch to open qualifier mode automatically when a live qualifier exists for the organization.
 
-## 7) Alternative Compose Files
+## 8) Alternative Compose Files
 - `docker-compose-simple.yml`: easiest full-stack local run
 - `docker-compose.yml`: full/default compose
 - `docker-compose.dev.yml`: development variant

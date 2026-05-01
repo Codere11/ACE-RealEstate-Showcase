@@ -192,7 +192,78 @@ Suggested response additions:
 
 ---
 
-## 5. VideoSession
+## 5. OrganizationPaymentSettings
+Canonical per-organization payment/Stripe Connect state.
+
+```json
+{
+  "id": 3,
+  "organization_id": 12,
+  "provider": "stripe",
+  "mode": "stripe_connect_standard",
+  "payments_enabled": true,
+  "default_currency": "EUR",
+  "stripe_account_id": "acct_123",
+  "stripe_connect_status": "connected",
+  "stripe_onboarding_complete": true,
+  "stripe_details_submitted": true,
+  "stripe_charges_enabled": true,
+  "stripe_payouts_enabled": true,
+  "stripe_publishable_key": "pk_test_...",
+  "stripe_scope": "read_write",
+  "stripe_livemode": false,
+  "stripe_last_error": null,
+  "last_synced_at": "2026-05-01T10:00:00Z",
+  "created_at": "2026-05-01T09:40:00Z",
+  "updated_at": "2026-05-01T10:00:00Z"
+}
+```
+
+### Notes
+- one payment settings record per organization
+- this is platform-managed config/state, not lead-specific data
+- tenant/business-owner UX should not require manual key pasting
+
+---
+
+## 6. PaymentRequest
+Canonical manager-issued payment request for one session (`sid`).
+
+```json
+{
+  "id": 91,
+  "organization_id": 12,
+  "sid": "SID_abc123",
+  "created_by_user_id": 9,
+  "provider": "stripe_connect",
+  "provider_payment_id": "pi_123",
+  "provider_session_id": "cs_test_123",
+  "public_token": "abc123token",
+  "amount_cents": 15000,
+  "currency": "EUR",
+  "purpose": "Reservation deposit",
+  "note": "Reserve the property viewing slot.",
+  "status": "sent",
+  "payment_url": "https://checkout.stripe.com/...",
+  "expires_at": "2026-05-02T10:00:00Z",
+  "paid_at": null,
+  "provider_payload": {
+    "mode": "stripe_connect_checkout",
+    "stripe_account_id": "acct_123"
+  },
+  "created_at": "2026-05-01T10:00:00Z",
+  "updated_at": "2026-05-01T10:00:00Z"
+}
+```
+
+### Notes
+- `status`: `draft | sent | paid | failed | expired | cancelled`
+- payment request belongs to an organization and a chat session (`sid`)
+- the visitor should receive a hosted pay-now experience, not raw card fields inside the chatbot UI
+
+---
+
+## 7. VideoSession
 Canonical room/session state for video escalation.
 
 ```json
@@ -229,25 +300,34 @@ Canonical room/session state for video escalation.
 
 ---
 
-## 6. Frontend TypeScript Models To Add
+## 8. Frontend TypeScript Models To Add
 Manager dashboard:
 - `Qualifier`
 - `LeadProfile`
 - `QualifierRun`
+- `OrganizationPaymentSettings`
+- `PaymentRequest`
 - `VideoSession`
 
-Files to create:
+Files to create/update:
 - `frontend/manager-dashboard/src/app/models/qualifier.model.ts`
 - `frontend/manager-dashboard/src/app/models/lead-profile.model.ts`
 - `frontend/manager-dashboard/src/app/models/video-session.model.ts`
+- `frontend/manager-dashboard/src/app/services/dashboard.service.ts`
 
 ---
 
-## 7. Backend Files To Add/Modify
+## 9. Backend Files To Add/Modify
 ### Add
 - `app/api/qualifiers.py`
+- `app/api/payment_settings.py`
+- `app/api/payments.py`
+- `app/api/public_payment_settings.py`
+- `app/api/public_payments.py`
+- `app/api/stripe_webhooks.py`
 - `app/api/video.py`
 - `app/services/llm_service.py`
+- `app/services/payment_service.py`
 - `app/services/qualifier_service.py`
 - `app/services/video_service.py`
 
@@ -259,7 +339,7 @@ Files to create:
 
 ---
 
-## 8. Contract Rules
+## 10. Contract Rules
 1. Unknown values are allowed and must not be treated as confirmed facts.
 2. Confidence is required for extracted fields.
 3. Qualification score is always backend-persisted as integer 0-100.
@@ -267,3 +347,5 @@ Files to create:
 5. Takeover/video eligibility are explicit booleans, not inferred from UI only.
 6. Every lead profile must reference the qualifier version used.
 7. Video session is a separate object linked by `sid`.
+8. Payment settings are organization-scoped, not lead-scoped.
+9. Tenant/business-owner setup should not require `.env`; only platform/deployment setup should.

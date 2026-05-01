@@ -220,6 +220,52 @@ Payload:
 
 ---
 
+## 12. `payment.request.sent`
+Published when a manager sends a payment request into chat.
+
+Payload:
+```json
+{
+  "id": 91,
+  "provider": "stripe_connect",
+  "status": "sent",
+  "amountCents": 15000,
+  "currency": "EUR",
+  "purpose": "Reservation deposit",
+  "note": "Reserve the viewing slot.",
+  "paymentUrl": "https://checkout.stripe.com/...",
+  "expiresAt": "2026-05-02T10:00:00Z",
+  "paidAt": null
+}
+```
+
+Use cases:
+- chatbot renders pay-now card
+- dashboard refreshes payment history for the lead
+
+---
+
+## 13. `payment.request.paid`
+Published when the payment request is completed successfully.
+
+Payload:
+```json
+{
+  "id": 91,
+  "status": "paid",
+  "amountCents": 15000,
+  "currency": "EUR",
+  "purpose": "Reservation deposit",
+  "paidAt": "2026-05-01T10:10:00Z"
+}
+```
+
+Use cases:
+- chatbot confirms payment receipt
+- dashboard updates status badges/history
+
+---
+
 ## Dashboard Handling Notes
 Primary file likely to update first:
 - `frontend/manager-dashboard/src/app/app.component.ts`

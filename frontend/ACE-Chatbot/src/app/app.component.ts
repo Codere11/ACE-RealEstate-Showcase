@@ -10,6 +10,18 @@ import { SurveyFormComponent } from './survey-form.component';
 type Role = 'user' | 'assistant' | 'staff';
 type Channel = 'email'|'phone'|'whatsapp'|'sms';
 
+interface PaymentCard {
+  id: number;
+  status: string;
+  amountCents: number;
+  currency: string;
+  purpose: string;
+  note?: string;
+  paymentUrl: string;
+  expiresAt?: string | null;
+  paidAt?: string | null;
+}
+
 interface Message {
   role: Role;
   text?: string;
@@ -18,6 +30,7 @@ interface Message {
   gallery?: string[];
   image?: { src: string; label?: string };
   map?: { address: string };
+  paymentRequest?: PaymentCard;
 
   _id?: string;
 }
@@ -582,6 +595,12 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       this.scrollToBottomSoon();
       return;
     }
+    if (type === 'payment_request' && ui.request) {
+      this.i('Render PAYMENT REQUEST (type)', ui.request);
+      this.messages.push({ role: 'assistant', paymentRequest: ui.request as PaymentCard, _id: this.rid('MSG') });
+      this.scrollToBottomSoon();
+      return;
+    }
 
     if (action === 'show_gallery') {
       const images = this.coerceImages(payload.images);
@@ -684,6 +703,10 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   public onImgError(evt: Event, src: string) { this.e('IMG error ❌', { src, evt }); }
 
   // ---------- Heuristic fallback when server forgets the UI block ----------
+  formatMoney(amountCents: number, currency: string): string {
+    return `${(amountCents / 100).toFixed(2)} ${currency}`;
+  }
+
   private tryHeuristics(text: string) {
     const t = text.toLowerCase();
 

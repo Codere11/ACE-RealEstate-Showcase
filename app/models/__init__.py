@@ -13,6 +13,8 @@ from .orm import (  # noqa: F401
     Qualifier,
     LeadProfile,
     QualifierRun,
+    PaymentRequest,
+    OrganizationPaymentSettings,
 )
 
 # If someone imports Base from here, forward it (optional convenience)

@@ -220,6 +220,72 @@ class QualifierRunResponse(BaseModel):
         from_attributes = True
 
 
+# ---------- Payment Request Schemas ----------
+class OrganizationPaymentSettingsResponse(BaseModel):
+    id: int
+    organization_id: int
+    provider: Literal["stripe"]
+    mode: Literal["stripe_connect_standard"]
+    payments_enabled: bool
+    default_currency: str
+    stripe_account_id: Optional[str] = None
+    stripe_connect_status: Literal["not_connected", "pending", "connected", "restricted", "error"]
+    stripe_onboarding_complete: bool = False
+    stripe_details_submitted: bool = False
+    stripe_charges_enabled: bool = False
+    stripe_payouts_enabled: bool = False
+    stripe_publishable_key: Optional[str] = None
+    stripe_scope: Optional[str] = None
+    stripe_livemode: bool = False
+    stripe_last_error: Optional[str] = None
+    last_synced_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class ConnectStripeStartResponse(BaseModel):
+    url: str
+
+
+class PaymentRequestCreate(BaseModel):
+    sid: str = Field(..., min_length=1, max_length=64)
+    amount: float = Field(..., gt=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=8)
+    purpose: str = Field(..., min_length=1, max_length=160)
+    note: str = ""
+    expires_in_hours: Optional[int] = Field(default=24, ge=1, le=720)
+
+
+class PaymentRequestResponse(BaseModel):
+    id: int
+    organization_id: int
+    sid: str
+    created_by_user_id: Optional[int] = None
+    provider: str
+    provider_payment_id: Optional[str] = None
+    provider_session_id: Optional[str] = None
+    public_token: str
+    amount_cents: int
+    currency: str
+    purpose: str
+    note: str = ""
+    status: Literal["draft", "sent", "paid", "failed", "expired", "cancelled"]
+    payment_url: str
+    expires_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    provider_payload: Optional[Dict[str, Any]] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
 class SurveyStats(BaseModel):
     """Statistics for a survey"""
     survey_id: int

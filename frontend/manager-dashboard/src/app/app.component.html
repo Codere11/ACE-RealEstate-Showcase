@@ -18,6 +18,10 @@
     <span>AI KVALIFIKATOR</span>
   </button>
 
+  <button [class.active]="activeTab==='payments'" (click)="activeTab='payments'">
+    <span>PLAČILA</span>
+  </button>
+
   <!-- Unclickable tabs with "coming soon" -->
   <button class="disabled" disabled>
     <span>ANALIZA</span>
@@ -221,6 +225,7 @@
 
               <div class="lead-actions">
                 <button class="chat-btn" (click)="openTakeover(lead)">Prevzemi pogovor</button>
+                <button class="pay-btn" (click)="openPaymentModal(lead)">Pošlji pay link</button>
                 <button class="delete-btn" (click)="deleteLead(lead, $event)" title="Izbriši lead">🗑️</button>
               </div>
             </div>
@@ -272,8 +277,107 @@
     <section *ngIf="activeTab==='qualifiers'">
       <app-qualifier-list></app-qualifier-list>
     </section>
+
+    <section *ngIf="activeTab==='payments'" class="payments-tab">
+      <div class="card">
+        <h2>💳 Stripe Connect</h2>
+        <p class="subtitle">Poveži Stripe račun organizacije in omogoči pošiljanje payment requestov direktno iz dashboarda.</p>
+
+        <div *ngIf="paymentSettingsLoading" class="spinner">⏳ Nalagam payment settings…</div>
+        <div *ngIf="paymentSettingsError" class="payment-feedback error">{{ paymentSettingsError }}</div>
+
+        <ng-container *ngIf="paymentSettings as ps">
+          <div class="stats-grid payments-status-grid">
+            <div class="stat-item">
+              <div class="stat-value">{{ ps.stripe_connect_status }}</div>
+              <div class="stat-label">Connect status</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ ps.stripe_charges_enabled ? 'YES' : 'NO' }}</div>
+              <div class="stat-label">Charges enabled</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ ps.stripe_payouts_enabled ? 'YES' : 'NO' }}</div>
+              <div class="stat-label">Payouts enabled</div>
+            </div>
+          </div>
+
+          <div class="payment-settings-details">
+            <div><strong>Provider:</strong> {{ ps.provider }}</div>
+            <div><strong>Mode:</strong> {{ ps.mode }}</div>
+            <div><strong>Default currency:</strong> {{ ps.default_currency }}</div>
+            <div><strong>Stripe account:</strong> {{ ps.stripe_account_id || 'not connected' }}</div>
+            <div><strong>Ready to accept payments:</strong> {{ ps.payments_enabled ? 'YES' : 'NO' }}</div>
+            <div *ngIf="ps.stripe_last_error"><strong>Last error:</strong> {{ ps.stripe_last_error }}</div>
+          </div>
+
+          <div class="lead-actions payments-actions">
+            <button class="chat-btn" (click)="connectStripe()" [disabled]="paymentConnectLoading">{{ paymentConnectLoading ? 'Odpiram…' : 'Connect Stripe' }}</button>
+            <button class="pay-btn" (click)="refreshStripeSettings()" [disabled]="paymentConnectLoading">Refresh status</button>
+          </div>
+        </ng-container>
+      </div>
+    </section>
   </div>
 </div>
+
+<section class="payment-modal" *ngIf="paymentModalOpen && paymentLead">
+  <div class="payment-modal__backdrop" (click)="closePaymentModal()"></div>
+  <div class="payment-modal__card">
+    <div class="payment-modal__header">
+      <div>
+        <h3>Pošlji plačilni zahtevek</h3>
+        <p>{{ paymentLead.name }} · SID {{ paymentLead.id }}</p>
+      </div>
+      <button class="close-btn" (click)="closePaymentModal()">Zapri</button>
+    </div>
+
+    <div class="payment-form-grid">
+      <label>
+        <span>Znesek</span>
+        <input type="number" min="1" step="0.01" [(ngModel)]="paymentAmount" />
+      </label>
+      <label>
+        <span>Valuta</span>
+        <input type="text" [(ngModel)]="paymentCurrency" />
+      </label>
+    </div>
+
+    <label>
+      <span>Namen</span>
+      <input type="text" [(ngModel)]="paymentPurpose" placeholder="Reservation deposit" />
+    </label>
+
+    <label>
+      <span>Opomba</span>
+      <textarea rows="3" [(ngModel)]="paymentNote" placeholder="Npr. rezervacija termina ali nepovratni depozit"></textarea>
+    </label>
+
+    <div class="payment-feedback error" *ngIf="paymentError">{{ paymentError }}</div>
+    <div class="payment-feedback success" *ngIf="paymentSuccess">{{ paymentSuccess }}</div>
+
+    <div class="payment-modal__actions">
+      <button class="chat-btn" (click)="sendPaymentRequest()" [disabled]="paymentSending">
+        {{ paymentSending ? 'Pošiljam…' : 'Pošlji v pogovor' }}
+      </button>
+    </div>
+
+    <div class="payment-history" *ngIf="paymentRequestsForLead.length">
+      <h4>Zadnji zahtevki</h4>
+      <div class="payment-history__item" *ngFor="let req of paymentRequestsForLead">
+        <div>
+          <strong>{{ req.purpose }}</strong>
+          <div>{{ formatMoney(req.amount_cents, req.currency) }}</div>
+          <small *ngIf="req.note">{{ req.note }}</small>
+        </div>
+        <div class="payment-history__meta">
+          <span class="tag" [class.good]="req.status==='paid'">{{ req.status }}</span>
+          <a [href]="req.payment_url" target="_blank" rel="noopener">Odpri</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- Takeover bottom panel -->
 <section class="takeover" *ngIf="takeoverOpen && takeoverLead">

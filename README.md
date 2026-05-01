@@ -109,6 +109,7 @@ Managers can configure qualifiers and inspect lead profile quality, confidence, 
 - Architecture diagrams: `ARCHITECTURE.md`
 - Local setup and runbook: `docs/LOCAL_DEVELOPMENT.md`
 - API route map: `docs/API_OVERVIEW.md`
+- Stripe Connect local setup: `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
 - AI qualifier spec: `docs/AI_QUALIFIER_SPEC.md`
 - AI qualifier data contracts: `docs/DATA_CONTRACTS.md`
 - Qualifier/takeover events: `docs/EVENTS.md`
@@ -129,6 +130,7 @@ Managers can configure qualifiers and inspect lead profile quality, confidence, 
 - Keep secrets out of git (`.env` is local-only)
 - Use `.env.example` as the template
 - Prefer `docker-compose-simple.yml` for onboarding and demos
+- For local Stripe Connect testing, expose the backend publicly and keep dashboard/chatbot local
 
 ## Author
 Maks Ponikvar

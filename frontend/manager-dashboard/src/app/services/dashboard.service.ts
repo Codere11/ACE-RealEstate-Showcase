@@ -4,6 +4,50 @@ import { Observable, map } from 'rxjs';
 import { AuthService } from './auth.service';
 
 // Types
+export type OrganizationPaymentSettings = {
+  id: number;
+  organization_id: number;
+  provider: 'stripe';
+  mode: 'stripe_connect_standard';
+  payments_enabled: boolean;
+  default_currency: string;
+  stripe_account_id?: string | null;
+  stripe_connect_status: 'not_connected' | 'pending' | 'connected' | 'restricted' | 'error';
+  stripe_onboarding_complete: boolean;
+  stripe_details_submitted: boolean;
+  stripe_charges_enabled: boolean;
+  stripe_payouts_enabled: boolean;
+  stripe_publishable_key?: string | null;
+  stripe_scope?: string | null;
+  stripe_livemode: boolean;
+  stripe_last_error?: string | null;
+  last_synced_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaymentRequest = {
+  id: number;
+  organization_id: number;
+  sid: string;
+  created_by_user_id?: number | null;
+  provider: string;
+  provider_payment_id?: string | null;
+  provider_session_id?: string | null;
+  public_token: string;
+  amount_cents: number;
+  currency: string;
+  purpose: string;
+  note: string;
+  status: 'draft' | 'sent' | 'paid' | 'failed' | 'expired' | 'cancelled';
+  payment_url: string;
+  expires_at?: string | null;
+  paid_at?: string | null;
+  provider_payload?: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type LeadProfile = {
   id: number;
   organization_id: number;
@@ -141,6 +185,32 @@ export class DashboardService {
   getLeadProfiles(): Observable<LeadProfile[]> {
     const orgId = this.getOrgId();
     return this.http.get<LeadProfile[]>(`${this.baseUrl}/api/organizations/${orgId}/qualifiers/lead-profiles`);
+  }
+
+  getPaymentSettings(): Observable<OrganizationPaymentSettings> {
+    const orgId = this.getOrgId();
+    return this.http.get<OrganizationPaymentSettings>(`${this.baseUrl}/api/organizations/${orgId}/payment-settings`);
+  }
+
+  startStripeConnect(): Observable<{ url: string }> {
+    const orgId = this.getOrgId();
+    return this.http.post<{ url: string }>(`${this.baseUrl}/api/organizations/${orgId}/payment-settings/stripe/connect`, {});
+  }
+
+  refreshStripeConnect(): Observable<OrganizationPaymentSettings> {
+    const orgId = this.getOrgId();
+    return this.http.post<OrganizationPaymentSettings>(`${this.baseUrl}/api/organizations/${orgId}/payment-settings/stripe/refresh`, {});
+  }
+
+  getPaymentRequests(sid?: string): Observable<PaymentRequest[]> {
+    const orgId = this.getOrgId();
+    const query = sid ? `?sid=${encodeURIComponent(sid)}` : '';
+    return this.http.get<PaymentRequest[]>(`${this.baseUrl}/api/organizations/${orgId}/payment-requests${query}`);
+  }
+
+  createPaymentRequest(payload: { sid: string; amount: number; currency: string; purpose: string; note?: string; expires_in_hours?: number; }): Observable<PaymentRequest> {
+    const orgId = this.getOrgId();
+    return this.http.post<PaymentRequest>(`${this.baseUrl}/api/organizations/${orgId}/payment-requests`, payload);
   }
 
   /** Delete a lead by ID */

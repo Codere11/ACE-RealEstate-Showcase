@@ -69,6 +69,16 @@
               width="100%" height="240" style="border:0;" loading="lazy">
             </iframe>
           </div>
+
+          <!-- Payment request card -->
+          <div *ngIf="m.paymentRequest" class="payment-card">
+            <div class="payment-card__eyebrow">Payment request</div>
+            <div class="payment-card__amount">{{ formatMoney(m.paymentRequest.amountCents, m.paymentRequest.currency) }}</div>
+            <div class="payment-card__purpose">{{ m.paymentRequest.purpose }}</div>
+            <div class="payment-card__note" *ngIf="m.paymentRequest.note">{{ m.paymentRequest.note }}</div>
+            <div class="payment-card__meta" *ngIf="m.paymentRequest.status==='paid'">✅ Payment received</div>
+            <a class="payment-card__cta" [href]="m.paymentRequest.paymentUrl" target="_blank" rel="noopener" *ngIf="m.paymentRequest.status!=='paid'">Pay now</a>
+          </div>
         </ng-container>
       </div>
     </div>

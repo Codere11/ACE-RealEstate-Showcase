@@ -38,6 +38,12 @@ services:
       ACE_SECRET: ${ACE_SECRET:-test_secret_key_for_local_testing_minimum_32_characters}
       ACE_LOG_LEVEL: ${ACE_LOG_LEVEL:-INFO}
       ACE_ENFORCE_DUAL_CONTACT: ${ACE_ENFORCE_DUAL_CONTACT:-0}
+      ACE_PAYMENT_PROVIDER: ${ACE_PAYMENT_PROVIDER:-mock}
+      ACE_PUBLIC_BASE_URL: ${ACE_PUBLIC_BASE_URL:-http://localhost:8000}
+      ACE_MANAGER_DASHBOARD_URL: ${ACE_MANAGER_DASHBOARD_URL:-http://localhost:4400}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_CONNECT_CLIENT_ID: ${STRIPE_CONNECT_CLIENT_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     volumes:
       - ./static:/app/static
       - ./instances:/app/instances
