@@ -95,6 +95,22 @@ The project is currently coherent enough to demo this end-to-end story:
 5. visitor opens a Stripe-hosted checkout
 6. payment state updates back into the system
 
+## Product Demo
+### 1) Survey Intake
+![Survey intake screen](docs/media/chatbot-survey-screen.png)
+User can still start with a short property questionnaire when no active AI qualifier is configured.
+
+### 2) Open AI Qualification Chat
+![Chat follow-up screen](docs/media/chatbot-chat-screen.png)
+When an organization has a live qualifier, the chatbot starts directly in free-text mode and qualifies the lead conversationally.
+
+### 3) Manager Dashboard
+![Manager dashboard screen](docs/media/dashboard-leads-screen.png)
+Managers can configure qualifiers, inspect lead quality, and send payment requests.
+
+### 4) Screencast
+- [Watch product walkthrough video (WebM)](docs/media/ace-demo-1min.webm)
+
 ## Current implementation status
 ### Implemented now
 - multi-tenant organizations, users, surveys, qualifiers, and lead profiles
