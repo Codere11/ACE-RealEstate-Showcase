@@ -1,130 +1,193 @@
 <!-- Created: 2026-03-14T20:44:39Z -->
 # ACE Real Estate
-A multi-tenant real-estate lead qualification platform with a customer chatbot, manager dashboard, and tenant-aware backend.  
-It demonstrates end-to-end product engineering: multi-app frontend architecture, DB-backed configuration, AI-assisted qualification, event-driven handoff, and containerized local deployment.
+A multi-tenant real-estate lead qualification platform with a customer chatbot, manager dashboard, and tenant-aware backend.
+
+This project is meant to show **product engineering**, not just isolated AI or frontend experiments:
+- manager-configured AI qualification
+- real-time dashboard visibility
+- event-driven handoff between chat and operators
+- payment request workflow with a Stripe Connect path
+- Dockerized full-stack local setup
+
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
 ![Angular](https://img.shields.io/badge/Angular-Frontend-DD0031?logo=angular&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Local%20Stack-2496ED?logo=docker&logoColor=white)
 
-## At a Glance
-- **Built now:** manager-driven AI qualifier MVP with open chat mode, structured lead extraction, deterministic scoring, and dashboard visibility
-- **Architecture:** FastAPI + PostgreSQL backend, Angular chatbot + manager dashboard, Dockerized local stack
-- **Why it matters:** shows how to design a configurable, multi-tenant product instead of a one-off chatbot demo
-- **In progress:** 🚧 V izdelavi: LangChain AI kvalifikacija
+## The Problem
+Real-estate teams lose time and revenue when inbound leads are:
+- qualified manually
+- followed up too late
+- handled in disconnected tools
+- escalated without clear lead quality or next-step context
 
-## Problem
-Real-estate teams lose time and revenue when inbound leads are qualified manually and followed up too late.
+A normal website form or rigid survey also creates friction too early.
 
-## Update
-- ✅ Manager-driven AI qualifier MVP is now integrated into the product
-- 🚧 V izdelavi: LangChain AI kvalifikacija
-- 🚧 Next up: grounded listing/retrieval answers and non-intrusive takeover/video escalation
+## The Solution
+ACE Real Estate combines a conversational intake layer with manager-side control.
 
-## Solution
-ACE Real Estate automates intake, qualification, and routing:
-- Customer-facing chatbot can run either survey intake or open AI qualification
-- Backend scores, stores, and continuously enriches lead profiles
-- Manager dashboard gets real-time high-value lead signals and qualifier reasoning
-- Admin portal manages tenant-specific configuration
+### Visitor side
+- start with either a survey or open chat, depending on tenant configuration
+- ask questions naturally
+- get qualified in the background without being forced through a long form
+- receive a payment request when the manager decides the lead is ready
 
-## Tech Stack
-- Backend: Python, FastAPI
-- Frontend: Angular (3 separate applications)
-- Database: PostgreSQL
-- Runtime: Docker Compose
-- Core patterns: multi-tenancy, role-based APIs, configuration-driven flow logic, event/WebSocket handoff
+### Manager side
+- configure the AI qualifier per organization
+- see evolving lead quality, confidence, reasoning, and takeover eligibility
+- step into the conversation when needed
+- send a payment request directly from the dashboard
 
-## System Components
-- `frontend/ACE-Chatbot` — customer-facing lead intake UI
-- `frontend/manager-dashboard` — operator/manager dashboard
-- `portal/portal` — admin portal
-- `app/` — API, services, auth, orchestration
-- `data/` — conversation flow/configuration files
+## Why each major piece exists
+### 1. Customer chatbot
+Exists to reduce friction at the top of the funnel.
 
-## Quick Start (recommended)
+It supports:
+- survey mode when structured intake is appropriate
+- open AI qualification mode when a live qualifier exists
+- payment request cards inside the chat flow
+
+### 2. AI qualifier
+Exists to make qualification configurable and useful instead of hardcoded.
+
+It gives the manager:
+- structured lead profile updates
+- deterministic scoring and banding
+- confidence and reasoning
+- takeover/video eligibility signals
+
+### 3. Manager dashboard
+Exists to make the system operational, not just conversational.
+
+It lets the team:
+- review leads in real time
+- inspect lead profile quality
+- manage qualifier behavior
+- send payment requests
+- take over the conversation when needed
+
+### 4. Event-driven backend
+Exists so the product behaves like a live system, not a static form app.
+
+It is used for:
+- chat updates
+- lead qualification updates
+- payment request state updates
+- manager/dashboard synchronization
+
+### 5. Payment request flow
+Exists because qualification should lead to a real business action.
+
+The manager can:
+- create a payment request for a lead
+- send it directly into chat
+- open a hosted checkout flow
+- track paid/sent status
+
+## Current demoable flow
+The project is currently coherent enough to demo this end-to-end story:
+
+1. visitor opens chatbot
+2. tenant-specific qualifier runs in free-text mode
+3. manager sees lead quality in dashboard
+4. manager sends a payment request
+5. visitor opens a Stripe-hosted checkout
+6. payment state updates back into the system
+
+## Current implementation status
+### Implemented now
+- multi-tenant organizations, users, surveys, qualifiers, and lead profiles
+- manager-driven AI qualifier resource with CRUD + publish/archive flow
+- qualifier runtime with `extract -> score -> reply`
+- live qualifier-aware chatbot entry mode
+- dashboard lead visibility for score, confidence, reasoning, takeover/video flags
+- payment request flow in dashboard + chatbot
+- Stripe Connect architecture path at organization level
+- Stripe-hosted checkout path
+- local Stripe demo fallback when connected account is not fully payment-ready yet
+- Dockerized local stack
+
+### Intentionally not finished yet
+- grounded listing/retrieval answers
+- final video takeover flow
+- polished production-ready Stripe Connect onboarding for real clients
+- deeper analytics/reporting
+
+## Architecture at a glance
+### Backend
+- **FastAPI** for APIs and orchestration
+- **SQLAlchemy + PostgreSQL** for tenant-scoped persistence
+- event bus + long-poll/SSE-style updates for live UI synchronization
+
+### Frontend
+- **Angular chatbot** for visitor intake and conversational UI
+- **Angular manager dashboard** for lead operations, qualifier management, and payments
+- **Portal/admin app** for additional management concerns
+
+### Runtime patterns
+- multi-tenancy
+- role-based access
+- DB-backed configuration
+- event-driven updates
+- hosted third-party checkout instead of hand-rolled payment UI
+
+## Why this project is technically interesting
+This is not just “a chatbot project.”
+It demonstrates:
+- multi-app product architecture
+- tenant-scoped configuration and runtime behavior
+- AI-assisted but controlled orchestration
+- structured data persistence behind chat interactions
+- dashboard/operator workflows
+- payment workflow integration
+- full-stack local reproducibility with Docker
+
+## Quick Start
 Use the simplified compose setup for local development:
 
-1. Create env file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Start services:
-   ```bash
-   docker compose -f docker-compose-simple.yml up -d --build
-   ```
-3. Open applications:
-   - Chatbot UI: `http://localhost:4200`
-   - Manager dashboard: `http://localhost:4400`
-   - Admin portal: `http://localhost:4500`
-   - API docs: `http://localhost:8000/docs`
+```bash
+cp .env.example .env
+docker compose -f docker-compose-simple.yml up -d --build
+```
 
-## AI Qualifier Snapshot
-The current first-step AI qualifier implementation adds a manager-driven, DB-backed qualification system:
-- live qualifier per organization
-- free-text chat mode when a live qualifier exists
-- LangGraph-style runtime: `extract -> score -> reply`
-- LLM extraction + LLM reply generation
-- deterministic lead scoring / banding / takeover flags
-- manager dashboard editor for qualifier goals, tone, fields, and thresholds
-- manager lead view with score, confidence, reasoning, takeover/video eligibility
+Open:
+- Chatbot UI: `http://localhost:4200`
+- Manager dashboard: `http://localhost:4400`
+- Admin portal: `http://localhost:4500`
+- API docs: `http://localhost:8000/docs`
 
-See also:
-- `docs/AI_QUALIFIER_SPEC.md`
-- `docs/DATA_CONTRACTS.md`
-- `docs/EVENTS.md`
-- `docs/VIDEO_TAKEOVER_SPEC.md`
-
-## Product Demo
-### 1) Survey Intake
-![Survey intake screen](docs/media/chatbot-survey-screen.png)
-User can still start with a short property questionnaire when no active AI qualifier is configured.
-
-### 2) Open AI Qualification Chat
-![Chat follow-up screen](docs/media/chatbot-chat-screen.png)
-When an organization has a live qualifier, the chatbot starts directly in free-text mode and qualifies the lead conversationally.
-
-### 3) Manager Dashboard
-![Manager dashboard screen](docs/media/dashboard-leads-screen.png)
-Managers can configure qualifiers and inspect lead profile quality, confidence, reasoning, and takeover status.
-
-### 4) Screencast (1 minute)
-- [Watch product walkthrough video (WebM)](docs/media/ace-demo-1min.webm)
-
-## What This Project Demonstrates
-- Building and shipping a multi-app product, not just isolated scripts
-- Designing a multi-tenant backend with role-specific interfaces
-- Implementing event-driven handoff from intake to operator workflows
-- Running reproducible full-stack local environments with Docker
-
-## Engineering Highlights
-- Multi-tenant architecture with per-tenant isolation and configurable flows
-- Node-based conversation logic with AI-assisted scoring support
-- Real-time lead escalation to operators
-- Modular service-oriented backend structure
-- Fully containerized local stack for reproducibility
+Useful demo routes:
+- Demo chatbot org route: `http://localhost:4200/demo-agency/nepremicnine`
+- Manager login: `http://localhost:4400/login`
+- Demo manager credentials: `admin / test123`
 
 ## Documentation
-- Architecture diagrams: `ARCHITECTURE.md`
-- Local setup and runbook: `docs/LOCAL_DEVELOPMENT.md`
-- API route map: `docs/API_OVERVIEW.md`
-- Stripe Connect local setup: `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
+### Start here
+- Product overview: `docs/PRODUCT_OVERVIEW.md`
+- Local setup: `docs/LOCAL_DEVELOPMENT.md`
+- API route overview: `docs/API_OVERVIEW.md`
+
+### Core feature docs
 - AI qualifier spec: `docs/AI_QUALIFIER_SPEC.md`
-- AI qualifier data contracts: `docs/DATA_CONTRACTS.md`
-- Qualifier/takeover events: `docs/EVENTS.md`
+- Data contracts: `docs/DATA_CONTRACTS.md`
+- Live events: `docs/EVENTS.md`
+- Stripe Connect local setup: `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
 - Video takeover spec: `docs/VIDEO_TAKEOVER_SPEC.md`
+
+### Additional docs
+- Architecture diagrams: `ARCHITECTURE.md`
 - Recruiter/product presentation guide: `docs/PROJECT_PRESENTATION.md`
-- GitHub launch pack (profile + pinned repo text): `docs/GITHUB_LAUNCH_PACK.md`
+- GitHub launch pack: `docs/GITHUB_LAUNCH_PACK.md`
 - Archived legacy docs: `docs/archive/README.md`
 
 ## Repository Map
-- `app/` — FastAPI routers, services, auth, portal routes, middleware
-- `frontend/ACE-Chatbot/` — intake/chat UI
-- `frontend/manager-dashboard/` — manager UI
+- `app/` — FastAPI routers, services, auth, middleware, orchestration
+- `frontend/ACE-Chatbot/` — visitor-facing intake/chat UI
+- `frontend/manager-dashboard/` — manager/operator dashboard
 - `portal/portal/` — admin UI
-- `scripts/` — operational scripts and helpers
-- `static/` — static assets
+- `scripts/` — helper/seed scripts
+- `docs/` — focused architecture/product documentation
 
 ## Notes
 - Keep secrets out of git (`.env` is local-only)

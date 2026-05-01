@@ -258,6 +258,10 @@ Canonical manager-issued payment request for one session (`sid`).
 
 ### Notes
 - `status`: `draft | sent | paid | failed | expired | cancelled`
+- provider may currently be one of:
+  - `stripe_connect` for connected-account checkout
+  - `stripe_demo` for platform-hosted demo checkout
+  - `mock` if Stripe is not configured at all
 - payment request belongs to an organization and a chat session (`sid`)
 - the visitor should receive a hosted pay-now experience, not raw card fields inside the chatbot UI
 

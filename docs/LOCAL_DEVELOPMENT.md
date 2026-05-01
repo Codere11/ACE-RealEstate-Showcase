@@ -2,6 +2,9 @@
 # Local Development Runbook
 This runbook is the fastest path to running ACE Real Estate locally.
 
+If you want the big-picture product explanation first, read:
+- `docs/PRODUCT_OVERVIEW.md`
+
 ## Prerequisites
 - Docker
 - Docker Compose (v2+)
@@ -78,6 +81,10 @@ docker compose -f docker-compose-simple.yml up -d --build backend dashboard
 
 Full walkthrough:
 - `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
+
+Important distinction:
+- `.env` / ngrok / Stripe CLI setup is **platform/developer setup**
+- the intended business-owner UX is still just **Connect Stripe** inside the dashboard
 
 ## 6) Logs and Troubleshooting
 View all logs:

@@ -135,12 +135,12 @@ At minimum, subscribe/forward these event types:
 Once the platform env/config is in place, the intended manager flow is:
 
 1. open dashboard at `http://localhost:4400/login`
-2. go to **PLAČILA** tab
+2. go to the **Payments** tab
 3. click **Connect Stripe**
 4. complete Stripe-hosted onboarding/auth
 5. return to dashboard
 6. click **Refresh status** if needed
-7. once connected, open a lead and click **Pošlji pay link**
+7. once connected, open a lead and click **Send payment link**
 
 That is the intended zero-tech tenant flow.
 
@@ -156,12 +156,17 @@ This mirrors the real Connect architecture better than trying to connect the pla
 ---
 
 ## 8) Current local fallback
-If Stripe Connect is not fully configured yet, ACE can still fall back to the local mock payment flow.
+If the connected Stripe account is not fully payment-ready yet, ACE can still open a **Stripe-hosted demo checkout** on the platform test account.
 
-That is useful for UI/dev work, but the intended production-shaped path is:
+Why this exists:
+- the flow remains demoable now
+- the UI stays the same
+- later the same flow can switch to connected-account checkout when the seller account becomes fully ready
+
+The intended production-shaped path is still:
 - org-level Stripe Connect settings
 - hosted Stripe onboarding
-- hosted Stripe Checkout
+- connected-account hosted Stripe Checkout
 - webhook-driven payment state updates
 
 ---

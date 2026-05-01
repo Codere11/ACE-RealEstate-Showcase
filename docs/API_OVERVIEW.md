@@ -54,6 +54,9 @@ Local origins allowed include:
 ## Payments / Stripe Connect Notes
 - Stripe Connect is configured at the **organization** level, not per lead
 - local platform setup may require `.env`, but tenant/business-owner setup should be only a dashboard **Connect Stripe** action
+- payment requests can currently resolve to:
+  - connected-account Stripe Checkout when the org account is fully ready
+  - platform Stripe-hosted demo checkout when the connected account is still restricted
 - public routes include Stripe callback/webhook/payment pages:
   - `/api/public/payments/stripe/connect/callback`
   - `/api/payments/webhooks/stripe`
