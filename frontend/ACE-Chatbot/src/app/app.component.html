@@ -1,9 +1,8 @@
 <section class="agent-hero">
-  <div class="agent-hero__photo" aria-hidden="true"></div>
-  <h1 class="agent-hero__title">{{ appMode === 'survey' && !surveyCompleted ? 'Complete a short property questionnaire' : 'You are chatting with ' + agentName }}</h1>
-  <p class="agent-hero__subtitle">
-    {{ appMode === 'survey' && !surveyCompleted ? 'Help us understand your property preferences so we can match you with the right listings faster.' : 'Write naturally — the assistant will understand your intent and help you without forcing you through a form.' }}
-  </p>
+  <div class="agent-hero__inner">
+    <div class="agent-hero__brand">ACE e-Counter</div>
+    <div class="agent-hero__camera" aria-hidden="true"></div>
+  </div>
 </section>
 
 <!-- Survey Mode -->
@@ -97,7 +96,7 @@
         </button>
 
         <button type="button" class="chip alt-skip" (click)="skipToHuman()" [disabled]="loading">
-          Preskoči → 1-na-1
+          Speak to a person
         </button>
       </div>
     </div>
@@ -107,11 +106,11 @@
     <form *ngIf="chatMode==='open' && ui?.inputType==='dual-contact'"
           class="composer dual-input"
           (ngSubmit)="sendContactDual(contactEmail.value, contactPhone.value)">
-      <div class="contact-capture"><input #contactEmail type="email" placeholder="Vaš e-mail" [disabled]="loading"/></div>
-      <div class="contact-capture"><input #contactPhone type="tel" placeholder="Telefon (+386 ...)" [disabled]="loading"/></div>
+      <div class="contact-capture"><input #contactEmail type="email" placeholder="Your email" [disabled]="loading"/></div>
+      <div class="contact-capture"><input #contactPhone type="tel" placeholder="Phone number" [disabled]="loading"/></div>
       <div class="composer-actions">
-        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Preskoči</button>
-        <button type="submit" [disabled]="loading">Pošlji</button>
+        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Skip</button>
+        <button type="submit" [disabled]="loading">Send</button>
       </div>
     </form>
 
@@ -119,11 +118,11 @@
     <form *ngIf="chatMode==='open' && ui?.inputType==='dual'"
           class="composer dual-input"
           (ngSubmit)="onSubmitSurvey(msgInput1, msgInput2)">
-      <input #msgInput1 type="text" placeholder="Odgovor 1" [disabled]="loading" />
-      <input #msgInput2 type="text" placeholder="Odgovor 2" [disabled]="loading" />
+      <input #msgInput1 type="text" placeholder="First answer" [disabled]="loading" />
+      <input #msgInput2 type="text" placeholder="Second answer" [disabled]="loading" />
       <div class="composer-actions">
-        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Preskoči</button>
-        <button type="submit" [disabled]="loading">Pošlji</button>
+        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Skip</button>
+        <button type="submit" [disabled]="loading">Send</button>
       </div>
     </form>
 
@@ -131,10 +130,10 @@
     <form *ngIf="chatMode==='open' && ui?.type!=='choices' && ui?.inputType!=='dual' && ui?.inputType!=='dual-contact'"
           class="composer"
           (ngSubmit)="onSubmitSingle(msgInput)">
-      <input #msgInput type="text" placeholder="Vnesite odgovor..." [disabled]="loading" />
+      <input #msgInput type="text" [placeholder]="singleInputPlaceholder" [disabled]="loading" />
       <div class="composer-actions">
-        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Preskoči</button>
-        <button type="submit" [disabled]="loading">Pošlji</button>
+        <button type="button" class="ghost" (click)="skipToHuman()" [disabled]="loading">Skip</button>
+        <button type="submit" [disabled]="loading">Send</button>
       </div>
     </form>
   </div>

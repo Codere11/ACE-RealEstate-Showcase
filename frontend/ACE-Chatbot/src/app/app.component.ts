@@ -105,6 +105,10 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     name: '', email: '', phone: '', channel: 'email'
   };
 
+  get singleInputPlaceholder(): string {
+    return this.humanMode ? 'Write your message…' : 'Tell us what you need…';
+  }
+
   @ViewChild('messagesRef') private messagesRef?: ElementRef<HTMLDivElement>;
 
   constructor(
@@ -231,14 +235,14 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (!e && !p) {
       this.w('No contact provided');
-      this.messages.push({ role: 'assistant', text: 'Dodaj vsaj e-pošto ali telefon, prosim. 🙏', _id: this.rid('MSG') });
+      this.messages.push({ role: 'assistant', text: 'Please add at least an email or a phone number.', _id: this.rid('MSG') });
       this.scrollToBottomSoon();
       return;
     }
     const rid = this.rid('CONTACT2');
     const payload = { email: e, phone: p, channel: e ? 'email' : 'phone' };
 
-    this.startTyping('Shranjujem kontakt…');
+    this.startTyping('Saving contact…');
     this.loading = true;
 
     this.http.post<ChatResponse>(
@@ -247,7 +251,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       { headers: this.headers(rid) }
     ).subscribe({
       next: (res) => { this.i('[HTTP /chat] contact dual OK', { rid, res }); this.loading = false; this.consume(res); },
-      error: (err) => { this.e('[HTTP /chat] contact dual ERR', { rid, err }); this.loading = false; this.stopTyping('⚠️ Ni uspelo shraniti. Poskusi znova.'); }
+      error: (err) => { this.e('[HTTP /chat] contact dual ERR', { rid, err }); this.loading = false; this.stopTyping('⚠️ Failed to save contact. Please try again.'); }
     });
   }
 
@@ -262,7 +266,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
        this.chatMode = 'open';
     this.ui = { inputType: 'single' };
 
-    this.messages.push({ role: 'assistant', text: 'Povezujem te z agentom. Piši vprašanje kar tukaj 👇', _id: this.rid('MSG') });
+    this.messages.push({ role: 'assistant', text: 'A team member can continue here. You can keep typing below.', _id: this.rid('MSG') });
     this.scrollToBottomSoon();
 
     fetch(`${this.backendUrl}/chat/`, {
@@ -285,7 +289,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.pendingUserTexts.add(text);
     setTimeout(() => this.pendingUserTexts.delete(text), 5000);
 
-    this.startTyping('Razmišljam…');
+    this.startTyping('Thinking…');
     this.loading = true;
 
     const body = {
@@ -298,7 +302,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.http.post<ChatResponse>(`${this.backendUrl}/chat/`, body, { headers: this.headers(rid) })
       .subscribe({
         next: res => { this.i('[HTTP /chat] OK', { rid, res }); this.consume(res); },
-        error: err => { this.e('[HTTP /chat] ERR', { rid, err }); this.loading = false; this.stopTyping('⚠️ Napaka pri komunikaciji s strežnikom.'); }
+        error: err => { this.e('[HTTP /chat] ERR', { rid, err }); this.loading = false; this.stopTyping('⚠️ Server communication error.'); }
       });
   }
 
@@ -346,7 +350,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch (err) {
       this.e('[HTTP /chat/stream] ERR', { rid, err });
       this.loading = false;
-      this.stopTyping('⚠️ Napaka pri pretakanju odgovora.');
+      this.stopTyping('⚠️ Streaming response failed.');
     }
   }
 
@@ -377,7 +381,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.http.post<ChatResponse>(`${this.backendUrl}/chat/`, body, { headers: this.headers(rid) })
       .subscribe({
         next: res => { this.i('[HTTP /chat] single OK', { rid, res }); this.singleSubmitting = false; this.consume(res); },
-        error: err => { this.e('[HTTP /chat] single ERR', { rid, err }); this.singleSubmitting = false; this.loading = false; this.stopTyping('⚠️ Napaka pri pošiljanju odgovora.'); }
+        error: err => { this.e('[HTTP /chat] single ERR', { rid, err }); this.singleSubmitting = false; this.loading = false; this.stopTyping('⚠️ Failed to send your message.'); }
       });
   }
 
@@ -404,7 +408,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.http.post<ChatResponse>(`${this.backendUrl}/chat/survey`, body, { headers: this.headers(rid) })
       .subscribe({
         next: res => { this.i('[HTTP /chat/survey] OK', { rid, res }); this.surveySubmitting = false; this.consume(res); },
-        error: err => { this.e('[HTTP /chat/survey] ERR', { rid, err }); this.surveySubmitting = false; this.loading = false; this.stopTyping('⚠️ Napaka pri pošiljanju ankete.'); }
+        error: err => { this.e('[HTTP /chat/survey] ERR', { rid, err }); this.surveySubmitting = false; this.loading = false; this.stopTyping('⚠️ Failed to submit the form.'); }
       });
   }
 
@@ -738,7 +742,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       this.messages.push({ role: 'assistant', typing: true, _id: this.rid('MSG') });
       this.scrollToBottomSoon();
     }
-    this.typingLabel = label ?? this.typingLabel ?? 'Razmišljam…';
+    this.typingLabel = label ?? this.typingLabel ?? 'Thinking…';
   }
 
   private stopTyping(replaceWith?: string) {
@@ -796,7 +800,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
           if (this.messages.length === 0) {
             this.messages.push({
               role: 'assistant',
-              text: 'Živjo — tukaj sem, da ti hitro pomagam. Kar napiši svoje vprašanje ali situacijo, jaz pa te usmerim naprej.',
+              text: 'Welcome to ACE e-Counter. Tell us what you need and we will guide you from here.',
               _id: this.rid('MSG')
             });
             this.scrollToBottomSoon();
@@ -890,14 +894,14 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       nodes: [
         {
           id: 'contact',
-          texts: ['Prosimo vnesite kontaktne podatke:'],
+          texts: ['Please enter your contact details:'],
           openInput: true,
           inputType: 'dual-contact',
           next: 'thank_you'
         },
         {
           id: 'thank_you',
-          texts: ['Hvala! Kmalu se oglasimo.'],
+          texts: ['Thank you. A team member will follow up shortly.'],
           terminal: true
         }
       ]
@@ -921,7 +925,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     // Add message to chat
     this.messages.push({
       role: 'assistant',
-      text: 'Agent je prevzel pogovor. Pišite vprašanja tukaj 👇',
+      text: 'A team member has joined the conversation. You can continue here.',
       _id: this.rid('MSG')
     });
     this.scrollToBottomSoon();

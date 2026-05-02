@@ -7,42 +7,47 @@ body {
 }
 
 /* Layout helpers */
-.agent-page { display: block; padding: 8px 14px 18px; }
+.agent-page { display: block; padding: 4px 14px 10px; }
 
-/* ---------- Agent hero (centered, full-bleed dark) ---------- */
+/* ---------- Agent hero (brand left corner, camera centered) ---------- */
 .agent-hero{
-  display: grid; place-items: center; text-align: center;
-  padding: 28px 12px 18px; gap: 12px;
+  padding: 10px 18px 4px;
   background:
-    radial-gradient(1200px 400px at 50% -80px, rgba(193,164,108,.22), transparent 60%),
+    radial-gradient(1200px 400px at 18% -80px, rgba(193,164,108,.12), transparent 60%),
     linear-gradient(180deg, #121417 0%, #0C0D10 70%);
-  border-bottom: 1px solid rgba(193,164,108,.32);
+  border-bottom: 1px solid rgba(193,164,108,.18);
 }
-.agent-hero__photo{
-  width: clamp(96px, 18vw, 156px); height: clamp(96px, 18vw, 156px);
-  border-radius: 50%; object-fit: cover;
-  border: 2px solid rgba(193,164,108,.55);
-  box-shadow: 0 16px 36px rgba(0,0,0,.35), 0 0 0 6px rgba(193,164,108,.12) inset;
-  background: #111216;
-}
-.agent-hero__title{
-  color: #FAFAF7;
-  margin: 6px 0 0;
-  font-size: clamp(22px, 3.2vw, 34px);
-  line-height: 1.12; font-weight: 900; letter-spacing: .2px;
-}
-.agent-hero__subtitle{
+.agent-hero__inner{
+  width: 100%;
   margin: 0;
-  font-size: clamp(12px, 1.6vw, 14px);
-  color: #EDEBE6;
-  opacity: .9;
+  display: grid;
+  gap: 8px;
+}
+.agent-hero__camera{
+  width: min(100%, 520px);
+  aspect-ratio: 16 / 9;
+  justify-self: center;
+  border-radius: 18px;
+  background: #020303;
+  border: 1px solid rgba(255,255,255,.09);
+  box-shadow: 0 24px 60px rgba(0,0,0,.38);
+}
+.agent-hero__brand{
+  width: 100%;
+  color: rgba(250,250,247,.92);
+  font-size: .92rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: left;
 }
 
-/* ---------- Chat Card (fixed height, elevated on dark) ---------- */
+/* ---------- Chat Card (viewport-friendly) ---------- */
 .chat-card{
-  --chat-height: 560px;
+  --chat-height: clamp(320px, calc(100vh - 240px), 520px);
   height: var(--chat-height);
-  max-width: 920px; margin: 18px auto 28px;
+  max-width: 920px; margin: 8px auto 12px;
   background: #FFFFFF; /* light card for contrast */
   border: 1px solid #E6E2D6;
   border-radius: 16px;
@@ -57,7 +62,9 @@ body {
 
 /* ---------- Messages (scroll area) ---------- */
 .messages{
-  min-height: 450px; max-height: 450px; overflow-y: auto;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
   overscroll-behavior: contain; scrollbar-gutter: stable; padding-right: 4px;
   display: flex; flex-direction: column; gap: 12px; color: #111317;
   background:
@@ -209,7 +216,14 @@ button:focus-visible, [role="button"]:focus-visible, .chip:focus-visible, .choic
 
 /* ---------- Mobile tweaks ---------- */
 @media (max-width: 600px){
-  .chat-card{ --chat-height: 520px; margin: 12px auto 22px; }
+  .agent-hero{
+    padding: 8px 14px 2px;
+  }
+  .agent-hero__camera{
+    width: min(100%, 420px);
+    border-radius: 14px;
+  }
+  .chat-card{ --chat-height: clamp(300px, calc(100vh - 210px), 460px); margin: 8px auto 12px; }
   .msg{ max-width: 85%; padding: .65rem .85rem; font-size: .96rem; }
   .composer.dual-input{ flex-direction: column; }
   .composer .composer-actions{ justify-content: stretch; }
