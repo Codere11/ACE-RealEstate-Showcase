@@ -6,6 +6,7 @@ import { LiveEventsService, ChatEvent } from './services/live-events.service';
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { SurveyFormComponent } from './survey-form.component';
+import { Room, RoomEvent, Track } from 'livekit-client';
 
 type Role = 'user' | 'assistant' | 'staff';
 type Channel = 'email'|'phone'|'whatsapp'|'sms';
@@ -33,6 +34,18 @@ interface Message {
   paymentRequest?: PaymentCard;
 
   _id?: string;
+}
+
+interface PublicLiveSession {
+  sid: string;
+  status: 'idle' | 'preview' | 'live' | 'ended' | 'disconnected';
+  manager_display_name: string;
+  room_name?: string | null;
+  stage_message: string;
+  ws_url?: string | null;
+  token?: string | null;
+  live_at?: string | null;
+  ended_at?: string | null;
 }
 
 interface ChatResponse {
@@ -105,11 +118,20 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     name: '', email: '', phone: '', channel: 'email'
   };
 
+  liveHelpState: 'idle' | 'joining' | 'live' | 'ended' = 'idle';
+  liveHelpManagerName = '';
+  liveHelpAudioMuted = true;
+
+  private liveRoom: Room | null = null;
+  private liveRoomName: string | null = null;
+
   get singleInputPlaceholder(): string {
     return this.humanMode ? 'Write your message…' : 'Tell us what you need…';
   }
 
   @ViewChild('messagesRef') private messagesRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('liveHelpVideo') private liveHelpVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild('liveHelpAudio') private liveHelpAudio?: ElementRef<HTMLAudioElement>;
 
   constructor(
     private http: HttpClient,
@@ -153,6 +175,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Decide entry mode: qualifier-first chat or survey
     this.loadEntryMode();
+    this.loadLiveHelpState();
     
     this.liveSub = this.live.events$.subscribe((evt: ChatEvent | null) => {
       if (!evt) return;
@@ -164,9 +187,20 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
         this.onSurveyPaused();
         return;
       }
+
+      if (evt.sid !== this.sid) return;
+
+      if (evt.type === 'live_session.live') {
+        this.activateLiveHelp(evt.payload);
+        return;
+      }
+
+      if (evt.type === 'live_session.ended') {
+        this.endLiveHelp();
+        return;
+      }
       
       if (evt.type !== 'message.created') return;
-      if (evt.sid !== this.sid) return;
 
       const role = (evt.payload?.role as Role) ?? 'assistant';
       const text = (evt.payload?.text as string) ?? '';
@@ -222,6 +256,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.d('ngOnDestroy → stopping LiveEvents');
     this.liveSub?.unsubscribe();
     this.live.stop();
+    this.disconnectLiveHelpRoom();
     if (this.surveyPollInterval) {
       clearInterval(this.surveyPollInterval);
     }
@@ -781,6 +816,117 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
         this.d('scrollToBottomSoon() → scrolled', { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight });
       }, 0);
     });
+  }
+
+  private loadLiveHelpState() {
+    if (!this.organizationSlug) return;
+    this.http.get<PublicLiveSession>(`${this.backendUrl}/api/public/organizations/${this.organizationSlug}/live-session?sid=${encodeURIComponent(this.sid)}`).subscribe({
+      next: (state) => {
+        if (!state || state.status === 'idle') return;
+        if (state.status === 'live') {
+          this.connectToLiveHelp(state);
+          return;
+        }
+        if (state.status === 'ended') {
+          this.endLiveHelp(false);
+        }
+      },
+      error: (err) => this.w('Failed to load live help state', err),
+    });
+  }
+
+  private activateLiveHelp(payload: any) {
+    this.liveHelpManagerName = payload?.managerDisplayName || payload?.manager_display_name || 'A team member';
+    this.liveHelpState = 'joining';
+    setTimeout(() => this.loadLiveHelpState(), 350);
+  }
+
+  toggleLiveHelpAudio() {
+    this.liveHelpAudioMuted = !this.liveHelpAudioMuted;
+    const audio = this.liveHelpAudio?.nativeElement;
+    if (audio) {
+      audio.muted = this.liveHelpAudioMuted;
+      if (!this.liveHelpAudioMuted) {
+        audio.play().catch((err) => this.w('Live help audio play failed', err));
+      }
+    }
+  }
+
+  private async connectToLiveHelp(state: PublicLiveSession) {
+    if (!state.ws_url || !state.token || !state.room_name) return;
+    if (this.liveRoom && this.liveRoomName === state.room_name) {
+      this.liveHelpManagerName = state.manager_display_name || this.liveHelpManagerName;
+      this.liveHelpState = 'live';
+      return;
+    }
+
+    this.disconnectLiveHelpRoom();
+    this.liveHelpManagerName = state.manager_display_name || 'A team member';
+    this.liveHelpState = 'joining';
+
+    try {
+      const room = new Room();
+      room.on(RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === Track.Kind.Video) {
+          const el = this.liveHelpVideo?.nativeElement;
+          if (el) {
+            el.autoplay = true;
+            el.playsInline = true;
+            track.attach(el);
+          }
+          this.liveHelpState = 'live';
+        }
+        // Remote audio intentionally disabled for now.
+        // We will re-enable it later with a cleaner explicit unmute flow.
+        // if (track.kind === Track.Kind.Audio) {
+        //   const el = this.liveHelpAudio?.nativeElement;
+        //   if (el) {
+        //     this.liveHelpAudioMuted = true;
+        //     el.autoplay = true;
+        //     el.defaultMuted = true;
+        //     el.muted = true;
+        //     track.attach(el);
+        //   }
+        // }
+      });
+      room.on(RoomEvent.Disconnected, () => {
+        this.endLiveHelp();
+      });
+      await room.connect(state.ws_url, state.token);
+      this.liveRoom = room;
+      this.liveRoomName = state.room_name || null;
+    } catch (err) {
+      this.w('Failed to connect to live help room', err);
+      this.endLiveHelp();
+    }
+  }
+
+  private disconnectLiveHelpRoom() {
+    try {
+      this.liveRoom?.disconnect();
+    } catch {}
+    this.liveRoom = null;
+    this.liveRoomName = null;
+    const video = this.liveHelpVideo?.nativeElement;
+    const audio = this.liveHelpAudio?.nativeElement;
+    if (video) {
+      video.srcObject = null;
+      video.load();
+    }
+    if (audio) {
+      audio.srcObject = null;
+      audio.load();
+    }
+  }
+
+  private endLiveHelp(resetLater: boolean = true) {
+    this.disconnectLiveHelpRoom();
+    this.liveHelpState = 'ended';
+    if (resetLater) {
+      setTimeout(() => {
+        if (this.liveHelpState === 'ended') this.liveHelpState = 'idle';
+      }, 3200);
+    }
   }
 
   // ===== Survey Mode Methods (NEW) =====

@@ -1,11 +1,12 @@
 <!-- Created: 2026-03-14T20:44:39Z -->
-# ACE Real Estate
-A multi-tenant real-estate lead qualification platform with a customer chatbot, manager dashboard, and tenant-aware backend.
+# ACE e-Counter
+A configurable digital front desk for visitor intake, AI qualification, live human handoff, and next-step actions.
 
 This project is meant to show **product engineering**, not just isolated AI or frontend experiments:
 - manager-configured AI qualification
 - real-time dashboard visibility
 - event-driven handoff between chat and operators
+- one-way live help stage with manager preview and visitor-side live rectangle
 - payment request workflow with a Stripe Connect path
 - Dockerized full-stack local setup
 
@@ -16,36 +17,38 @@ This project is meant to show **product engineering**, not just isolated AI or f
 ![Docker](https://img.shields.io/badge/Docker-Local%20Stack-2496ED?logo=docker&logoColor=white)
 
 ## The Problem
-Real-estate teams lose time and revenue when inbound leads are:
+Businesses lose time and revenue when inbound visitors are:
 - qualified manually
 - followed up too late
 - handled in disconnected tools
-- escalated without clear lead quality or next-step context
+- escalated without clear quality or next-step context
 
 A normal website form or rigid survey also creates friction too early.
 
 ## The Solution
-ACE Real Estate combines a conversational intake layer with manager-side control.
+ACE e-Counter combines a conversational intake layer with manager-side control.
 
 ### Visitor side
 - start with either a survey or open chat, depending on tenant configuration
 - ask questions naturally
 - get qualified in the background without being forced through a long form
+- receive live human help in the top-stage rectangle when staff steps in
 - receive a payment request when the manager decides the lead is ready
 
 ### Manager side
 - configure the AI qualifier per organization
 - see evolving lead quality, confidence, reasoning, and takeover eligibility
-- step into the conversation when needed
+- preview a live-help session and go live to the visitor stage
 - send a payment request directly from the dashboard
 
 ## Why each major piece exists
-### 1. Customer chatbot
+### 1. Customer e-counter
 Exists to reduce friction at the top of the funnel.
 
 It supports:
 - survey mode when structured intake is appropriate
 - open AI qualification mode when a live qualifier exists
+- a live-help stage above the conversation
 - payment request cards inside the chat flow
 
 ### 2. AI qualifier
@@ -64,6 +67,7 @@ It lets the team:
 - review leads in real time
 - inspect lead profile quality
 - manage qualifier behavior
+- preview and trigger live help
 - send payment requests
 - take over the conversation when needed
 
@@ -76,7 +80,16 @@ It is used for:
 - payment request state updates
 - manager/dashboard synchronization
 
-### 5. Payment request flow
+### 5. Live help stage
+Exists to bridge the gap between AI qualification and real human presence.
+
+The current first slice supports:
+- manager-side preview stage
+- visitor-side live rectangle
+- session state and live events
+- local LiveKit wiring for one-way live help
+
+### 6. Payment request flow
 Exists because qualification should lead to a real business action.
 
 The manager can:
@@ -88,12 +101,13 @@ The manager can:
 ## Current demoable flow
 The project is currently coherent enough to demo this end-to-end story:
 
-1. visitor opens chatbot
+1. visitor opens ACE e-Counter
 2. tenant-specific qualifier runs in free-text mode
 3. manager sees lead quality in dashboard
-4. manager sends a payment request
-5. visitor opens a Stripe-hosted checkout
-6. payment state updates back into the system
+4. manager can preview/go-live into the live-help stage
+5. manager can send a payment request
+6. visitor opens a Stripe-hosted checkout
+7. payment state updates back into the system
 
 ## Product Demo
 ### 1) Survey Intake
@@ -118,6 +132,8 @@ Managers can configure qualifiers, inspect lead quality, and send payment reques
 - qualifier runtime with `extract -> score -> reply`
 - live qualifier-aware chatbot entry mode
 - dashboard lead visibility for score, confidence, reasoning, takeover/video flags
+- live-help session shell with manager preview/live controls and visitor-side live stage
+- local LiveKit integration for one-way live-help transport
 - payment request flow in dashboard + chatbot
 - Stripe Connect architecture path at organization level
 - Stripe-hosted checkout path
@@ -125,8 +141,8 @@ Managers can configure qualifiers, inspect lead quality, and send payment reques
 - Dockerized local stack
 
 ### Intentionally not finished yet
-- grounded listing/retrieval answers
-- final video takeover flow
+- grounded retrieval answers
+- polished production-grade live-help audio/two-way escalation flow
 - polished production-ready Stripe Connect onboarding for real clients
 - deeper analytics/reporting
 
@@ -137,8 +153,8 @@ Managers can configure qualifiers, inspect lead quality, and send payment reques
 - event bus + long-poll/SSE-style updates for live UI synchronization
 
 ### Frontend
-- **Angular chatbot** for visitor intake and conversational UI
-- **Angular manager dashboard** for lead operations, qualifier management, and payments
+- **Angular chatbot** for visitor intake, conversational UI, and visitor-side live-help stage
+- **Angular manager dashboard** for lead operations, qualifier management, payments, and manager-side preview/live stage
 - **Portal/admin app** for additional management concerns
 
 ### Runtime patterns
@@ -186,6 +202,7 @@ Useful demo routes:
 
 ### Core feature docs
 - AI qualifier spec: `docs/AI_QUALIFIER_SPEC.md`
+- Live help spec: `docs/LIVE_HELP_SPEC.md`
 - Data contracts: `docs/DATA_CONTRACTS.md`
 - Live events: `docs/EVENTS.md`
 - Stripe Connect local setup: `docs/STRIPE_CONNECT_LOCAL_SETUP.md`

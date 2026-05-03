@@ -69,6 +69,25 @@ export type LeadProfile = {
   updated_at: string;
 };
 
+export type LiveSession = {
+  id: number;
+  organization_id: number;
+  sid: string;
+  manager_user_id?: number | null;
+  manager_display_name: string;
+  provider: string;
+  status: 'preview' | 'live' | 'ended' | 'disconnected';
+  room_name?: string | null;
+  stage_message: string;
+  ws_url?: string | null;
+  token?: string | null;
+  started_at: string;
+  live_at?: string | null;
+  ended_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -211,6 +230,26 @@ export class DashboardService {
   createPaymentRequest(payload: { sid: string; amount: number; currency: string; purpose: string; note?: string; expires_in_hours?: number; }): Observable<PaymentRequest> {
     const orgId = this.getOrgId();
     return this.http.post<PaymentRequest>(`${this.baseUrl}/api/organizations/${orgId}/payment-requests`, payload);
+  }
+
+  getCurrentLiveSession(sid: string): Observable<LiveSession | null> {
+    const orgId = this.getOrgId();
+    return this.http.get<LiveSession | null>(`${this.baseUrl}/api/organizations/${orgId}/live-sessions/current?sid=${encodeURIComponent(sid)}`);
+  }
+
+  startLivePreview(sid: string): Observable<LiveSession> {
+    const orgId = this.getOrgId();
+    return this.http.post<LiveSession>(`${this.baseUrl}/api/organizations/${orgId}/live-sessions/preview`, { sid });
+  }
+
+  goLive(sid: string): Observable<LiveSession> {
+    const orgId = this.getOrgId();
+    return this.http.post<LiveSession>(`${this.baseUrl}/api/organizations/${orgId}/live-sessions/go-live`, { sid });
+  }
+
+  endLiveSession(sessionId: number): Observable<LiveSession> {
+    const orgId = this.getOrgId();
+    return this.http.post<LiveSession>(`${this.baseUrl}/api/organizations/${orgId}/live-sessions/${sessionId}/end`, {});
   }
 
   /** Delete a lead by ID */

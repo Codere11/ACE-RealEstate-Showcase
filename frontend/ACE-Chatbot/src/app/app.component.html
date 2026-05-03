@@ -1,7 +1,25 @@
 <section class="agent-hero">
   <div class="agent-hero__inner">
     <div class="agent-hero__brand">ACE e-Counter</div>
-    <div class="agent-hero__camera" aria-hidden="true"></div>
+    <div class="agent-hero__camera" [class.joining]="liveHelpState==='joining'" [class.live]="liveHelpState==='live'" [class.ended]="liveHelpState==='ended'">
+      <video #liveHelpVideo class="agent-hero__live-video" [class.visible]="liveHelpState==='live'" autoplay playsinline></video>
+      <audio #liveHelpAudio autoplay muted></audio>
+
+      <div class="agent-hero__camera-state" *ngIf="liveHelpState==='joining' || liveHelpState==='ended'">
+        <div class="agent-hero__camera-eyebrow">Live help</div>
+        <div class="agent-hero__camera-title">
+          {{ liveHelpState==='joining' ? (liveHelpManagerName || 'A team member') + ' is joining to help' : 'Live help has ended' }}
+        </div>
+      </div>
+
+      <div class="agent-hero__live-badge" *ngIf="liveHelpState==='live'">
+        {{ liveHelpManagerName || 'A team member' }} live
+      </div>
+
+      <button class="agent-hero__audio-toggle" type="button" *ngIf="liveHelpState==='live'" (click)="toggleLiveHelpAudio()">
+        {{ liveHelpAudioMuted ? 'Unmute' : 'Mute' }}
+      </button>
+    </div>
   </div>
 </section>
 

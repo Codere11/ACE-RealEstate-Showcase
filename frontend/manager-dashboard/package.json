@@ -26,6 +26,7 @@
     "chart.js": "^4.5.0",
     "chartjs": "^0.3.24",
     "express": "^4.18.2",
+    "livekit-client": "^2.18.8",
     "ng-charts": "^1.0.0-alpha",
     "ng2-charts": "^8.0.0",
     "ngx-countup": "^13.2.0",

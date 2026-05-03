@@ -286,6 +286,45 @@ class PaymentRequestResponse(BaseModel):
         from_attributes = True
 
 
+class LiveSessionCreate(BaseModel):
+    sid: str = Field(..., min_length=1, max_length=64)
+
+
+class LiveSessionResponse(BaseModel):
+    id: int
+    organization_id: int
+    sid: str
+    manager_user_id: Optional[int] = None
+    manager_display_name: str = ""
+    provider: str
+    status: Literal["preview", "live", "ended", "disconnected"]
+    room_name: Optional[str] = None
+    stage_message: str = ""
+    ws_url: Optional[str] = None
+    token: Optional[str] = None
+    started_at: datetime
+    live_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class PublicLiveSessionResponse(BaseModel):
+    sid: str
+    status: Literal["preview", "live", "ended", "disconnected", "idle"]
+    manager_display_name: str = ""
+    room_name: Optional[str] = None
+    stage_message: str = ""
+    ws_url: Optional[str] = None
+    token: Optional[str] = None
+    live_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+
+
 class SurveyStats(BaseModel):
     """Statistics for a survey"""
     survey_id: int

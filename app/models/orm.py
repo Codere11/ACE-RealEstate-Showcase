@@ -103,6 +103,9 @@ class Organization(Base):
     payment_requests: Mapped[list["PaymentRequest"]] = relationship(
         "PaymentRequest", back_populates="organization", cascade="all, delete-orphan"
     )
+    live_sessions: Mapped[list["LiveSession"]] = relationship(
+        "LiveSession", back_populates="organization", cascade="all, delete-orphan"
+    )
     payment_settings: Mapped[Optional["OrganizationPaymentSettings"]] = relationship(
         "OrganizationPaymentSettings", back_populates="organization", cascade="all, delete-orphan", uselist=False
     )
@@ -455,6 +458,40 @@ class Event(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     conversation: Mapped[Conversation] = relationship("Conversation", back_populates="events")
+
+
+# ---------- Live Help Sessions ----------
+class LiveSession(Base):
+    __tablename__ = "live_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    sid: Mapped[str] = mapped_column(String(64), index=True)
+    manager_user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    manager_display_name: Mapped[str] = mapped_column(String(120), default="")
+    provider: Mapped[str] = mapped_column(String(32), default="livekit")
+    status: Mapped[str] = mapped_column(String(20), default="preview")
+    room_name: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    stage_message: Mapped[str] = mapped_column(Text, default="")
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    live_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="live_sessions")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('preview', 'live', 'ended', 'disconnected')", name="chk_live_sessions_status"),
+        Index("ix_live_sessions_org_sid_created", "organization_id", "sid", "created_at"),
+        Index("ix_live_sessions_org_status", "organization_id", "status"),
+    )
 
 
 # ---------- Organization Payment Settings ----------

@@ -4,12 +4,13 @@ import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
-import { DashboardService, Lead, KPIs, Funnel, ChatLog, PaymentRequest, OrganizationPaymentSettings } from './services/dashboard.service';
+import { DashboardService, Lead, KPIs, Funnel, ChatLog, PaymentRequest, OrganizationPaymentSettings, LiveSession } from './services/dashboard.service';
 import { AuthService } from './services/auth.service';
 import { NotesTableComponent } from './notes-table/notes-table.component';
 import { LiveEventsService, ChatEvent } from './services/live-events.service';
-import { Subscription, forkJoin, of } from 'rxjs';
+import { Subscription, forkJoin, of, firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
+import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, createLocalVideoTrack, createLocalAudioTrack } from 'livekit-client';
 // ✅ Flow Designer
 import { SimpleSurveyBuilderComponent } from './simple-survey-builder/simple-survey-builder.component';
 import { SurveyAnswersComponent } from './survey-answers/survey-answers.component';
@@ -62,6 +63,13 @@ export class AppComponent implements OnInit, OnDestroy {
   takeoverInput = '';
   takeoverSending = false;
 
+  liveStageTarget: Lead | null = null;
+  livePreviewState: 'idle' | 'preview' | 'live' = 'idle';
+  liveSession: LiveSession | null = null;
+  liveSessionLoading = false;
+  liveSessionError = '';
+  livePreviewHasVideo = false;
+
   paymentModalOpen = false;
   paymentLead: Lead | null = null;
   paymentAmount = 150;
@@ -111,6 +119,11 @@ export class AppComponent implements OnInit, OnDestroy {
   uploadingAvatar = false;
   
   @ViewChild('avatarInput') avatarInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('livePreviewVideo') livePreviewVideo?: ElementRef<HTMLVideoElement>;
+
+  private liveRoom: Room | null = null;
+  private localVideoTrack: LocalVideoTrack | null = null;
+  private localAudioTrack: LocalAudioTrack | null = null;
 
   constructor(
     private dashboardService: DashboardService,
@@ -174,6 +187,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.liveSub?.unsubscribe();
     this.live.stop();
     if (this.pollTimer) clearInterval(this.pollTimer);
+    this.disconnectLiveRoom();
+    this.releasePreviewMedia();
   }
 
   // -------- Logger --------
@@ -251,6 +266,12 @@ export class AppComponent implements OnInit, OnDestroy {
       if (type === 'payment.request.sent' || type === 'payment.request.paid') {
         if (this.paymentModalOpen && this.paymentLead?.id === sid) {
           this.loadPaymentRequestsForLead(sid);
+        }
+      }
+
+      if (type === 'live_session.live' || type === 'live_session.ended') {
+        if (this.liveStageTarget?.id === sid) {
+          this.syncLiveStateFromPayload(payload);
         }
       }
 
@@ -503,11 +524,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   openTakeover(lead: Lead) {
     this.takeoverLead = lead;
+    this.liveStageTarget = lead;
     this.takeoverOpen = true;
     this.takeoverLoading = true;
     this.log('openTakeover', lead.id);
 
     this.loadChatsForLead(lead.id, true);
+    this.loadCurrentLiveSession(lead.id);
     setTimeout(() => (this.takeoverLoading = false), 150);
   }
 
@@ -517,6 +540,159 @@ export class AppComponent implements OnInit, OnDestroy {
     this.takeoverLead = null;
     this.takeoverInput = '';
     this.takeoverSending = false;
+  }
+
+  async startLivePreview() {
+    if (!this.liveStageTarget) {
+      this.liveSessionError = 'Open a lead chat first to choose who will receive live help.';
+      return;
+    }
+    this.liveSessionLoading = true;
+    this.liveSessionError = '';
+    try {
+      await this.ensurePreviewMedia();
+      const session = await firstValueFrom(this.dashboardService.startLivePreview(this.liveStageTarget.id));
+      this.liveSession = session;
+      this.livePreviewState = 'preview';
+    } catch (err: any) {
+      this.liveSessionError = err?.error?.detail || err?.message || 'Failed to start live preview.';
+      this.releasePreviewMedia();
+      this.livePreviewState = 'idle';
+    } finally {
+      this.liveSessionLoading = false;
+    }
+  }
+
+  async goLive() {
+    if (!this.liveStageTarget) {
+      this.liveSessionError = 'Open a lead chat first to choose who will receive live help.';
+      return;
+    }
+    this.liveSessionLoading = true;
+    this.liveSessionError = '';
+    try {
+      await this.ensurePreviewMedia();
+      const session = await firstValueFrom(this.dashboardService.goLive(this.liveStageTarget.id));
+      if (!session.ws_url || !session.token) {
+        throw new Error('Missing LiveKit connection details.');
+      }
+      await this.connectManagerRoom(session);
+      this.liveSession = session;
+      this.livePreviewState = 'live';
+    } catch (err: any) {
+      this.liveSessionError = err?.error?.detail || err?.message || 'Failed to go live.';
+    } finally {
+      this.liveSessionLoading = false;
+    }
+  }
+
+  async endLive() {
+    if (!this.liveSession?.id) return;
+    this.liveSessionLoading = true;
+    this.liveSessionError = '';
+    try {
+      const session = await firstValueFrom(this.dashboardService.endLiveSession(this.liveSession.id));
+      this.disconnectLiveRoom();
+      this.releasePreviewMedia();
+      this.liveSession = session;
+      this.livePreviewState = 'idle';
+    } catch (err: any) {
+      this.liveSessionError = err?.error?.detail || err?.message || 'Failed to end live help.';
+    } finally {
+      this.liveSessionLoading = false;
+    }
+  }
+
+  private loadCurrentLiveSession(sid: string) {
+    this.dashboardService.getCurrentLiveSession(sid).subscribe({
+      next: (session) => {
+        this.liveSession = session;
+        if (session?.status === 'live') this.livePreviewState = 'live';
+        else if (session?.status === 'preview') this.livePreviewState = 'preview';
+        else this.livePreviewState = 'idle';
+      },
+      error: () => {
+        this.liveSession = null;
+        this.livePreviewState = 'idle';
+      }
+    });
+  }
+
+  private syncLiveStateFromPayload(payload: any) {
+    if (!payload) return;
+    this.liveSession = {
+      id: payload.id,
+      organization_id: this.currentUser?.organization_id || 1,
+      sid: payload.sid,
+      manager_display_name: payload.managerDisplayName || '',
+      provider: 'livekit',
+      status: payload.status,
+      room_name: payload.roomName || null,
+      stage_message: payload.stageMessage || '',
+      started_at: payload.liveAt || new Date().toISOString(),
+      live_at: payload.liveAt || null,
+      ended_at: payload.endedAt || null,
+      created_at: payload.liveAt || new Date().toISOString(),
+      updated_at: payload.endedAt || payload.liveAt || new Date().toISOString(),
+    } as LiveSession;
+    if (payload.status === 'ended') {
+      this.disconnectLiveRoom();
+      this.releasePreviewMedia();
+      this.livePreviewState = 'idle';
+    } else {
+      this.livePreviewState = payload.status === 'live' ? 'live' : 'idle';
+    }
+  }
+
+  private async ensurePreviewMedia() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!this.localVideoTrack) {
+      this.localVideoTrack = await createLocalVideoTrack();
+    }
+    if (!this.localAudioTrack) {
+      this.localAudioTrack = await createLocalAudioTrack();
+    }
+    setTimeout(() => {
+      const el = this.livePreviewVideo?.nativeElement;
+      if (!el || !this.localVideoTrack) return;
+      el.muted = true;
+      el.playsInline = true;
+      el.autoplay = true;
+      this.localVideoTrack.attach(el);
+      this.livePreviewHasVideo = true;
+    }, 0);
+  }
+
+  private async connectManagerRoom(session: LiveSession) {
+    this.disconnectLiveRoom();
+    const room = new Room();
+    room.on(RoomEvent.Disconnected, () => {
+      this.livePreviewState = 'preview';
+    });
+    await room.connect(session.ws_url!, session.token!, { autoSubscribe: false });
+    if (this.localVideoTrack) await room.localParticipant.publishTrack(this.localVideoTrack);
+    if (this.localAudioTrack) await room.localParticipant.publishTrack(this.localAudioTrack);
+    this.liveRoom = room;
+  }
+
+  private disconnectLiveRoom() {
+    try {
+      this.liveRoom?.disconnect();
+    } catch {}
+    this.liveRoom = null;
+  }
+
+  private releasePreviewMedia() {
+    try { this.localVideoTrack?.stop(); } catch {}
+    try { this.localAudioTrack?.stop(); } catch {}
+    this.localVideoTrack = null;
+    this.localAudioTrack = null;
+    const el = this.livePreviewVideo?.nativeElement;
+    if (el) {
+      el.srcObject = null;
+      el.load();
+    }
+    this.livePreviewHasVideo = false;
   }
 
   openPaymentModal(lead: Lead) {

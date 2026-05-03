@@ -44,6 +44,9 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_CONNECT_CLIENT_ID: ${STRIPE_CONNECT_CLIENT_ID:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      ACE_LIVEKIT_WS_URL: ${ACE_LIVEKIT_WS_URL:-ws://127.0.0.1:7880}
+      ACE_LIVEKIT_API_KEY: ${ACE_LIVEKIT_API_KEY:-devkey}
+      ACE_LIVEKIT_API_SECRET: ${ACE_LIVEKIT_API_SECRET:-devsecretkey_for_local_livekit_32chars}
     volumes:
       - ./static:/app/static
       - ./instances:/app/instances
@@ -54,6 +57,16 @@ services:
         condition: service_healthy
     networks:
       - ace-network
+    restart: unless-stopped
+
+  # LiveKit (local one-way live help transport)
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: ace-livekit
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./docker/livekit.yaml:/etc/livekit.yaml:ro
+    network_mode: host
     restart: unless-stopped
 
   # Frontend: ACE Chatbot

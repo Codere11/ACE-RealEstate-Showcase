@@ -198,7 +198,53 @@ Use cases:
 
 ---
 
-## 10. `video.recording.started`
+## 10. `live_session.live`
+Published when the manager goes live into the visitor stage.
+
+Payload:
+```json
+{
+  "id": 12,
+  "sid": "SID_abc123",
+  "status": "live",
+  "managerDisplayName": "Alex",
+  "roomName": "org-1-live-SID_abc123",
+  "stageMessage": "Alex is joining to help.",
+  "liveAt": "2026-05-03T09:00:00Z",
+  "endedAt": null
+}
+```
+
+Use cases:
+- visitor rectangle switches from idle to joining/live
+- manager dashboard confirms session state
+
+---
+
+## 11. `live_session.ended`
+Published when the current live-help session ends.
+
+Payload:
+```json
+{
+  "id": 12,
+  "sid": "SID_abc123",
+  "status": "ended",
+  "managerDisplayName": "Alex",
+  "roomName": "org-1-live-SID_abc123",
+  "stageMessage": "Live help has ended.",
+  "liveAt": "2026-05-03T09:00:00Z",
+  "endedAt": "2026-05-03T09:03:00Z"
+}
+```
+
+Use cases:
+- return visitor stage to ended/idle state
+- clear manager live state
+
+---
+
+## 12. `video.recording.started`
 Payload:
 ```json
 {
@@ -209,7 +255,7 @@ Payload:
 
 ---
 
-## 11. `video.recording.stopped`
+## 13. `video.recording.stopped`
 Payload:
 ```json
 {

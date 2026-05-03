@@ -192,7 +192,40 @@ Suggested response additions:
 
 ---
 
-## 5. OrganizationPaymentSettings
+## 5. LiveSession
+Canonical one-way live-help session for one visitor session (`sid`).
+
+```json
+{
+  "id": 12,
+  "organization_id": 1,
+  "sid": "SID_abc123",
+  "manager_user_id": 9,
+  "manager_display_name": "Alex",
+  "provider": "livekit",
+  "status": "live",
+  "room_name": "org-1-live-SID_abc123",
+  "stage_message": "Alex is joining to help.",
+  "ws_url": "ws://127.0.0.1:7880",
+  "token": "<ephemeral-token>",
+  "started_at": "2026-05-03T09:00:00Z",
+  "live_at": "2026-05-03T09:00:05Z",
+  "ended_at": null,
+  "created_at": "2026-05-03T09:00:00Z",
+  "updated_at": "2026-05-03T09:00:05Z"
+}
+```
+
+### Notes
+- current implementation is **one-way**: manager publishes, visitor subscribes
+- manager-side rectangle is used for preview/live state
+- visitor-side top rectangle is used for joining/live state
+- tokens should be short-lived and issued by the backend
+- current local development transport is LiveKit
+
+---
+
+## 6. OrganizationPaymentSettings
 Canonical per-organization payment/Stripe Connect state.
 
 ```json
@@ -226,7 +259,7 @@ Canonical per-organization payment/Stripe Connect state.
 
 ---
 
-## 6. PaymentRequest
+## 7. PaymentRequest
 Canonical manager-issued payment request for one session (`sid`).
 
 ```json

@@ -14,6 +14,7 @@ from .orm import (  # noqa: F401
     LeadProfile,
     QualifierRun,
     PaymentRequest,
+    LiveSession,
     OrganizationPaymentSettings,
 )
 

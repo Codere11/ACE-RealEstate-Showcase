@@ -57,6 +57,33 @@
 
     <!-- TAB 1: Leads -->
     <section *ngIf="activeTab==='leads'">
+      <div class="live-preview-stage">
+        <div class="live-preview-stage__camera" [class.preview]="livePreviewState==='preview'" [class.live]="livePreviewState==='live'">
+          <video #livePreviewVideo class="live-preview-stage__video" [class.visible]="livePreviewHasVideo" autoplay playsinline muted></video>
+          <div class="live-preview-stage__overlay" *ngIf="!livePreviewHasVideo">
+            <div class="live-preview-stage__eyebrow">Live help</div>
+            <div class="live-preview-stage__title">{{ livePreviewState==='live' ? 'Broadcast ready' : livePreviewState==='preview' ? 'Preview ready' : 'Camera stage' }}</div>
+          </div>
+          <div class="live-preview-stage__badge" *ngIf="livePreviewHasVideo">
+            {{ livePreviewState==='live' ? 'LIVE' : 'PREVIEW' }}
+          </div>
+        </div>
+
+        <div class="live-preview-stage__meta">
+          <strong>Live help stage</strong>
+          <span *ngIf="liveStageTarget; else liveStageHint">Target: {{ liveStageTarget.name }} · SID {{ liveStageTarget.id }}</span>
+          <ng-template #liveStageHint>Open a lead chat to choose the live-help target.</ng-template>
+        </div>
+
+        <div class="live-preview-stage__actions">
+          <button class="chat-btn" (click)="startLivePreview()" [disabled]="liveSessionLoading || !liveStageTarget">{{ liveSessionLoading && livePreviewState==='idle' ? 'Starting…' : 'Start preview' }}</button>
+          <button class="pay-btn" (click)="goLive()" [disabled]="liveSessionLoading || !liveStageTarget || livePreviewState==='live'">Go live</button>
+          <button class="delete-btn" (click)="endLive()" [disabled]="liveSessionLoading || !liveSession || livePreviewState==='idle'">End live</button>
+        </div>
+
+        <div class="payment-feedback error" *ngIf="liveSessionError">{{ liveSessionError }}</div>
+      </div>
+
       <!-- NEW LAYOUT: top row (Filter | spacer | Tags), then leads span full width -->
       <div class="leads-grid-2">
 

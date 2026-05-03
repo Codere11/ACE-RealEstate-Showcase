@@ -12,7 +12,7 @@ from app.api import survey_flow
 from app.services.bootstrap_db import create_all
 
 # New multi-tenant API endpoints
-from app.api import organizations, users, surveys, public_survey, avatar, org_avatar, qualifiers, public_qualifiers, payments, public_payments, payment_settings, public_payment_settings, stripe_webhooks
+from app.api import organizations, users, surveys, public_survey, avatar, org_avatar, qualifiers, public_qualifiers, payments, public_payments, payment_settings, public_payment_settings, stripe_webhooks, live_sessions, public_live_sessions
 from app.auth import routes as auth_routes
 
 # 👉 NEW: portal imports (adds login/admin/manager + public flow + static mounting)
@@ -93,7 +93,9 @@ app.include_router(surveys.router)            # /api/organizations/{org_id}/surv
 app.include_router(qualifiers.router)         # /api/organizations/{org_id}/qualifiers
 app.include_router(payment_settings.router)   # /api/organizations/{org_id}/payment-settings
 app.include_router(payments.router)           # /api/organizations/{org_id}/payment-requests
+app.include_router(live_sessions.router)      # /api/organizations/{org_id}/live-sessions
 app.include_router(public_qualifiers.router)  # /api/public/organizations/{org_slug}/qualifier-active
+app.include_router(public_live_sessions.router)  # /api/public/organizations/{org_slug}/live-session
 app.include_router(public_survey.router)      # /s/{survey_slug}
 app.include_router(public_payments.router)    # /pay/*
 app.include_router(public_payment_settings.router)  # /api/public/payments/stripe/connect/callback

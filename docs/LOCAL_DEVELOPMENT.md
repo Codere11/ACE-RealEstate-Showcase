@@ -24,6 +24,9 @@ Minimum fields to review in `.env`:
 - `ACE_SECRET`
 - `ACE_LOG_LEVEL`
 - `ACE_ENFORCE_DUAL_CONTACT`
+- `ACE_LIVEKIT_WS_URL`
+- `ACE_LIVEKIT_API_KEY`
+- `ACE_LIVEKIT_API_SECRET`
 
 If you want to test Stripe Connect locally, also review:
 - `ACE_PUBLIC_BASE_URL`
@@ -51,6 +54,7 @@ docker compose -f docker-compose-simple.yml up -d
 - Chatbot frontend: `http://localhost:4200`
 - Manager dashboard: `http://localhost:4400`
 - Admin portal: `http://localhost:4500`
+- LiveKit signaling: `ws://127.0.0.1:7880`
 
 Useful demo routes:
 - Demo chatbot org route: `http://localhost:4200/demo-agency/nepremicnine`
@@ -117,7 +121,24 @@ This keeps the product boot process simple:
 - plain local app boot for normal development
 - extra tunnel/webhook boot only when you want the Stripe demo flow
 
-## 6) Logs and Troubleshooting
+## 6) Live Help Local Notes
+The current live-help slice uses a local LiveKit container from `docker-compose-simple.yml`.
+
+Current local behavior:
+- manager preview/live stage is in the dashboard above filter/overview
+- visitor live stage is the top rectangle in the chatbot
+- manager publishes camera video through local LiveKit
+- visitor subscribes through a public live-session route + live events
+- visitor remote audio is intentionally disabled for now to avoid local same-device feedback during demo/testing
+
+If live help is not connecting, check:
+
+```bash
+docker logs ace-livekit
+docker compose -f docker-compose-simple.yml logs -f backend
+```
+
+## 7) Logs and Troubleshooting
 View all logs:
 
 ```bash
@@ -142,7 +163,7 @@ Stop stack:
 docker compose -f docker-compose-simple.yml down
 ```
 
-## 7) Data Notes
+## 8) Data Notes
 - Local PostgreSQL is mapped in Docker volume `postgres_data`
 - Keep secrets out of git
 - Use `.env.example` as baseline for sharing config
@@ -156,7 +177,7 @@ docker compose -f docker-compose-simple.yml exec backend python scripts/seed_def
 
 The chatbot will switch to open qualifier mode automatically when a live qualifier exists for the organization.
 
-## 8) Alternative Compose Files
+## 9) Alternative Compose Files
 - `docker-compose-simple.yml`: easiest full-stack local run
 - `docker-compose.yml`: full/default compose
 - `docker-compose.dev.yml`: development variant
