@@ -22,12 +22,12 @@ type TrackedField = { name: string; type: 'string' | 'boolean' | 'array' | 'numb
         <div class="grid two">
           <label>
             <span>Name *</span>
-            <input [(ngModel)]="name" placeholder="Default AI Qualifier" />
+            <input [(ngModel)]="name" placeholder="ACE e-Counter" />
           </label>
 
           <label>
             <span>Slug *</span>
-            <input [(ngModel)]="slug" placeholder="default-ai-qualifier" />
+            <input [(ngModel)]="slug" placeholder="ace-e-counter" />
           </label>
         </div>
 
@@ -187,8 +187,8 @@ export class QualifierEditorComponent implements OnChanges {
   @Output() saved = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
-  name = '';
-  slug = '';
+  name = 'ACE e-Counter';
+  slug = 'ace-e-counter';
   systemPrompt = '';
   assistantStyle = 'friendly, concise, consultative';
   goalDefinition = '';
@@ -227,6 +227,11 @@ export class QualifierEditorComponent implements OnChanges {
 
   private fillFromQualifier() {
     if (!this.qualifier) {
+      this.name = 'ACE e-Counter';
+      this.slug = 'ace-e-counter';
+      this.systemPrompt = '';
+      this.assistantStyle = 'friendly, concise, consultative';
+      this.goalDefinition = '';
       this.successMessage = '';
       this.errorMessage = '';
       return;

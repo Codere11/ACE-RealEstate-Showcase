@@ -12,14 +12,14 @@ import { QualifierEditorComponent } from './qualifier-editor.component';
     <div class="qualifier-list" *ngIf="!editing">
       <div class="header">
         <div>
-          <h1>AI Qualifiers</h1>
-          <p>Create, tune, publish, and archive the active AI qualifier.</p>
+          <h1>ACE e-Counter</h1>
+          <p>Create, tune, publish, and archive the active ACE e-Counter qualifier.</p>
         </div>
         <button class="btn-primary" (click)="createNew()">+ New Qualifier</button>
       </div>
 
       <div class="info-card" *ngIf="liveQualifierSlug">
-        <strong>Live qualifier:</strong> {{ liveQualifierSlug }}
+        <strong>Live qualifier:</strong> ACE e-Counter
       </div>
 
       <div *ngIf="loading" class="empty">Loading qualifiers...</div>
@@ -38,8 +38,8 @@ import { QualifierEditorComponent } from './qualifier-editor.component';
         <tbody>
           <tr *ngFor="let q of qualifiers">
             <td>
-              <div class="name">{{ q.name }}</div>
-              <div class="slug">{{ q.slug }}</div>
+              <div class="name">ACE e-Counter</div>
+              <div class="slug">{{ q.status }} · v{{ q.version }}</div>
             </td>
             <td><span class="status" [class]="q.status">{{ q.status }}</span></td>
             <td>{{ q.version }}</td>
