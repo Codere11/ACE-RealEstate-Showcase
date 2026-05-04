@@ -62,6 +62,10 @@ async def _publish_qualifier_events(sid: str, q: QualificationResult | None):
             "field_confidence": q.field_confidence,
             "confidence_overall": q.confidence_overall,
             "missing_fields": q.missing_fields,
+            "visitor_type": (q.profile or {}).get("visitor_type"),
+            "funnel_stage": (q.profile or {}).get("funnel_stage"),
+            "qualification_complete": (q.profile or {}).get("qualification_complete"),
+            "disqualify_reason": (q.profile or {}).get("disqualify_reason"),
             "qualifier_id": q.qualifier_id,
             "qualifier_version": q.qualifier_version,
         })
@@ -73,6 +77,8 @@ async def _publish_qualifier_events(sid: str, q: QualificationResult | None):
             "takeover_eligible": q.takeover_eligible,
             "video_offer_eligible": q.video_offer_eligible,
             "confidence_overall": q.confidence_overall,
+            "visitor_type": (q.profile or {}).get("visitor_type"),
+            "funnel_stage": (q.profile or {}).get("funnel_stage"),
             "qualifier_id": q.qualifier_id,
             "qualifier_version": q.qualifier_version,
         })
@@ -102,6 +108,10 @@ def _attach_qualifier_meta(result: dict, q: QualificationResult | None) -> dict:
         "takeoverEligible": q.takeover_eligible,
         "videoOfferEligible": q.video_offer_eligible,
         "reasoning": q.reasoning,
+        "recommendedNextAction": q.recommended_next_action,
+        "visitorType": (q.profile or {}).get("visitor_type"),
+        "funnelStage": (q.profile or {}).get("funnel_stage"),
+        "qualificationComplete": (q.profile or {}).get("qualification_complete"),
     }
     result["takeover"] = {
         "eligible": q.takeover_eligible,
@@ -116,7 +126,7 @@ def _trace(sid: str, stage: str, node_id: str | None, state: dict, msg: str = ""
                 sid, stage, node_id, state.get("waiting_input"), state.get("awaiting_node"), msg)
 
 
-def _build_qualifier_reply(q: QualificationResult, message: str) -> str:
+def _build_qualifier_reply(q: QualificationResult) -> str:
     return (q.assistant_reply or "Razumem. Nadaljujeva v prostem pogovoru — povej mi čim bolj konkretno, kaj iščeš, kakšen je okviren budget in kako hitro želiš ukrepati, jaz pa te usmerim naprej ali povežem z agentom.").strip()
 
 def _ensure_lead(sid: str):
@@ -472,7 +482,7 @@ async def _chat_impl(req: ChatRequest, db: Session | None = None):
     try:
         if q_result is not None:
             result = make_response(
-                reply=_build_qualifier_reply(q_result, message),
+                reply=_build_qualifier_reply(q_result),
                 ui={"openInput": True, "inputType": "single"},
                 chat_mode="open",
                 story_complete=False,
@@ -603,7 +613,7 @@ async def _chat_stream_impl(req: ChatRequest, db: Session | None = None):
     try:
         if q_result is not None:
             result = make_response(
-                reply=_build_qualifier_reply(q_result, message),
+                reply=_build_qualifier_reply(q_result),
                 ui={"openInput": True, "inputType": "single"},
                 chat_mode="open",
                 story_complete=False,
