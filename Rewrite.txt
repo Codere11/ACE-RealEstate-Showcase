@@ -1,0 +1,2009 @@
+ACE-RealEstate Rewrite Plan
+Option B: Spring Boot Main App + Angular Chatbot + Spring Admin Dashboard
+Created: 2026-05-06
+
+====================================================================
+1. EXECUTIVE DECISION
+====================================================================
+
+We are proceeding with Option B.
+
+That means:
+- Spring Boot 21 becomes the main application and public entry point.
+- The existing Angular visitor chatbot is kept for now.
+- The manager/admin dashboard is rebuilt inside Spring Boot using Thymeleaf + HTMX.
+- PostgreSQL remains the main database.
+- Live help uses LiveKit Cloud instead of a local self-hosted LiveKit service.
+- The current Python/FastAPI system may remain temporarily as an internal supporting service during migration, but the public product should increasingly look and behave like one coherent Java application.
+
+Primary goals of this rewrite:
+- Make the project much stronger as a Java showcase for Slovenian employers and clients.
+- Simplify deployment and hosting.
+- Present the product under one clean domain and one coherent route structure.
+- Preserve existing value and working flows instead of throwing everything away.
+- Reduce dev-only assumptions like localhost ports and Docker Compose-only networking.
+- Support multi-tenancy cleanly and visibly.
+- Prepare for client onboarding and production-style demos.
+
+This is not just a technical rewrite.
+It is a product packaging and credibility upgrade.
+
+
+====================================================================
+2. TARGET PUBLIC URL STRUCTURE
+====================================================================
+
+Public route structure:
+- https://yourdomain.si/              -> main visitor chatbot / landing chatbot
+- https://yourdomain.si/admin         -> manager login + dashboard
+- https://yourdomain.si/demo          -> public demo tenant chatbot
+- https://yourdomain.si/{tenantSlug}  -> tenant-specific chatbot
+
+Example:
+- https://yourdomain.si/nepremicnine
+- https://yourdomain.si/dentist-demo
+- https://yourdomain.si/fizioterapija
+
+Why this structure is correct:
+- The root domain becomes immediately usable for demos.
+- Employers and clients do not need instructions or multiple links.
+- /admin feels professional and product-like.
+- /demo gives a safe public example tenant.
+- /{tenantSlug} makes multi-tenancy visible and understandable.
+- This structure is simple enough for a VPS deployment and strong enough for a SaaS story.
+
+Reserved non-tenant routes that must never be interpreted as tenant slugs:
+- admin
+- api
+- actuator
+- assets
+- static
+- public
+- pay
+- health
+- docs
+- favicon.ico
+- robots.txt
+- sitemap.xml
+- login
+- logout
+- error
+
+Tenant resolution rule:
+- /                  -> default tenant OR marketing/demo chatbot
+- /demo              -> demo tenant
+- /{tenantSlug}      -> tenant chatbot if slug exists and is active
+- if slug does not exist -> show 404 or branded tenant-not-found page
+
+
+====================================================================
+3. FINAL ARCHITECTURE VISION
+====================================================================
+
+Target architecture:
+
+A. Main application
+- Java 21
+- Spring Boot
+- Serves public routes, admin UI, APIs, auth, tenant resolution, static chatbot assets, and most business logic.
+
+B. Visitor chatbot
+- Existing Angular app kept for now.
+- Built into static assets.
+- Served by Spring Boot.
+- Uses relative paths for API communication.
+- Reads tenant from the browser path.
+
+C. Admin / manager dashboard
+- Rebuilt in Spring Boot using Thymeleaf + HTMX.
+- Routed under /admin.
+- Handles authentication, tenant management, lead review, qualifier management, live help controls, payment settings, and operational workflows.
+
+D. Database
+- PostgreSQL.
+- Proper schema evolution via Flyway or Liquibase.
+- No production dependence on startup auto-create behavior.
+
+E. Live help
+- LiveKit Cloud.
+- Spring Boot stores/configures sessions and generates visitor/manager access metadata or tokens.
+
+F. AI / qualification logic
+Two acceptable phases:
+1. Transitional phase:
+   - keep Python logic as an internal/private service if needed.
+   - Spring Boot orchestrates and presents it publicly.
+2. Final phase:
+   - move important business orchestration into Java.
+
+G. Payments
+- Stripe integration stays.
+- Spring Boot should own callback URLs, public payment URL generation, settings, and dashboard integration.
+
+Important strategic principle:
+The user should experience one product, not a pile of services.
+Even if migration is incremental, the public shape of the system must look unified.
+
+
+====================================================================
+4. WHY OPTION B IS THE RIGHT CHOICE
+====================================================================
+
+Option B is the best compromise between speed, business value, and career value.
+
+Reasons:
+- Full rewrite right now would be slow and risky.
+- Purely keeping the existing stack would weaken the Java showcase.
+- Spring Boot as the main shell gives a much stronger architectural story.
+- Keeping Angular for the chatbot preserves working UI and saves time.
+- Thymeleaf + HTMX is a fast path to a functional admin dashboard inside Java.
+- One-domain hosting becomes significantly simpler.
+- It is easier to explain in interviews and client conversations.
+- It aligns better with what many Slovenian companies respect: Java backend ownership, PostgreSQL, maintainable architecture, and practical product engineering.
+
+What Option B optimizes for:
+- showing Java capability
+- preserving momentum
+- faster public launch
+- simpler deployment
+- clearer multi-tenant story
+- less infra friction than Railway-style multi-service hosting
+
+
+====================================================================
+5. NON-NEGOTIABLE PRINCIPLES FOR THE REWRITE
+====================================================================
+
+1. No hardcoded localhost URLs in production code.
+2. Prefer relative URLs on the frontend whenever possible.
+3. Public URLs must work on IP, staging domain, and production domain without code changes.
+4. Backend-generated absolute URLs must be request-aware and env-overridable.
+5. Public app must be accessible from one domain with clean paths.
+6. Multi-tenancy must be explicit and understandable.
+7. Secrets must come from environment variables, never hardcoded.
+8. Database schema changes must use migrations.
+9. Production behavior must not depend on Docker Compose-specific hostnames like backend:8000.
+10. The admin dashboard must look intentional and product-like, not like an internal dev panel.
+11. Demo tenant must be safe, polished, and easy to reset.
+12. Every important feature shown to clients should have a deterministic demo path.
+
+
+====================================================================
+6. EXISTING PROJECT REALITY WE MUST RESPECT
+====================================================================
+
+The current repository already contains valuable working pieces:
+- FastAPI backend
+- Angular visitor chatbot
+- Angular manager dashboard
+- portal/admin app
+- PostgreSQL-compatible logic
+- payment flow scaffolding
+- live help scaffolding
+- multi-tenant concepts
+- qualifier concepts
+- survey concepts
+- docs and product story
+
+This means:
+- We do not start from zero.
+- We should preserve working domain knowledge and behavior.
+- We should extract and re-model the best parts, not casually discard them.
+
+Current issues observed that justify the rewrite direction:
+- hardcoded localhost references
+- Docker Compose-specific networking assumptions
+- CORS configured for local development rather than clean deployment
+- LiveKit setup optimized for local/dev rather than public demo
+- multiple apps that do not yet feel like one polished hosted product
+- production hosting friction for the current stack
+- weaker Java story than desired
+
+
+====================================================================
+7. TARGET USER FLOWS TO PROTECT DURING REWRITE
+====================================================================
+
+The rewrite must preserve or improve these flows:
+
+A. Visitor / tenant chatbot flow
+- user opens /
+- user opens /demo
+- user opens /{tenantSlug}
+- chatbot resolves tenant context
+- chatbot starts in proper mode
+- user chats naturally
+- AI qualification progresses
+- lead/profile state updates
+- handoff/live help can be offered if enabled
+- payment request can be sent if enabled
+
+B. Manager / admin flow
+- admin opens /admin
+- logs in securely
+- sees organization-specific dashboard
+- reviews leads
+- sees qualification status and reasoning
+- edits tenant configuration
+- edits qualifiers / policies
+- manages surveys
+- manages payment settings
+- initiates or previews live help
+
+C. Demo flow
+- public visitor can try /demo without login
+- admin can log into /admin and show the backend power live
+- demo can illustrate multi-tenancy by switching routes
+
+D. Client onboarding flow
+- create new tenant
+- configure branding
+- configure AI qualifier/policy
+- configure survey or open-chat mode
+- configure payment settings
+- publish tenant
+- send client their public tenant URL
+
+These are the flows to design around.
+Not around old implementation details.
+
+
+====================================================================
+8. RECOMMENDED HIGH-LEVEL MIGRATION STRATEGY
+====================================================================
+
+Use an incremental migration, not a blind big-bang rewrite.
+
+Recommended phases:
+
+Phase 0: Architecture lock-in
+- finalize routes
+- finalize domain model
+- finalize hosting target
+- finalize deployment strategy
+
+Phase 1: Spring Boot shell
+- create main Java app
+- add auth skeleton
+- add tenant routing skeleton
+- add static asset serving
+- add PostgreSQL connection and migrations
+
+Phase 2: Public unification
+- serve Angular chatbot from Spring Boot
+- make chatbot route-aware
+- remove hardcoded host assumptions
+- make relative API calls work
+
+Phase 3: Admin rewrite
+- build /admin login
+- build dashboard overview
+- build lead view
+- build org settings
+- build qualifier and survey management
+
+Phase 4: Feature integration
+- payments
+- live help
+- lead qualification operations
+- tenant publishing
+
+Phase 5: Backend migration deepening
+- either continue using selected Python internals temporarily
+- or port major orchestration/business logic into Spring Boot
+
+Phase 6: Production deployment + operational polish
+- domain
+- SSL
+- backups
+- observability
+- seed/demo data
+- onboarding flow
+
+
+====================================================================
+9. TARGET SPRING BOOT PROJECT STRUCTURE
+====================================================================
+
+Suggested monolith structure:
+
+ace-platform/
+  src/main/java/.../
+    config/
+    auth/
+    tenant/
+    user/
+    organization/
+    lead/
+    conversation/
+    qualifier/
+    survey/
+    payment/
+    live/
+    admin/
+    publicsite/
+    common/
+  src/main/resources/
+    application.yml
+    application-dev.yml
+    application-prod.yml
+    templates/
+      admin/
+      fragments/
+      error/
+    static/
+      chatbot/
+      assets/
+  db/migration/
+
+Recommended package concepts:
+- config: security, mvc, cors/headers if needed, serialization, forwarded headers
+- auth: login, session/JWT management, password handling, current user context
+- tenant: slug resolution, current tenant lookup, reserved route rules
+- organization: tenant config and branding
+- lead: lead records, qualification state, manager lead review
+- conversation: visitor interactions and chat persistence
+- qualifier: qualifier policy and execution orchestration
+- survey: survey definition and public survey flows
+- payment: payment settings, payment requests, webhook handling
+- live: live help sessions and token/url orchestration
+- admin: Thymeleaf controllers and admin-specific screens
+- publicsite: public routing for /, /demo, /{tenantSlug}
+- common: shared utilities, base entities, error model, enums, DTOs
+
+This should stay modular but be one deployable application.
+
+
+====================================================================
+10. TECHNOLOGY CHOICES
+====================================================================
+
+Core stack:
+- Java 21
+- Spring Boot 3.x
+- Spring Web MVC
+- Spring Security
+- Spring Data JPA
+- PostgreSQL
+- Flyway or Liquibase
+- Thymeleaf
+- HTMX
+- Tailwind CSS or simple custom CSS
+- Optional Alpine.js for tiny interactivity only where useful
+
+Recommended extras:
+- Validation via Jakarta Validation
+- MapStruct if DTO mapping grows large
+- Testcontainers for integration tests
+- Spring Boot Actuator
+- Micrometer + Prometheus-ready metrics if desired
+- Docker for production image
+
+Avoid unnecessary complexity:
+- do not introduce microservices prematurely
+- do not add React for admin unless truly needed
+- do not add a second frontend framework for no reason
+- do not over-engineer event infrastructure before needed
+
+
+====================================================================
+11. DATABASE STRATEGY
+====================================================================
+
+PostgreSQL remains the canonical datastore.
+
+Required improvements:
+- Use real migrations via Flyway or Liquibase.
+- Remove production reliance on auto-create-all patterns.
+- Model tenants, users, sessions, leads, qualifiers, surveys, payments, live sessions cleanly.
+- Add timestamps consistently.
+- Add created_by / updated_by where useful.
+- Add tenant-scoping carefully and consistently.
+
+Core domain entities likely needed:
+- Organization / Tenant
+- User
+- Role / permissions concept
+- Lead
+- ConversationSession
+- ConversationMessage
+- Qualifier
+- QualifierVersion or PolicyVersion
+- LeadQualificationSnapshot
+- Survey
+- SurveyQuestion
+- SurveyResponse
+- PaymentSettings
+- PaymentRequest
+- LiveSession
+- AuditLog
+
+Recommended database principles:
+- every multi-tenant table should have organization_id where relevant
+- indexes on slug, session id, tenant id, created_at
+- unique constraints where obvious
+- soft-delete only when truly needed
+- do not mix demo/test junk with production tenant data casually
+
+
+====================================================================
+12. TENANT RESOLUTION DESIGN
+====================================================================
+
+Tenant resolution is central.
+
+Rules:
+- / -> default public experience
+- /demo -> hardwired demo tenant slug, e.g. demo
+- /{tenantSlug} -> tenant-specific experience if active
+- reserved slugs should bypass tenant routing
+
+Recommended logic:
+1. Extract first path segment.
+2. If no segment -> root/default route.
+3. If segment is reserved -> route normally.
+4. Else lookup tenant by slug.
+5. If found and active -> render chatbot shell.
+6. If not found -> show tenant-not-found page.
+
+The Angular chatbot should then receive tenant context through one of these methods:
+- server renders small bootstrap JSON into page
+- meta tag with tenant slug
+- data attribute on root element
+- or Angular reads location path directly and asks backend for the tenant config
+
+Preferred approach:
+- Angular reads path and also asks backend for current tenant info.
+- backend remains source of truth.
+
+
+====================================================================
+13. FRONTEND STRATEGY FOR THE ANGULAR CHATBOT
+====================================================================
+
+We are keeping the existing Angular visitor chatbot for now.
+
+Requirements for the kept Angular app:
+- It must be buildable as static assets.
+- It must be served by Spring Boot from one domain.
+- It must not contain hardcoded localhost URLs.
+- It must use relative paths wherever possible:
+  - /api/...
+  - /chat/...
+  - /chat-events/...
+  - /pay/...
+- It must derive the tenant slug from the current path.
+- It must gracefully support:
+  - /
+  - /demo
+  - /{tenantSlug}
+- It must avoid environment assumptions that break on real hosting.
+
+Recommended integration approach:
+- Angular builds into a distribution folder.
+- Distribution folder copied into Spring Boot static resources during build or CI.
+- Spring Boot serves the chatbot SPA shell for public chatbot routes.
+
+Possible future simplification:
+- If Angular becomes too heavy or hard to maintain, it can later be replaced by a simpler Spring-served frontend.
+- That is not a Phase 1 priority.
+
+
+====================================================================
+14. ADMIN DASHBOARD STRATEGY
+====================================================================
+
+The current Angular manager dashboard should not be the long-term main dashboard.
+
+We will build the new admin/dashboard in Spring Boot under /admin using Thymeleaf + HTMX.
+
+Why this is good:
+- improves Java showcase value
+- simplifies deployment
+- allows same-domain hosting
+- reduces separate frontend app complexity
+- is fast to build for operational CRUD/admin workflows
+
+Initial admin modules to build:
+1. Login
+2. Dashboard home
+3. Lead list
+4. Lead detail with chat/profile/notes/qualification state
+5. Organization settings
+6. Branding settings
+7. Survey management
+8. Qualifier management
+9. Payment settings
+10. Live help controls/status
+11. User management
+12. Demo tenant reset/admin tools
+
+Design principles for /admin:
+- clean and restrained visual design
+- fast navigation
+- clear breadcrumbs
+- obvious tenant context
+- mobile usable, desktop optimized
+- easy to demo live
+- no ugly raw JSON exposure unless explicitly needed
+
+Suggested view structure:
+- /admin/login
+- /admin/dashboard
+- /admin/leads
+- /admin/leads/{id}
+- /admin/qualifiers
+- /admin/qualifiers/{id}
+- /admin/surveys
+- /admin/payments
+- /admin/live
+- /admin/settings
+- /admin/users
+
+
+====================================================================
+15. AUTHENTICATION AND AUTHORIZATION
+====================================================================
+
+Spring Security should own authentication.
+
+Need to decide between:
+- session-based auth for admin pages
+- JWT/token-based auth for external integrations or SPA APIs
+
+Recommended practical approach:
+- session/cookie auth for /admin
+- CSRF protection enabled appropriately
+- secure password hashing
+- clear role model
+
+Likely roles:
+- super_admin (platform-level, optional but useful)
+- org_admin
+- manager
+- maybe support/demo_admin for internal demos
+
+Important requirements:
+- tenant-scoped access control
+- admin cannot casually read another tenant's data unless allowed
+- session timeout policy
+- audit log for important admin actions if feasible
+
+For public visitor routes:
+- no login required
+- tenant context resolved from path
+
+
+====================================================================
+16. URL AND HOST AUTO-DETECTION STRATEGY
+====================================================================
+
+Yes, the app should work in a common-sense way on whatever host/IP it is deployed to.
+
+This should be implemented as follows:
+
+A. Frontend rule
+- use relative URLs for all same-origin calls
+- do not hardcode localhost or domains
+
+Examples:
+GOOD:
+- /api/auth/login
+- /api/organizations/current
+- /chat
+- /chat-events/poll
+- /pay/abc123
+
+BAD:
+- http://localhost:8000/api/auth/login
+- http://127.0.0.1:8000/chat
+- https://api.something-hardcoded.com
+
+B. Backend absolute URL rule
+For things that must generate full URLs, use this priority:
+1. explicit env override if set, e.g. PUBLIC_BASE_URL
+2. forwarded headers from reverse proxy
+3. request scheme + host + port
+
+This allows the app to work:
+- on raw VPS IP
+- on staging domain
+- on production domain
+
+Use env overrides for integrations that really need stable public URLs:
+- Stripe
+- emails
+- webhooks
+- externally shared links
+
+C. Forwarded headers
+Spring Boot should trust and use forwarded headers correctly behind proxy/load balancer.
+Examples to support:
+- X-Forwarded-Proto
+- X-Forwarded-Host
+- X-Forwarded-Port
+
+D. Final principle
+Automatic by default, explicit when needed.
+That is the right balance.
+
+
+====================================================================
+17. API DESIGN PRINCIPLES
+====================================================================
+
+Publicly exposed API should be reorganized cleanly.
+
+Recommended route families:
+- /api/auth/**
+- /api/public/**
+- /api/admin/**
+- /api/payments/**
+- /api/live/**
+- /api/tenants/** or /api/organizations/**
+
+Public chatbot interactions can either live under:
+- /api/public/chat/**
+OR
+- /chat/** if preserving existing semantics is useful
+
+A coherent long-term version might be:
+- /api/public/chat/send
+- /api/public/chat/events
+- /api/public/tenant/{slug}
+- /api/admin/leads
+- /api/admin/qualifiers
+- /api/admin/surveys
+- /api/admin/payments
+- /api/admin/live-sessions
+
+Whether old endpoint shapes are preserved temporarily depends on migration speed.
+
+API rules:
+- keep DTOs explicit
+- validate inputs strictly
+- return useful errors
+- do not leak internal stack traces
+- keep tenant checks centralized where possible
+
+
+====================================================================
+18. WHAT SHOULD BE MIGRATED FIRST VS LATER
+====================================================================
+
+Migrate first:
+- public routing shell
+- tenant resolution
+- authentication
+- admin dashboard shell
+- lead list/detail
+- organization settings
+- survey and qualifier CRUD UI
+- relative URL behavior
+- production-friendly deployment behavior
+
+Migrate next:
+- payment settings and payment request management
+- live session management
+- better audit logging
+- onboarding flow
+
+Migrate later if necessary:
+- deep AI orchestration internals
+- advanced event-driven architecture refinements
+- analytics/reporting
+- rich admin visualizations beyond what is needed for demo and onboarding
+
+Key point:
+Do not block launch on perfect backend purity.
+Prioritize the visible, hosted, coherent product.
+
+
+====================================================================
+19. LIVE HELP STRATEGY
+====================================================================
+
+The local LiveKit setup used in current development is not the desired public production approach.
+
+We should use LiveKit Cloud.
+
+Responsibilities in the new architecture:
+- Spring Boot stores live session metadata
+- Spring Boot creates or orchestrates session state
+- Spring Boot exposes manager/visitor access details
+- client-side apps connect to LiveKit Cloud using config provided by backend
+
+Needed env/config:
+- LIVEKIT_WS_URL
+- LIVEKIT_API_KEY
+- LIVEKIT_API_SECRET
+
+Demo strategy for live help:
+- it should be possible to disable live help per tenant
+- demo tenant can show live help as optional premium capability
+- if live help is down, core chatbot should still function
+
+Important:
+Live help must not be allowed to make the entire public demo brittle.
+It should be an additive feature, not a single point of embarrassment.
+
+
+====================================================================
+20. PAYMENTS STRATEGY
+====================================================================
+
+Stripe remains valid.
+
+The rewrite must support:
+- tenant-level payment settings
+- payment request creation
+- public payment link/checkout experience
+- webhook handling
+- admin visibility into payment status
+
+Needed env/config:
+- STRIPE_SECRET_KEY
+- STRIPE_CONNECT_CLIENT_ID if using Connect
+- STRIPE_WEBHOOK_SECRET
+- PUBLIC_BASE_URL or equivalent
+
+Rules:
+- payment links must be absolute and correct in production
+- mock payment mode may still exist for demo tenants
+- real tenant payment mode must be clearly separated from demo mode
+
+Suggested public payment path:
+- /pay/{token}
+
+Suggested admin routes:
+- /admin/payments
+- /admin/payments/requests/{id}
+
+
+====================================================================
+21. DEMO TENANT STRATEGY
+====================================================================
+
+A polished demo tenant is essential.
+
+Recommended demo tenant slug:
+- demo
+
+What demo tenant should include:
+- attractive branding
+- realistic welcome message
+- realistic qualifier/policy
+- sample business context
+- safe example payment settings (mock or sandbox)
+- optional live help toggle
+- clear data reset ability
+
+What demo tenant should avoid:
+- junk test content
+- broken routes
+- random internal dev data
+- ugly placeholder text
+
+Admin demo script should be simple:
+1. Open root or /demo
+2. Show chatbot interaction
+3. Open /admin
+4. Log in
+5. Show lead appearing or lead history
+6. Show qualifier/survey/payment settings
+7. Show that other tenant URLs also exist
+
+This is the narrative we are building toward.
+
+
+====================================================================
+22. DEPLOYMENT STRATEGY
+====================================================================
+
+Primary recommendation:
+- Hetzner VPS
+- optionally with Coolify for simpler app management
+
+Why:
+- simpler for one-domain routing
+- better fit than Railway for this architecture
+- easier to control proxy and path-based routing
+- suitable for Spring Boot monolith + Postgres
+- lower operational weirdness for multi-part demo app
+
+Deployment shape:
+- reverse proxy: Caddy, Nginx, or Coolify-managed proxy
+- main app: Spring Boot container or jar
+- database: PostgreSQL
+- external integrations: LiveKit Cloud, Stripe, OpenAI
+
+Target public shape:
+- one domain
+- one reverse proxy
+- one main app service
+- one db service
+- optional external services
+
+Production requirements:
+- HTTPS
+- backups
+- log visibility
+- restart policy
+- environment variable management
+- safe secrets handling
+
+
+====================================================================
+23. BUILD AND RELEASE STRATEGY
+====================================================================
+
+Recommended build pipeline:
+1. build Angular chatbot
+2. copy built assets into Spring Boot static resources
+3. build Spring Boot application
+4. package Docker image
+5. deploy image to VPS
+
+Alternative:
+- CI/CD pipeline handles frontend build and backend packaging together
+
+Release principles:
+- stable main branch
+- feature branches for risky modules
+- staging environment if possible
+- release notes for visible changes
+
+Important:
+The app should be deployable in one understandable command/pipeline.
+That is part of the simplification benefit of Option B.
+
+
+====================================================================
+24. TESTING STRATEGY
+====================================================================
+
+Testing must support credibility.
+
+Recommended testing layers:
+
+A. Unit tests
+- tenant slug resolution
+- auth rules
+- URL generation helpers
+- qualification mapping logic
+- payment state helpers
+
+B. Integration tests
+- login flow
+- tenant page resolution
+- admin access control
+- lead CRUD/listing
+- survey CRUD
+- qualifier CRUD
+- payment webhook handling
+
+C. End-to-end smoke tests
+- open /
+- interact as visitor
+- open /admin
+- log in
+- inspect lead
+- create payment request
+- verify basic demo path
+
+Recommended tools:
+- JUnit 5
+- Spring Boot test
+- Testcontainers for Postgres
+- Playwright for E2E if needed
+
+The goal is not huge test vanity metrics.
+The goal is confidence in the demo and onboarding flows.
+
+
+====================================================================
+25. OBSERVABILITY AND OPERATIONS
+====================================================================
+
+Must-have operational features:
+- health endpoint
+- app logs with clear request context
+- admin-visible error reporting where possible
+- startup validation for important env vars
+- graceful failure when optional integrations are missing
+
+Recommended endpoints:
+- /actuator/health
+- /actuator/info
+- /actuator/metrics
+
+Log principles:
+- no secrets in logs
+- useful correlation IDs if feasible
+- tenant slug present in important request logs if possible
+
+Operational priority:
+A public demo should never fail silently.
+
+
+====================================================================
+26. SECURITY PRINCIPLES
+====================================================================
+
+Must-haves:
+- secure password hashing
+- CSRF protection for admin forms
+- output escaping in templates
+- secure cookie/session configuration
+- proper authorization checks
+- no secrets in source control
+- upload validation if file uploads exist
+- rate limiting if practical for public routes
+- basic abuse protection for demo chatbot if public traffic grows
+
+Optional but recommended:
+- audit trail for important admin changes
+- login attempt throttling
+- security headers
+- content security policy tuned appropriately
+
+
+====================================================================
+27. UX / PRODUCT POSITIONING PRINCIPLES FOR THE REWRITE
+====================================================================
+
+The rewrite is not only about code quality.
+It must improve the way the product is perceived.
+
+Public product should communicate:
+- professional
+- coherent
+- configurable
+- multi-tenant
+- operationally useful
+- not just “another chatbot project”
+
+Admin experience should communicate:
+- control
+- visibility
+- lead qualification intelligence
+- business workflow readiness
+- payment and live-help extensibility
+
+Avoid during rewrite:
+- ugly debug pages
+- broken empty states
+- unstyled admin forms
+- unexplained jargon
+- inconsistent tenant naming
+- unclear login destinations
+
+
+====================================================================
+28. RISKS AND HOW TO MANAGE THEM
+====================================================================
+
+Risk 1: Rewriting too much too fast
+Mitigation:
+- phase work carefully
+- keep Angular chatbot initially
+- keep some Python internals temporarily if necessary
+
+Risk 2: Losing working feature behavior
+Mitigation:
+- preserve current flow knowledge
+- document key endpoints and business rules before porting
+- create migration checklists per feature
+
+Risk 3: Admin rewrite becomes too ambitious
+Mitigation:
+- focus first on operational screens, not fancy SPA interactions
+- use HTMX pragmatically
+
+Risk 4: Live help becomes deployment headache
+Mitigation:
+- use LiveKit Cloud
+- make feature optional per tenant
+
+Risk 5: Demo data becomes messy
+Mitigation:
+- create explicit demo tenant seed/reset strategy
+- keep test and demo data separated
+
+Risk 6: Architecture drift
+Mitigation:
+- keep this rewrite plan as a reference
+- define module responsibilities clearly
+
+Risk 7: Product gets online late
+Mitigation:
+- prioritize hosted, coherent basics before deep feature purity
+
+
+====================================================================
+29. DETAILED IMPLEMENTATION PHASES
+====================================================================
+
+PHASE 0 — PREPARATION
+- clean current repo and identify reusable logic
+- document current domain entities and endpoint behaviors
+- choose exact Spring Boot dependencies
+- decide Flyway vs Liquibase
+- define initial tenant/user/lead schema
+- decide whether initial auth is session-only or mixed
+
+Deliverables:
+- architecture diagram
+- migration checklist
+- initial schema plan
+- reserved route list
+
+PHASE 1 — SPRING BOOT FOUNDATION
+- initialize Spring Boot app
+- configure Java 21
+- configure profiles: dev, prod
+- connect PostgreSQL
+- add Flyway/Liquibase
+- add base entities and repositories
+- add Spring Security basic login flow
+- enable forwarded-header support
+- add health endpoints / Actuator
+
+Deliverables:
+- app starts locally
+- db migrations run
+- /admin/login works
+- /actuator/health works
+
+PHASE 2 — PUBLIC ROUTING + TENANT RESOLUTION
+- implement route handling for /, /demo, /{tenantSlug}
+- reserve non-tenant paths
+- create tenant service and slug lookup
+- add tenant-not-found page
+- define default tenant behavior for /
+
+Deliverables:
+- tenant routes resolve correctly
+- reserved routes safe
+
+PHASE 3 — ANGULAR CHATBOT INTEGRATION
+- strip hardcoded localhost references from chatbot
+- switch to relative paths
+- make chatbot derive tenant from current route
+- build Angular app into static assets
+- serve via Spring Boot
+- make SPA fallback work for chatbot routes
+
+Deliverables:
+- root chatbot works from Spring Boot
+- /demo works
+- /tenantSlug works
+
+PHASE 4 — ADMIN DASHBOARD MVP
+- implement /admin shell layout
+- login/logout
+- dashboard home
+- lead list
+- lead detail
+- org branding/settings
+- users page
+
+Deliverables:
+- admin demo usable
+- live login available
+
+PHASE 5 — QUALIFIER + SURVEY MODULES
+- create qualifier CRUD
+- create publish/archive behavior if needed
+- create survey CRUD
+- map tenant settings to public chatbot behavior
+
+Deliverables:
+- admin can configure tenant behavior
+- chatbot responds according to tenant setup
+
+PHASE 6 — PAYMENTS + LIVE HELP
+- implement payment settings UI
+- payment request creation
+- public pay route
+- Stripe callback/webhook handling
+- implement live session management UI
+- integrate LiveKit Cloud config
+
+Deliverables:
+- payment demo path works
+- live help demo path works or degrades gracefully
+
+PHASE 7 — MIGRATION OF REMAINING BUSINESS LOGIC
+- port or wrap important Python internals
+- reduce public dependency on legacy stack
+- unify event/update behavior where needed
+
+Deliverables:
+- public platform increasingly Java-owned
+
+PHASE 8 — DEPLOYMENT + POLISH
+- production env config
+- demo seed scripts
+- backup strategy
+- error pages
+- final CSS cleanup
+- onboarding preparation
+
+Deliverables:
+- public domain live
+- stable demo tenant
+- stable admin login
+- full product narrative demoable
+
+
+====================================================================
+30. DECISION ON LEGACY PYTHON SERVICE
+====================================================================
+
+We do not need to make an emotional all-or-nothing decision immediately.
+
+Acceptable transitional policy:
+- If existing Python logic already handles certain complex AI/qualification features well, keep it behind the scenes for a while.
+- Spring Boot becomes the public face and main system of record where feasible.
+- Over time, port only the parts that meaningfully improve the Java story or simplify operations.
+
+This is strategically mature.
+Not cowardly.
+
+What matters is:
+- public coherence
+- deployment simplicity
+- strong architecture story
+- reliable demos
+
+
+====================================================================
+31. CONTENT THAT MUST BE MOVED OUT OF THE REPO OR CLEANED
+====================================================================
+
+Before public showcasing and cleaner rewrite work:
+- remove personal CV exports from repo root
+- remove unrelated local junk files
+- ensure .env is not committed
+- ensure demo docs are separated from personal artifacts
+- clean backup folders if not needed in public repo
+- keep repo professional and focused
+
+A clean repo matters for employers and clients.
+It affects perceived seriousness.
+
+
+====================================================================
+32. DEFINITION OF SUCCESS FOR THIS REWRITE
+====================================================================
+
+The rewrite is successful when all of the following are true:
+
+1. One clean public domain exists.
+2. Root domain opens a working visitor chatbot.
+3. /demo opens a polished demo tenant.
+4. /{tenantSlug} works for tenant-specific chatbot experiences.
+5. /admin allows secure login and demonstrates operational control.
+6. The product can be explained as a Spring Boot-centered multi-tenant platform.
+7. No visible part of the demo depends on localhost assumptions.
+8. Deployment is understandable and repeatable.
+9. Stripe and LiveKit integration paths are production-plausible.
+10. The project is strong both as a portfolio product and as evidence of Java/backend capability.
+
+
+====================================================================
+33. WHAT TO SAY ABOUT THE PROJECT AFTER REWRITE
+====================================================================
+
+After the rewrite, the project should be describable like this:
+
+"ACE is a multi-tenant digital front desk and qualification platform. Visitors interact through tenant-specific conversational entry points on the public site, while managers control lead review, qualification rules, live-help sessions, and payment actions through an integrated admin dashboard. The platform is built around Spring Boot, PostgreSQL, and a unified production deployment model, with the visitor chatbot served under tenant-aware routes and operational workflows managed through the admin interface."
+
+This is much stronger than saying:
+- "I built a chatbot"
+- "It runs on some Docker ports"
+- "It works locally"
+
+
+====================================================================
+34. RECOMMENDED IMMEDIATE NEXT STEPS
+====================================================================
+
+Immediate next steps after this document:
+
+1. Confirm hosting target:
+   - Hetzner VPS
+   - optional Coolify
+
+2. Lock foundational technology decisions:
+   - Spring Boot 3.x
+   - Flyway vs Liquibase
+   - Thymeleaf + HTMX for admin
+   - LiveKit Cloud
+
+3. Define minimum viable v1 of the rewrite:
+   - /, /demo, /{tenantSlug}, /admin
+   - login
+   - lead list/detail
+   - tenant settings
+   - chatbot integration
+
+4. Inventory the current codebase feature-by-feature:
+   - what is reusable
+   - what should be wrapped temporarily
+   - what should be rewritten first
+
+5. Start with the smallest possible technical reality check, not a broad foundation sprint.
+
+6. Prepare a demo tenant specification.
+
+7. After foundation is clear, define the client onboarding flow.
+
+That last point matters:
+The product rewrite and client onboarding design should evolve together.
+
+
+====================================================================
+35. CHECKPOINT BEFORE THE REWRITE CONTINUES
+====================================================================
+
+Git / GitHub checkpoint captured on 2026-05-06:
+- Branch: main
+- Remote: origin -> https://github.com/Codere11/ACE-RealEstate-Showcase.git
+- Last confirmed local HEAD: 49fa73740a7e7e64b3b09ec87e35cb232d44db2c
+- Last confirmed remote main: 49fa73740a7e7e64b3b09ec87e35cb232d44db2c
+- Short SHA: 49fa737
+- Commit message: Redesign qualifier editor around ACE e-Counter policy
+
+Meaning of this checkpoint:
+- 49fa737 is the last confirmed GitHub-synced checkpoint.
+- It is the safe commit reference to return to if needed.
+- Local work after that point exists, including docs/planning work and other uncommitted changes.
+- Rewrite.txt itself is planning/reference material and not a runtime dependency.
+
+Important practical note:
+- If later we need to refer to the last known pushed baseline, use: 49fa737.
+- If we want a new coding baseline, we should create a fresh intentional checkpoint commit before major implementation begins.
+
+
+====================================================================
+36. MICRO-STEPS FOR THE VERY FIRST IMPLEMENTATION STEP
+====================================================================
+
+The earlier phrase "Start the Spring Boot foundation project" is too broad.
+That work must be decomposed into smaller reality-checked micro-steps.
+
+The correct sequence is:
+
+Micro-step 0: Confirm whether Spring Boot is already available and usable in the current environment.
+This is the first real implementation question.
+Before architecture work continues, confirm:
+- is Java installed?
+- which version?
+- is Java 21 available?
+- is Maven installed?
+- is Gradle installed?
+- can we generate and run a basic Spring Boot project locally?
+
+Desired outcome:
+- know whether the machine is already ready for Spring Boot work
+- know whether we should use Maven or Gradle
+- know whether we need to install anything before touching architecture code
+
+Micro-step 1: Decide the build tool.
+Choose one:
+- Maven (recommended for clarity and broad enterprise familiarity)
+- Gradle (acceptable if there is a strong preference)
+
+Recommendation:
+- prefer Maven unless a later reason appears not to
+
+Desired outcome:
+- one chosen build system for the whole Java rewrite
+
+Micro-step 2: Decide where the new Spring Boot app lives.
+Recommended:
+- create it inside the existing repo as a new directory, e.g. java-platform/
+
+Why:
+- keeps old and new systems side by side during migration
+- avoids big-bang repo disruption
+- makes incremental migration easier
+
+Desired outcome:
+- exact folder name chosen
+
+Micro-step 3: Generate the smallest possible Spring Boot app.
+Not the whole platform.
+Just a bootable shell with:
+- Spring Web
+- Thymeleaf
+- Spring Security
+- Spring Data JPA
+- PostgreSQL Driver
+- Flyway
+- Actuator
+
+Desired outcome:
+- the app compiles and starts
+
+Micro-step 4: Prove the new app can run locally.
+Minimum proof:
+- startup succeeds
+- /actuator/health responds
+- one simple controller returns a page or text response
+
+Desired outcome:
+- proof that the rewrite platform actually runs
+
+Micro-step 5: Only after that, add the first permanent architectural pieces.
+In this order:
+- application profiles
+- forwarded header support
+- base package structure
+- first migration
+- Organization entity
+- User entity
+- admin login shell
+- tenant route shell
+
+The key principle:
+Do not begin with a large abstract platform build.
+Begin by proving the machine, tools, and smallest Spring Boot shell actually work.
+
+
+====================================================================
+37. REFINED FIRST BEST STEP
+====================================================================
+
+The refined first best step is not:
+- "build the whole Spring Boot foundation"
+
+The refined first best step is:
+- "verify the environment is ready for Spring Boot and generate the smallest bootable Java shell"
+
+That means the first concrete task is:
+1. check Java version
+2. check for Java 21
+3. check Maven / Gradle availability
+4. choose Maven or Gradle
+5. create the smallest Spring Boot starter app in a new directory
+6. run it successfully
+
+Only after that should we proceed to database, auth, tenant routing, and admin shell work.
+
+This is the correct smallest next move because it removes uncertainty before larger implementation decisions.
+
+
+====================================================================
+38. MICRO-STEP 0/1/2/3 RESULT
+====================================================================
+
+Status captured on 2026-05-06:
+
+Environment readiness:
+- Java present
+- Java version: 21.0.8
+- javac present
+- Maven present: 3.6.3
+- Gradle present but too old to prefer for this rewrite
+- Spring CLI not installed, but not required
+- start.spring.io reachable
+
+Decision taken:
+- Build tool: Maven
+- New app directory: java-platform/
+
+What was created:
+- /home/maksich/Documents/ACE-RealEstate/java-platform
+
+What the generated shell includes:
+- Spring Web
+- Thymeleaf
+- Spring Security
+- Spring Data JPA
+- PostgreSQL Driver
+- Flyway
+- Actuator
+- Validation
+
+What was additionally set up so the shell can boot immediately:
+- minimal security config
+- minimal public controller
+- minimal Thymeleaf page
+- temporary exclusion of DataSource/JPA/Flyway auto-configuration until DB setup is added
+- actuator health exposure
+
+Proof completed:
+- Maven tests passed
+- application started successfully
+- GET /actuator/health returned UP
+- GET / returned 200 OK
+
+Files of interest:
+- java-platform/pom.xml
+- java-platform/src/main/java/com/ace/platform/JavaPlatformApplication.java
+- java-platform/src/main/java/com/ace/platform/config/SecurityConfig.java
+- java-platform/src/main/java/com/ace/platform/publicsite/PublicController.java
+- java-platform/src/main/resources/application.properties
+- java-platform/src/main/resources/templates/public/home.html
+
+Meaning:
+- The rewrite now has a real bootable Java shell.
+- The next step should stay small and specific.
+- The next concern is no longer "can Spring Boot run here?"
+- The next concern becomes "what is the smallest permanent architectural piece to add next?"
+
+
+====================================================================
+39. MICRO-STEP 4 RESULT: PROFILE CLEANUP + QUICK VISUAL SHELL
+====================================================================
+
+Additional progress captured on 2026-05-06:
+
+What changed:
+- introduced application.yml
+- introduced application-dev.yml
+- introduced application-prod.yml
+- reduced application.properties to a minimal note
+- dev profile remains the bootable no-DB profile for now
+- added a slightly more product-like public shell page
+- added /demo as a public route
+- kept /actuator/health public
+- left admin access behind Spring Security login
+
+Current visible routes:
+- /
+- /demo
+- /login
+- /actuator/health
+
+Current purpose of this shell:
+- not feature completeness
+- not database completeness
+- not tenant completeness yet
+- simply to make the rewrite feel real, runnable, and visible
+
+Meaning:
+- the Java rewrite now has a first visible face
+- even before DB work, the new app can be opened in a browser and judged as a product shell
+- this is useful psychologically and architecturally because the rewrite is no longer abstract
+
+
+====================================================================
+40. PHASE 1 DESIGN LOCK
+====================================================================
+
+Purpose of this section:
+- freeze the first real implementation phase
+- remove ambiguity about boundaries
+- make sure chat, surveys, AI runtime, admin, and tenant setup are all accounted for
+- define exactly what Phase 1 does and does not own
+
+This is not the final full-product design.
+This is the first committed implementation boundary for the rewrite.
+
+
+====================================================================
+40.1 PHASE 1 OBJECTIVE
+====================================================================
+
+Phase 1 objective:
+Create the first real Spring Boot-owned product skeleton that:
+- owns routing
+- owns admin authentication
+- owns organization and user data
+- owns the platform/admin shell
+- defines tenant resolution rules
+- is deployable as the new center of gravity
+- leaves advanced chat/runtime internals temporarily where practical until later phases
+
+In plain words:
+Phase 1 makes the new Java app the real platform shell and control center.
+It does not yet need to fully replace every existing backend behavior.
+
+
+====================================================================
+40.2 PHASE 1 END RESULT
+====================================================================
+
+Phase 1 is considered successful when all of this is true:
+- Spring Boot is the primary application we continue building on.
+- The app has real PostgreSQL-backed organizations and users.
+- /admin is a real authenticated area, not just a placeholder login screen.
+- a platform admin can create and edit organizations manually.
+- a platform admin can create the first org admin manually.
+- /demo resolves intentionally.
+- reserved non-tenant routes are explicitly protected from tenant-slug interpretation.
+- tenant-aware public route behavior is defined and partially implemented.
+- the rewrite has a clear ownership model for chat, surveys, and AI runtime even if not all are yet fully migrated.
+
+Phase 1 does not require:
+- full chatbot migration into Spring Boot
+- full survey builder migration
+- full payment flow migration
+- full LiveKit migration
+- full LangGraph/LangChain rewrite into Java
+
+
+====================================================================
+40.3 OWNERSHIP MAP FOR PHASE 1
+====================================================================
+
+A. Spring Boot owns immediately in Phase 1:
+- public route ownership
+- tenant path resolution rules
+- admin authentication
+- platform admin UI
+- organization CRUD
+- user CRUD for first admin users
+- deployment shell
+- production config direction
+- future integration boundaries
+
+B. Angular visitor chatbot in Phase 1:
+- remains an existing asset/system to preserve
+- is not yet the focus of the current micro-step sequence
+- will later be served by Spring Boot
+- its future route environment must conform to Spring-owned routing
+
+C. Existing Python backend in Phase 1:
+- may remain temporarily for complex existing logic
+- especially chat/qualification/runtime flows if that saves time
+- is no longer the strategic center of the product
+- should increasingly become internal/temporary rather than public-first
+
+D. AI runtime in Phase 1:
+- acknowledged as critical
+- not ignored
+- not rewritten blindly yet
+- treated as a subsystem with explicit future integration design
+
+E. External services in Phase 1:
+- PostgreSQL: yes, central
+- LiveKit Cloud: planned, but not a first permanent code milestone yet
+- Stripe: planned, but not a first permanent code milestone yet
+
+
+====================================================================
+40.4 ROUTE CONTRACT LOCK
+====================================================================
+
+The route contract for the rewrite is now locked as follows.
+
+Public routes:
+- / -> primary public entry route
+- /demo -> explicit demo tenant route
+- /{tenantSlug} -> tenant-specific public route
+
+Admin routes:
+- /admin -> authenticated admin/dashboard area
+- /login -> authentication entry point for Spring Security-backed admin access
+
+Operational / system routes:
+- /actuator/health -> health check
+- /api/** -> future API namespace
+
+Important interpretation rule:
+Not every first path segment is a tenant slug.
+Reserved paths must bypass tenant resolution.
+
+Reserved paths for now:
+- admin
+n- login
+- logout
+- api
+- actuator
+- error
+- favicon.ico
+- robots.txt
+- assets
+- static
+- css
+- js
+- images
+- webjars
+
+Route behavior locked for Phase 1:
+- / renders Spring-owned public shell
+- /demo renders demo-aware public shell
+- /{tenantSlug} is not fully implemented yet, but its future handling is now a Phase 1 responsibility
+- /admin requires authentication
+- /login is a Spring-owned login page
+
+Note:
+The final product may eventually route public chatbot routes into Angular-rendered content.
+That does not change the fact that Spring Boot owns the contract.
+
+
+====================================================================
+40.5 ADMIN MVP LOCK
+====================================================================
+
+The first real admin surface will focus on operator-assisted onboarding and platform control.
+That is the correct business priority.
+
+Phase 1 admin MVP screens:
+1. Login
+2. Admin dashboard shell
+3. Organizations list
+4. Organization create/edit page
+5. Users list for an organization or global platform view
+6. Create first org admin user
+7. Basic organization preview information
+8. Public URL preview / copy
+
+Optional if quick and clean:
+- onboarding status badges per organization
+- active/inactive toggle
+- basic branding fields
+
+Explicitly not required in Phase 1 admin MVP:
+- advanced lead analytics
+- payment management UI
+- full survey builder UI
+- full qualifier editor UI
+- live help control UI
+
+Why:
+Phase 1 should optimize for getting the platform control plane real and useful.
+
+
+====================================================================
+40.6 FIRST DATABASE SCOPE LOCK
+====================================================================
+
+We should not enable DB/JPA/Flyway without a clear smallest permanent schema.
+That schema is now locked for Phase 1 as:
+
+Required first tables:
+- organizations
+- users
+
+Recommended immediate follow-up tables only if needed:
+- organization_settings
+- organization_branding
+
+But the strict minimum for the first permanent DB milestone is:
+- organizations
+- users
+
+organizations should include at least:
+- id
+- name
+- slug
+- active
+- created_at
+- updated_at
+
+users should include at least:
+- id
+- organization_id
+- username
+- email
+- password_hash
+- role
+- active
+- created_at
+- updated_at
+
+Suggested roles for Phase 1:
+- platform_admin
+- org_admin
+- manager
+
+Phase 1 database principle:
+Do not model every future entity yet.
+Model only what is needed to own organizations, users, and admin access.
+
+
+====================================================================
+40.7 AUTHENTICATION LOCK
+====================================================================
+
+Authentication choice for Phase 1 is now locked:
+- session/cookie-based admin authentication via Spring Security
+
+Why this is correct:
+- simplest for server-rendered admin UI
+- easier to reason about than early JWT overreach
+- stronger fit for Thymeleaf + HTMX admin workflows
+
+Phase 1 auth requirements:
+- /admin protected
+- /login available
+- at least one seeded platform admin user for development
+- role checks can begin simply and evolve later
+
+Not required in Phase 1:
+- password reset flow
+- invitations
+- MFA
+- complex SSO
+
+
+====================================================================
+40.8 CHAT / SURVEY / AI RUNTIME LOCK FOR PHASE 1
+====================================================================
+
+This section exists specifically to avoid losing sight of the product core.
+
+A. Chat in Phase 1:
+- chat is a first-class subsystem
+- it is not being removed from the product vision
+- it is not the first permanent Spring-owned module to migrate
+- Phase 1 must preserve a path for future integration
+- route and data ownership decisions must not block chat later
+
+Phase 1 chat decision:
+- do not rewrite full chat logic yet
+- define how Spring Boot will eventually front or serve it
+- keep existing runtime usable if needed during transition
+
+B. Surveys in Phase 1:
+- surveys remain a real product capability
+- survey mode vs open-chat mode remains part of tenant behavior
+- full survey CRUD is not a first Phase 1 deliverable
+- future DB and route design must leave room for this cleanly
+
+C. AI / LangGraph / LangChain runtime in Phase 1:
+- explicitly acknowledged as critical
+- not ignored
+- not trivialized
+- not rewritten blindly in the first phase
+
+Phase 1 AI decision:
+- preserve the idea of a separate qualification/runtime subsystem if practical
+- design Spring Boot to become the product shell and integration owner
+- decide migration depth later based on value, stability, and effort
+
+This is the key locked principle:
+Phase 1 is about making Java the platform center.
+It is not about pretending the entire AI runtime must be rewritten before the platform becomes coherent.
+
+
+====================================================================
+40.9 TENANT ONBOARDING LOCK FOR PHASE 1
+====================================================================
+
+Phase 1 onboarding model is locked as:
+- manual / operator-assisted onboarding
+- not self-serve onboarding
+
+That means the system must support:
+- creating an organization manually
+- creating the first admin user manually
+- assigning slug and activation status manually
+- optionally basic branding fields manually
+- giving the tenant a known public URL
+
+This is enough for the first real organization.
+This is the correct product strategy right now.
+
+Phase 1 does not need:
+- public sign-up
+- self-serve tenant creation
+- automated billing signup
+- client-side onboarding wizard
+
+Instead, Phase 1 needs:
+- a strong internal platform admin flow
+
+
+====================================================================
+40.10 DEPLOYMENT LOCK FOR PHASE 1
+====================================================================
+
+Phase 1 deployment direction is locked as:
+- Spring Boot app as the main deployable product shell
+- PostgreSQL as the main DB
+- one-domain route ownership model remains the target
+- Angular later served by Spring Boot or integrated under Spring-owned public routes
+
+Deployment principles locked now:
+- use profile-based config
+- support forwarded headers
+- avoid localhost assumptions
+- avoid Docker Compose-only networking assumptions in the new architecture
+- prefer env-driven production configuration
+
+Phase 1 does not need full production deployment completed yet,
+but every new design decision must be compatible with that end goal.
+
+
+====================================================================
+40.11 PHASE 1 IMPLEMENTATION ORDER LOCK
+====================================================================
+
+The implementation order for Phase 1 is now locked as:
+
+1. confirm environment and bootable shell
+   - completed
+
+2. profile cleanup and visible shell
+   - completed
+
+3. add first permanent package structure
+   - config
+   - auth
+   - organization
+   - user
+   - admin
+   - tenant
+   - common
+
+4. enable first real DB milestone
+   - add Flyway migration for organizations and users
+   - enable DataSource/JPA/Flyway intentionally
+
+5. seed development baseline
+   - demo organization
+   - platform admin user
+
+6. build authenticated admin skeleton
+   - /admin dashboard
+   - organization list
+   - organization create/edit
+
+7. add first tenant resolution placeholder behavior
+   - reserve non-tenant routes
+   - stub /{tenantSlug} handling cleanly
+
+Only after that should we move toward:
+- Angular public chatbot integration
+- lead handling
+- survey administration
+- qualifier administration
+- payment/live help modules
+
+
+====================================================================
+40.12 DEFINITION OF DONE FOR PHASE 1A
+====================================================================
+
+The first meaningful locked milestone after the current shell is Phase 1A.
+
+Phase 1A is done when:
+- Flyway is enabled and runs successfully
+- organizations table exists
+- users table exists
+- the app boots with real DB config in dev
+- a platform admin can log in
+- /admin/dashboard exists
+- organizations can be listed
+- a new organization can be created
+- a first org admin can be created
+- /demo is backed by a real organization record or explicit placeholder contract
+- tenant-reserved route rules exist in code
+
+This is the first non-trivial milestone that turns the rewrite from shell into platform.
+
+
+====================================================================
+40.13 WHAT SHOULD NOT HAPPEN NEXT
+====================================================================
+
+To stay disciplined, the following should not happen next:
+- do not jump straight into full chatbot migration
+- do not start rewriting LangGraph logic immediately
+- do not design the final survey builder first
+- do not build public self-serve signup
+- do not add too many entities before organizations/users work
+- do not let the current shell drift into random styling-only work
+
+The next coding work must increase platform ownership, not just surface polish.
+
+
+====================================================================
+40.14 PHASE 1A NEXT CONCRETE STEP
+====================================================================
+
+The next concrete step after this design lock is:
+- add the first permanent package structure and first DB migration plan for organizations/users
+
+More specifically:
+1. create package skeletons
+2. create Flyway baseline migration
+3. create Organization entity
+4. create User entity
+5. wire dev DB config properly
+6. remove temporary dev exclusions once DB config is ready
+
+This is the correct next move because it turns the rewrite into a real stateful platform without overreaching into too many subsystems at once.
+
+
+====================================================================
+40.15 PHASE 1A PROGRESS RESULT: FIRST PERMANENT DB MILESTONE
+====================================================================
+
+Progress captured on 2026-05-06:
+
+What was added:
+- permanent package skeletons began taking shape
+- common base entity support added
+- Organization entity added
+- User entity added
+- UserRole enum added
+- OrganizationRepository added
+- UserRepository added
+- Flyway migration added for organizations and users
+- dev profile switched from temporary no-DB boot mode to real PostgreSQL-backed mode
+- prod profile aligned to real datasource/flyway structure
+- test profile added so tests can stay lightweight without requiring a live database
+
+Key files added or changed:
+- java-platform/src/main/java/com/ace/platform/common/model/BaseEntity.java
+- java-platform/src/main/java/com/ace/platform/organization/Organization.java
+- java-platform/src/main/java/com/ace/platform/organization/OrganizationRepository.java
+- java-platform/src/main/java/com/ace/platform/user/User.java
+- java-platform/src/main/java/com/ace/platform/user/UserRepository.java
+- java-platform/src/main/java/com/ace/platform/user/UserRole.java
+- java-platform/src/main/java/com/ace/platform/auth/package-info.java
+- java-platform/src/main/java/com/ace/platform/admin/package-info.java
+- java-platform/src/main/java/com/ace/platform/tenant/package-info.java
+- java-platform/src/main/resources/db/migration/V1__init_organizations_and_users.sql
+- java-platform/src/main/resources/application-dev.yml
+- java-platform/src/main/resources/application-prod.yml
+- java-platform/src/test/resources/application-test.yml
+- java-platform/src/test/java/com/ace/platform/JavaPlatformApplicationTests.java
+
+Development database decision currently used:
+- PostgreSQL host: localhost
+- PostgreSQL port: 5433
+- development database name: ace_platform
+- development username: ace_user
+- development password default: test_password_123
+
+What was verified:
+- Maven tests pass under test profile
+- PostgreSQL-backed app starts successfully in dev profile
+- Flyway runs successfully
+- organizations table exists
+- users table exists
+- flyway_schema_history exists
+- GET /actuator/health returns UP
+- GET / returns 200 OK
+
+What this means architecturally:
+- the rewrite is no longer just a bootable shell
+- the rewrite now has its first permanent stateful platform layer
+- organizations and users are now established as the first canonical Java-owned domain entities
+- the temporary no-DB dev shell phase is over
+
+Current live local entry points at this stage:
+- http://127.0.0.1:8080/
+- http://127.0.0.1:8080/demo
+- http://127.0.0.1:8080/login
+- http://127.0.0.1:8080/actuator/health
+
+Important note:
+- authentication is still using Spring's generated in-memory development user for now
+- seeded platform admin and DB-backed admin auth are still a next step
+- admin dashboard and organization CRUD are still a next step
+
+Therefore the next correct step after this result is:
+- move from DB foundation into actual platform-admin functionality
+- specifically: seeded admin baseline, admin dashboard shell, and organization list/create flow
+
+
+====================================================================
+41. FINAL STRATEGIC NOTE
+====================================================================
+
+Option B remains the right move because it upgrades both the technical architecture and the business presentation of the project.
+
+We are not rewriting for the sake of rewriting.
+We are rewriting to achieve:
+- stronger Java credibility
+- cleaner hosting
+- cleaner product packaging
+- easier demos
+- clearer tenant story
+- better readiness for onboarding actual clients
+
+The correct mindset is:
+Build one coherent product that happens to be implemented pragmatically.
+Not several disconnected dev apps.
+
+End of document.

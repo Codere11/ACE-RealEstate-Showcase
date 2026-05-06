@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${organization.name} + ' Dashboard'">Organization Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            color: #22252A;
+            background: #0E1014;
+        }
+        .topbar {
+            display: grid;
+            grid-template-columns: 160px 1fr 220px;
+            align-items: center;
+            padding: 12px 18px;
+            background:
+                radial-gradient(1000px 300px at 50% -120px, rgba(193,164,108,.22), transparent 60%),
+                linear-gradient(180deg, #121417, #0C0D10 70%);
+            border-bottom: 1px solid rgba(193,164,108,.32);
+        }
+        .left, .right { display: flex; align-items: center; }
+        .right { justify-content: flex-end; gap: 10px; }
+        .client-logo {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: #111216; border: 1px solid rgba(193,164,108,.55);
+            color: #EDEBE6; display: grid; place-items: center; font-weight: 800;
+            box-shadow: 0 6px 14px rgba(0,0,0,.25);
+        }
+        .tabs {
+            display: flex; justify-content: center; gap: 10px; align-items: center;
+        }
+        .tabs a {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #171A1F; border: 1px solid #2A2E34;
+            color: #EDEBE6; padding: 8px 14px; border-radius: 999px;
+            font-weight: 700; letter-spacing: .2px; cursor: pointer; transition: all .18s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,.35); text-decoration: none;
+        }
+        .tabs a:hover { border-color: #C1A46C; transform: translateY(-1px); }
+        .tabs a.active {
+            color: #1E2126;
+            background: #C1A46C;
+            border-color: #C1A46C;
+            box-shadow: 0 8px 18px rgba(193,164,108,.28);
+            transform: translateY(-1px);
+        }
+        .user-pill {
+            background: #171A1F; border: 1px solid #2A2E34; color: #EDEBE6;
+            border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700;
+        }
+        .dashboard-background {
+            min-height: calc(100vh - 72px);
+            padding: 1.4rem 2rem 2rem;
+            background: #0E1014;
+        }
+        .dashboard-container {
+            max-width: 1180px; margin: auto; background: #FFFFFF;
+            padding: 2rem; border-radius: 18px; border: 1px solid #E6E2D6;
+            box-shadow: 0 28px 60px rgba(0,0,0,.35);
+        }
+        .title {
+            text-align: center; font-size: 2rem; font-weight: 900; color: #121417;
+            letter-spacing: .2px; position: relative; padding-bottom: .3rem;
+            margin: 0;
+        }
+        .title:after {
+            content: ""; display: block; height: 4px; width: 180px; margin: .6rem auto 0;
+            background: linear-gradient(90deg, #C1A46C, #A98C58); border-radius: 999px;
+        }
+        .subtitle { text-align: center; color: #6B7280; margin: .5rem 0 1.4rem; }
+        .hero-strip {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 18px;
+        }
+        .hero-card, .card {
+            background: #FFFFFF; border: 1px solid #E6E2D6; border-radius: 16px; padding: 18px;
+            box-shadow: 0 10px 22px rgba(18,20,23,.06);
+        }
+        .hero-card strong, .card h3 { color: #121417; }
+        .hero-card small, .card p, .muted { color: #6B7280; }
+        .stack { display: grid; gap: 16px; }
+        .module-list { display: grid; gap: 12px; }
+        .module-item {
+            background: #F8F7F3; border: 1px solid #E6E2D6; border-radius: 14px; padding: 14px;
+        }
+        .lead-item {
+            display: flex; justify-content: space-between; gap: 12px; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #ECE7DC;
+        }
+        .lead-item:last-child { border-bottom: none; }
+        .pill {
+            display: inline-block; padding: 5px 10px; border-radius: 999px;
+            font-size: 12px; font-weight: 800; background: #F3E8C9; color: #5E4A20;
+        }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .btn {
+            display: inline-block; text-decoration: none; background: #171A1F; color: #EDEBE6;
+            padding: 10px 14px; border-radius: 999px; border: 1px solid #2A2E34; font-weight: 700;
+        }
+        .btn.primary { background: #C1A46C; color: #1E2126; border-color: #C1A46C; }
+        @media (max-width: 900px) {
+            .topbar { grid-template-columns: 1fr; gap: 10px; }
+            .left, .right, .tabs { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="left">
+        <div class="client-logo" th:text="${#strings.substring(organization.name,0,1).toUpperCase()}">A</div>
+    </div>
+
+    <nav class="tabs">
+        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=leads'}" th:classappend="${activeTab == 'leads'} ? ' active'">LEADS</a>
+        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=surveys'}" th:classappend="${activeTab == 'surveys'} ? ' active'">SURVEYS</a>
+        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=qualifier'}" th:classappend="${activeTab == 'qualifier'} ? ' active'">AI QUALIFIER</a>
+        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=payments'}" th:classappend="${activeTab == 'payments'} ? ' active'">PAYMENTS</a>
+    </nav>
+
+    <div class="right">
+        <div class="user-pill">Viewer: <span th:text="${viewer}">preview</span></div>
+    </div>
+</header>
+
+<div class="dashboard-background">
+    <div class="dashboard-container">
+        <h1 class="title">ACE e-Counter Intelligence</h1>
+        <p class="subtitle">
+            <span th:text="${organization.name}">Organization</span>
+            · route <strong th:text="'/' + ${organization.slug}">/demo</strong>
+            · dashboard skeleton at <strong th:text="'/' + ${organization.slug} + '/dashboard'">/demo/dashboard</strong>
+        </p>
+
+        <div class="hero-strip">
+            <div class="hero-card">
+                <strong>Organization</strong><br>
+                <small th:text="${organization.name}">Demo Agency</small>
+            </div>
+            <div class="hero-card">
+                <strong>Slug</strong><br>
+                <small th:text="${organization.slug}">demo</small>
+            </div>
+            <div class="hero-card">
+                <strong>Status</strong><br>
+                <small th:text="${organization.active} ? 'active' : 'inactive'">active</small>
+            </div>
+            <div class="hero-card">
+                <strong>Team members</strong><br>
+                <small th:text="${orgUserCount}">0</small>
+            </div>
+        </div>
+
+        <section th:if="${activeTab == 'leads'}" class="stack">
+            <div class="card">
+                <h3>Leads</h3>
+                <p class="muted">This stays focused on the actual product surface. The Angular-style shell is in place; the visitor-facing survey/chat route and ownership model should be locked next before we deepen the tab content.</p>
+                <div class="module-list">
+                    <div class="lead-item">
+                        <div>
+                            <strong>Lead pipeline shell</strong>
+                            <div class="muted">Placeholder row for upcoming Spring lead list</div>
+                        </div>
+                        <span class="pill">Coming next</span>
+                    </div>
+                    <div class="lead-item">
+                        <div>
+                            <strong>Lead detail handoff</strong>
+                            <div class="muted">Will connect dashboard ownership to survey/chat sessions and qualifier outcomes</div>
+                        </div>
+                        <span class="pill">Planned</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section th:if="${activeTab == 'surveys'}" class="stack">
+            <div class="card">
+                <h3>Surveys</h3>
+                <p class="muted">Survey management shell for <span th:text="${organization.name}">organization</span>. This tab exists now so the Spring dashboard keeps the same mental model as the Angular dashboard.</p>
+                <div class="actions">
+                    <a class="btn primary" href="#">Survey list coming next</a>
+                    <a class="btn" href="#">Builder integration later</a>
+                </div>
+            </div>
+        </section>
+
+        <section th:if="${activeTab == 'qualifier'}" class="stack">
+            <div class="card">
+                <h3>AI Qualifier</h3>
+                <p class="muted">Qualifier shell is ready. Existing qualifier concepts from the Angular dashboard will be ported here while the broader runtime stays practical during migration.</p>
+                <div class="module-list">
+                    <div class="module-item"><strong>Active qualifier</strong><p>Placeholder for current live qualifier status.</p></div>
+                    <div class="module-item"><strong>Publish/archive controls</strong><p>Planned next after the skeleton is accepted.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section th:if="${activeTab == 'payments'}" class="stack">
+            <div class="card">
+                <h3>Payments</h3>
+                <p class="muted">Payments tab is in place now, matching the Angular dashboard structure. Stripe and payment request details will be layered in after the shell.</p>
+                <div class="module-list">
+                    <div class="module-item"><strong>Provider status</strong><p>Placeholder for Stripe/mock payment status.</p></div>
+                    <div class="module-item"><strong>Requests</strong><p>Placeholder for recent payment request activity.</p></div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>

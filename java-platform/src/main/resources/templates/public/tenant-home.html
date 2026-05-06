@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${organization.name + ' · Public Entry'}">Public Entry</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            color: #22252A;
+            background: #0C0D10;
+        }
+        .agent-hero{
+            padding: 18px 18px 8px;
+            background:
+                radial-gradient(1200px 400px at 18% -80px, rgba(193,164,108,.12), transparent 60%),
+                linear-gradient(180deg, #121417 0%, #0C0D10 70%);
+            border-bottom: 1px solid rgba(193,164,108,.18);
+        }
+        .agent-hero__inner{ display: grid; gap: 12px; }
+        .agent-hero__brand{
+            color: rgba(250,250,247,.92); font-size: .92rem; font-weight: 700;
+            letter-spacing: .08em; text-transform: uppercase;
+        }
+        .agent-hero__camera{
+            width: min(100%, 560px); aspect-ratio: 16 / 9; justify-self: center;
+            border-radius: 18px; background: #020303; border: 1px solid rgba(255,255,255,.09);
+            box-shadow: 0 24px 60px rgba(0,0,0,.38); position: relative; overflow: hidden;
+        }
+        .agent-hero__camera-state{
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 8px; text-align: center; padding: 20px; color: #F9FAFB;
+            background: linear-gradient(180deg, rgba(2,3,3,.18), rgba(2,3,3,.5));
+        }
+        .agent-hero__camera-eyebrow {
+            font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: rgba(249,250,251,.72);
+        }
+        .agent-hero__camera-title {
+            font-size: clamp(16px, 2vw, 22px); font-weight: 700; line-height: 1.25; max-width: 28rem;
+        }
+        .agent-page { display: block; padding: 10px 14px 18px; }
+        .chat-card{
+            max-width: 980px; margin: 8px auto 12px; background: #FFFFFF; border: 1px solid #E6E2D6;
+            border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.35); padding: 18px;
+            display: grid; gap: 18px;
+        }
+        .eyebrow {
+            display: inline-flex; width: fit-content; padding: 6px 10px; border-radius: 999px;
+            background: #F3E8C9; color: #5E4A20; font-size: 12px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        h1 { margin: 0; font-size: clamp(30px, 6vw, 52px); line-height: 1.02; }
+        .lead { margin: 0; color: #6B7280; font-size: 18px; max-width: 760px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+            padding: 12px 18px; border-radius: 999px; font-weight: 800; border: 1px solid #2A2E34;
+            background: #171A1F; color: #EDEBE6;
+        }
+        .btn.primary { background: #C1A46C; border-color: #C1A46C; color: #1E2126; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .tile {
+            padding: 16px; border-radius: 16px; background: #F8F7F3; border: 1px solid #E6E2D6;
+        }
+        .tile strong { display: block; margin-bottom: 8px; color: #121417; }
+        .tile span, .tile code, .tile p { color: #6B7280; margin: 0; }
+        .route-list { display: grid; gap: 10px; }
+        .route-item {
+            display: flex; justify-content: space-between; gap: 10px; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #ECE7DC;
+        }
+        .route-item:last-child { border-bottom: none; }
+        .pill {
+            display: inline-block; padding: 5px 10px; border-radius: 999px; background: #F3E8C9; color: #5E4A20;
+            font-size: 12px; font-weight: 800;
+        }
+        @media (max-width: 700px) {
+            .agent-page { padding: 10px; }
+            .chat-card { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+<section class="agent-hero">
+    <div class="agent-hero__inner">
+        <div class="agent-hero__brand">ACE e-Counter</div>
+        <div class="agent-hero__camera">
+            <div class="agent-hero__camera-state">
+                <div class="agent-hero__camera-eyebrow">Visitor entry</div>
+                <div class="agent-hero__camera-title" th:text="${organization.name + ' public surface now lives under one org slug.'}">Organization public surface now lives under one org slug.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="agent-page">
+    <div class="chat-card">
+        <div class="eyebrow">Canonical org entry</div>
+        <h1 th:text="${organization.name}">Demo Agency</h1>
+        <p class="lead">This Spring page now owns the public entry surface for the organization. It is the canonical place to launch the visitor survey flow and later the qualifier/chat flow too.</p>
+
+        <div class="actions">
+            <a class="btn primary" th:href="${surveyRoute}">Start survey</a>
+            <a class="btn" th:href="${dashboardRoute}">Open dashboard</a>
+        </div>
+
+        <div class="grid">
+            <div class="tile">
+                <strong>Organization</strong>
+                <span th:text="${organization.name}">Demo Agency</span>
+            </div>
+            <div class="tile">
+                <strong>Slug</strong>
+                <span th:text="${organization.slug}">demo</span>
+            </div>
+            <div class="tile">
+                <strong>Status</strong>
+                <span th:text="${organization.active} ? 'active' : 'inactive'">active</span>
+            </div>
+            <div class="tile">
+                <strong>Default survey slug</strong>
+                <span th:text="${defaultSurveySlug}">start</span>
+            </div>
+        </div>
+
+        <div class="tile">
+            <strong>Route ownership</strong>
+            <div class="route-list">
+                <div class="route-item">
+                    <div>
+                        <div><strong>Public landing</strong></div>
+                        <p th:text="${publicRoute}">/demo</p>
+                    </div>
+                    <span class="pill">Now owned by Spring</span>
+                </div>
+                <div class="route-item">
+                    <div>
+                        <div><strong>Survey entry</strong></div>
+                        <p th:text="${surveyRoute}">/demo/survey/start</p>
+                    </div>
+                    <span class="pill">Canonical</span>
+                </div>
+                <div class="route-item">
+                    <div>
+                        <div><strong>Org dashboard</strong></div>
+                        <p th:text="${dashboardRoute}">/demo/dashboard</p>
+                    </div>
+                    <span class="pill">Authenticated</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

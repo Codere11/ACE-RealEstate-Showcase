@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACE Platform Admin</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-2: #0b1220;
+            --border: #1f2937;
+            --border-2: #1e293b;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #93c5fd;
+            --accent-2: #7ef0c7;
+            --success-bg: rgba(34, 197, 94, 0.12);
+            --success-border: rgba(34, 197, 94, 0.35);
+            --error-bg: rgba(239, 68, 68, 0.12);
+            --error-border: rgba(239, 68, 68, 0.35);
+        }
+        * { box-sizing: border-box; }
+        body { font-family: Inter, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+        .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 20px 48px; }
+        .hero, .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; }
+        .hero { padding: 24px; margin-bottom: 20px; }
+        h1, h2, h3 { margin-top: 0; }
+        p, label { color: var(--muted); }
+        .top-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            border: 1px solid var(--border-2);
+            color: var(--text);
+            background: var(--panel-2);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn.primary {
+            color: #07111f;
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        }
+        .btn.danger {
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #fecaca;
+            background: rgba(239, 68, 68, 0.08);
+        }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 20px; }
+        .tile { background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 14px; padding: 16px; }
+        .tile strong { display: block; margin-bottom: 8px; }
+        .flash { padding: 14px 16px; border-radius: 14px; margin-bottom: 16px; }
+        .flash.success { background: var(--success-bg); border: 1px solid var(--success-border); }
+        .flash.error { background: var(--error-bg); border: 1px solid var(--error-border); }
+        .tab-radio { position: absolute; opacity: 0; pointer-events: none; }
+        .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+        .tab-btn {
+            display: inline-block;
+            border: 1px solid var(--border-2);
+            background: var(--panel-2);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab-panel { display: none; }
+        #tab-organizations-radio:checked ~ .tabs label[for="tab-organizations-radio"],
+        #tab-create-org-radio:checked ~ .tabs label[for="tab-create-org-radio"],
+        #tab-create-user-radio:checked ~ .tabs label[for="tab-create-user-radio"],
+        #tab-users-radio:checked ~ .tabs label[for="tab-users-radio"] {
+            background: linear-gradient(135deg, rgba(147,197,253,0.18), rgba(126,240,199,0.12));
+            border-color: #4b6b8c;
+        }
+        #tab-organizations-radio:checked ~ #tab-organizations,
+        #tab-create-org-radio:checked ~ #tab-create-org,
+        #tab-create-user-radio:checked ~ #tab-create-user,
+        #tab-users-radio:checked ~ #tab-users {
+            display: block;
+        }
+        .panel { padding: 22px; }
+        .org-card, .user-card { background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+        .org-head, .user-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .badge { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .badge.active { background: rgba(34,197,94,0.14); color: #86efac; }
+        .badge.inactive { background: rgba(239,68,68,0.14); color: #fca5a5; }
+        .badge.role { background: rgba(147,197,253,0.14); color: #bfdbfe; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .field { display: flex; flex-direction: column; gap: 8px; }
+        input, select {
+            width: 100%;
+            background: #09111f;
+            border: 1px solid var(--border-2);
+            color: var(--text);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+        .inline-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+        .muted { color: var(--muted); }
+        .small { font-size: 13px; }
+        .subtle { opacity: 0.85; }
+        code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; }
+        .section-note { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="hero">
+        <h1>ACE Platform Admin</h1>
+        <p>Logged in as <strong th:text="${username}">admin</strong>. This is the platform admin surface for onboarding and managing organizations.</p>
+
+        <div class="top-actions">
+            <a class="btn primary" href="/demo">Open /demo</a>
+            <a class="btn" href="/">Open root route</a>
+            <a class="btn" href="/actuator/health">Health</a>
+        </div>
+
+        <div class="stats">
+            <div class="tile">
+                <strong>Organizations</strong>
+                <span th:text="${organizationCount}">0</span>
+            </div>
+            <div class="tile">
+                <strong>Users</strong>
+                <span th:text="${userCount}">0</span>
+            </div>
+            <div class="tile">
+                <strong>Current model</strong>
+                <span>One-page onboarding workspace with tabs.</span>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="flash success" th:text="${successMessage}">Success</div>
+    <div th:if="${errorMessage}" class="flash error" th:text="${errorMessage}">Error</div>
+
+    <div class="panel">
+        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-organizations-radio" th:checked="${activeTab == 'organizations'}">
+        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-create-org-radio" th:checked="${activeTab == 'create-org'}">
+        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-create-user-radio" th:checked="${activeTab == 'create-user'}">
+        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-users-radio" th:checked="${activeTab == 'users'}">
+
+        <div class="tabs" role="tablist" aria-label="Admin sections">
+            <label class="tab-btn" for="tab-organizations-radio">Organizations</label>
+            <label class="tab-btn" for="tab-create-org-radio">Create organization</label>
+            <label class="tab-btn" for="tab-create-user-radio">Create user</label>
+            <label class="tab-btn" for="tab-users-radio">Users & passwords</label>
+        </div>
+
+        <section id="tab-organizations" class="tab-panel">
+            <h2>Organizations</h2>
+            <p class="section-note muted">Create, edit, open, and delete organizations from this one page.</p>
+
+            <div th:if="${#lists.isEmpty(organizations)}" class="org-card">
+                <strong>No organizations yet.</strong>
+                <p class="muted">Create the first one in the next tab.</p>
+            </div>
+
+            <div th:each="org : ${organizations}" class="org-card">
+                <div class="org-head">
+                    <div>
+                        <strong th:text="${org.name}">Organization</strong>
+                        <div class="small muted">Public route: <code th:text="'/' + ${org.slug}">/demo</code></div>
+                    </div>
+                    <span class="badge" th:classappend="${org.active} ? ' active' : ' inactive'" th:text="${org.active} ? 'active' : 'inactive'">active</span>
+                </div>
+
+                <form th:action="@{'/admin/organizations/' + ${org.id}}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="form-grid" style="margin-top: 14px;">
+                        <div class="field">
+                            <label>Name</label>
+                            <input type="text" name="name" th:value="${org.name}" required>
+                        </div>
+                        <div class="field">
+                            <label>Slug</label>
+                            <input type="text" name="slug" th:value="${org.slug}" required>
+                        </div>
+                        <div class="field">
+                            <label>Active</label>
+                            <select name="active">
+                                <option value="true" th:selected="${org.active}">true</option>
+                                <option value="false" th:selected="${!org.active}">false</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn primary" type="submit">Save organization</button>
+                        <a class="btn" th:href="@{'/' + ${org.slug}}" target="_blank">Open public route</a>
+                    </div>
+                </form>
+
+                <div class="inline-actions">
+                    <form th:action="@{'/admin/organizations/' + ${org.id} + '/delete'}" method="post" onsubmit="return confirm('Delete organization and all linked org users?');">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="btn danger" type="submit">Delete organization</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-create-org" class="tab-panel">
+            <h2>Create organization</h2>
+            <p class="section-note muted">This is enough for the current product step: make a slug route that works and attach an admin later.</p>
+
+            <form action="/admin/organizations" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Organization name</label>
+                        <input type="text" name="name" placeholder="ABC Nepremičnine" required>
+                    </div>
+                    <div class="field">
+                        <label>Slug</label>
+                        <input type="text" name="slug" placeholder="abc-nepremicnine" required>
+                    </div>
+                    <div class="field">
+                        <label>Active</label>
+                        <select name="active">
+                            <option value="true" selected>true</option>
+                            <option value="false">false</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn primary" type="submit">Create organization</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="tab-create-user" class="tab-panel">
+            <h2>Create user</h2>
+            <p class="section-note muted">Create a real organization user with a real login. Org users land in their own organization dashboard after login.</p>
+
+            <form action="/admin/users" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Organization</label>
+                        <select name="organizationId" required>
+                            <option value="">Select organization</option>
+                            <option th:each="org : ${organizations}" th:value="${org.id}" th:text="${org.name + ' (' + org.slug + ')'}"></option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Username</label>
+                        <input type="text" name="username" placeholder="client-admin" required>
+                    </div>
+                    <div class="field">
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="admin@client.si" required>
+                    </div>
+                    <div class="field">
+                        <label>Password</label>
+                        <input type="text" name="password" placeholder="temporary password" required>
+                    </div>
+                    <div class="field">
+                        <label>Role</label>
+                        <select name="role">
+                            <option value="ORG_ADMIN" selected>ORG_ADMIN</option>
+                            <option value="MANAGER">MANAGER</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Active</label>
+                        <select name="active">
+                            <option value="true" selected>true</option>
+                            <option value="false">false</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn primary" type="submit">Create user</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="tab-users" class="tab-panel">
+            <h2>Users & passwords</h2>
+            <p class="section-note muted">Internal-only for now: usernames and visible passwords can be reviewed and edited directly from the admin dashboard.</p>
+
+            <div th:if="${#lists.isEmpty(users)}" class="user-card">
+                <strong>No users found.</strong>
+            </div>
+
+            <div th:each="user : ${users}" class="user-card">
+                <div class="user-head">
+                    <div>
+                        <strong th:text="${user.username}">username</strong>
+                        <div class="small muted">
+                            Organization:
+                            <span th:text="${user.organization != null ? user.organization.name + ' (' + user.organization.slug + ')' : 'Platform-wide user'}">Platform-wide user</span>
+                        </div>
+                    </div>
+                    <div class="inline-actions">
+                        <span class="badge role" th:text="${user.role}">ROLE</span>
+                        <span class="badge" th:classappend="${user.active} ? ' active' : ' inactive'" th:text="${user.active} ? 'active' : 'inactive'">active</span>
+                    </div>
+                </div>
+
+                <form th:action="@{'/admin/users/' + ${user.id}}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="form-grid" style="margin-top: 14px;">
+                        <div class="field">
+                            <label>Organization</label>
+                            <select name="organizationId">
+                                <option value="">Platform-wide / none</option>
+                                <option th:each="org : ${organizations}"
+                                        th:value="${org.id}"
+                                        th:selected="${user.organization != null and user.organization.id == org.id}"
+                                        th:text="${org.name + ' (' + org.slug + ')'}"></option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Username</label>
+                            <input type="text" name="username" th:value="${user.username}" required>
+                        </div>
+                        <div class="field">
+                            <label>Email</label>
+                            <input type="email" name="email" th:value="${user.email}" required>
+                        </div>
+                        <div class="field">
+                            <label>Visible / editable password</label>
+                            <input type="text" name="password" th:value="${user.visiblePassword}" placeholder="set a password">
+                        </div>
+                        <div class="field">
+                            <label>Role</label>
+                            <select name="role">
+                                <option th:each="role : ${roles}" th:value="${role}" th:selected="${user.role == role}" th:text="${role}"></option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Active</label>
+                            <select name="active">
+                                <option value="true" th:selected="${user.active}">true</option>
+                                <option value="false" th:selected="${!user.active}">false</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn primary" type="submit">Save user</button>
+                    </div>
+                </form>
+
+                <div class="inline-actions">
+                    <form th:action="@{'/admin/users/' + ${user.id} + '/delete'}" method="post" onsubmit="return confirm('Delete this user?');">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="btn danger" type="submit">Delete user</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>

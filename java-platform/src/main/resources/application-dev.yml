@@ -1,0 +1,25 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  thymeleaf:
+    cache: false
+  datasource:
+    url: ${ACE_DB_URL:jdbc:postgresql://localhost:5433/ace_platform}
+    username: ${ACE_DB_USERNAME:ace_user}
+    password: ${ACE_DB_PASSWORD:test_password_123}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    org.springframework.security: INFO

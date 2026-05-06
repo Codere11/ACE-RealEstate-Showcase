@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: java-platform
+  profiles:
+    default: dev
+
+server:
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

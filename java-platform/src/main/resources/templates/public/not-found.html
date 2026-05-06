@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Not Found</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, Arial, sans-serif;
+            background: linear-gradient(180deg, #0b1020 0%, #121933 100%);
+            color: #eef2ff;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+        .card {
+            width: min(760px, 100%);
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 28px;
+        }
+        h1 { margin-top: 0; }
+        p { color: #b6c0e0; }
+        a {
+            display: inline-block;
+            margin-top: 12px;
+            text-decoration: none;
+            color: #0b1020;
+            background: linear-gradient(135deg, #7c9cff, #7ef0c7);
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1 th:text="${title}">Not Found</h1>
+    <p th:text="${message}">The requested route could not be resolved.</p>
+    <p th:if="${pathSegment != null}">Path segment: <code th:text="${pathSegment}">unknown</code></p>
+    <a href="/">Back to root</a>
+</div>
+</body>
+</html>

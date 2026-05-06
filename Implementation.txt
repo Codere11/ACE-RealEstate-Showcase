@@ -1,0 +1,368 @@
+ACE-RealEstate Implementation Guide
+Option B Execution Plan
+Created: 2026-05-06
+
+==================================================
+1. WHAT WE ARE BUILDING
+==================================================
+
+We are rebuilding ACE into a cleaner, more hostable, more professional product with:
+
+- Spring Boot 21 as the main application
+- PostgreSQL as the main database
+- Angular chatbot kept for now
+- Spring Boot + Thymeleaf + HTMX for admin/dashboard
+- LiveKit Cloud later for live help
+- Stripe later for payments
+- existing Python AI/chat runtime kept temporarily where useful, but no longer the center of the product
+
+Goal:
+Build one coherent product under one domain.
+
+
+==================================================
+2. FINAL PUBLIC STRUCTURE
+==================================================
+
+Target routes:
+
+- /                           -> platform root
+- /demo                       -> demo organization public landing
+- /{tenantSlug}               -> organization public landing
+- /{tenantSlug}/survey/{slug} -> organization survey entry
+- /{tenantSlug}/dashboard     -> organization dashboard
+- /admin                      -> authenticated admin area
+- /login                      -> login page
+- /api/**                     -> future API routes
+
+Reserved non-tenant routes:
+- admin
+- login
+- logout
+- api
+- actuator
+- error
+- favicon.ico
+- robots.txt
+- assets
+- static
+- css
+- js
+- images
+- webjars
+
+Important rule:
+Not every path segment is a tenant slug.
+
+
+==================================================
+3. ROLE MODEL
+==================================================
+
+There are 3 roles:
+
+1. PLATFORM_ADMIN
+   This is us / internal operator.
+   Can:
+   - create organizations
+   - create first org admin users
+   - manage onboarding
+   - see platform-wide data
+
+2. ORG_ADMIN
+   This is the client organization admin.
+   Can:
+   - manage only their own organization
+   - manage org settings
+   - later manage surveys / qualifiers / branding / payments within their own org
+
+3. MANAGER
+   Operational user inside one organization.
+   Can:
+   - later review leads
+   - later handle live help / operational workflows
+   - does not get platform-wide access
+
+Login model:
+- one login page: /login
+- users authenticate there
+- what they see after login depends on role
+
+Important distinction:
+- platform admin dashboard is not the same as the organization dashboard
+- client organizations must not see platform-wide onboarding/control tools
+
+
+==================================================
+4. PHASE 1 GOAL
+==================================================
+
+Phase 1 goal:
+Make Spring Boot the real platform center.
+
+That means Phase 1 must own:
+- routing
+- admin auth
+- organizations
+- users
+- platform admin shell
+- tenant route rules
+
+Phase 1 does NOT need to fully migrate yet:
+- chat runtime
+- surveys runtime
+- qualifier runtime
+- LangGraph / LangChain logic
+- payments
+- live help
+
+These are acknowledged and planned, but not first.
+
+
+==================================================
+5. CURRENT DECISIONS LOCKED
+==================================================
+
+These decisions are already made:
+
+- Build tool: Maven
+- New Java app folder: java-platform/
+- Spring Boot is the new main app
+- session/cookie auth for admin
+- manual org setup first, not self-serve onboarding
+- PostgreSQL is the DB
+- one-domain route ownership is the target
+
+Safe GitHub checkpoint before rewrite work:
+- branch: main
+- commit: 49fa737
+- message: Redesign qualifier editor around ACE e-Counter policy
+
+
+==================================================
+6. WHAT IS ALREADY DONE
+==================================================
+
+In java-platform/ we already have:
+
+A. Bootable Spring Boot app
+- Spring Boot 3.5
+- Java 21
+- Maven wrapper
+- app starts locally
+
+B. Profiles/config
+- application.yml
+- application-dev.yml
+- application-prod.yml
+- application-test.yml
+
+C. Public shell
+- / works
+- /demo works
+- /actuator/health works
+- /login works
+
+D. First DB-backed foundation
+- Flyway enabled in dev/prod
+- organizations table
+- users table
+- JPA entities for Organization and User
+- repositories for both
+
+E. Seeded dev baseline
+- demo organization exists
+- admin user exists
+- admin password is test123
+
+F. First authenticated admin shell
+- /admin/dashboard exists
+- DB-backed login works
+
+G. First tenant-aware public routing milestone
+- / resolves root shell
+- /demo resolves from the organizations table
+- /{tenantSlug} resolves active organizations by slug
+- /{tenantSlug}/survey/{slug} exists as the canonical public survey route
+- /{tenantSlug}/dashboard exists as the org dashboard route
+- reserved paths are not treated as tenant slugs
+- tenant-not-found page exists
+
+
+==================================================
+7. CURRENT LOCAL ACCESS
+==================================================
+
+Current local URLs:
+
+- http://127.0.0.1:8080/
+- http://127.0.0.1:8080/demo
+- http://127.0.0.1:8080/login
+- http://127.0.0.1:8080/admin/dashboard
+- http://127.0.0.1:8080/actuator/health
+
+Current login credentials:
+- username: admin
+- password: test123
+
+Current admin workspace also supports:
+- viewing users and visible passwords
+- editing usernames / emails / passwords / roles / active state
+- deleting users
+- deleting organizations
+
+Current dev DB:
+- host: localhost
+- port: 5433
+- db: ace_platform
+- user: ace_user
+- password: test_password_123
+
+
+==================================================
+8. WHAT PHASE 1A MUST DELIVER NEXT
+==================================================
+
+The next meaningful milestone is not chat.
+The next milestone is platform-admin usefulness.
+
+Next required features:
+
+1. role-aware admin structure
+   - platform admin goes to platform dashboard
+   - later org admin goes to org dashboard
+   - later manager goes to manager dashboard
+
+2. one-page platform admin workspace with tabs
+   - organizations tab
+   - create organization tab
+   - create org admin tab
+   - users & passwords tab
+   - keep onboarding fast and simple in one place
+
+3. first org admin creation flow
+   - create org-scoped user
+   - assign role ORG_ADMIN
+   - associate with organization
+
+4. organization/user lifecycle management
+   - edit organization
+   - delete organization
+   - edit users and visible passwords
+   - delete users
+
+5. basic tenant route placeholder
+   - reserve non-tenant routes in code
+   - prepare /{tenantSlug} handling cleanly
+
+This is the first practical onboarding toolset.
+
+
+==================================================
+9. WHAT NOT TO DO YET
+==================================================
+
+Do NOT do these next:
+
+- do not migrate the full chatbot first
+- do not rewrite LangGraph/LangChain runtime first
+- do not build the final survey builder first
+- do not build self-serve onboarding first
+- do not add too many entities too early
+- do not get distracted by only UI polish
+
+Priority is:
+platform ownership first
+
+
+==================================================
+10. HOW WE HANDLE CHAT / SURVEYS / AI FOR NOW
+==================================================
+
+We are not ignoring them.
+We are sequencing them.
+
+Current rule:
+- Spring Boot becomes the product shell and control center first
+- existing Python AI/chat logic may stay temporarily if useful
+- Angular chatbot stays temporarily
+- later we integrate cleanly under Spring-owned routes
+
+This means:
+- chat is still part of the end product
+- surveys are still part of the end product
+- LangGraph / AI qualification is still part of the end product
+- they are simply not the next coding milestone
+
+
+==================================================
+11. SIMPLE IMPLEMENTATION ORDER
+==================================================
+
+Completed:
+1. verify Java/Maven environment
+2. generate Spring Boot shell
+3. add profile config
+4. add visible public shell
+5. enable PostgreSQL + Flyway + JPA
+6. create organizations/users foundation
+7. seed admin + demo org
+8. enable DB-backed login
+9. add first admin dashboard shell
+10. add tenant-aware public routing rules
+11. turn platform admin onboarding into a one-page tabbed workspace
+12. add organizations list/create/edit flow
+13. add create first org admin flow
+14. add delete organization flow
+15. add users & visible passwords tab
+16. allow editing and deleting users from the admin dashboard
+
+Next:
+17. split admin behavior by role
+18. add organization-scoped dashboard shell
+19. refine tenant placeholder behavior
+
+After that:
+20. org dashboard shell
+21. onboarding flow improvements
+22. Angular chatbot integration under Spring-owned routes
+23. later surveys / qualifiers / payments / live help modules
+
+
+==================================================
+12. DEFINITION OF THE NEXT CORRECT STEP
+==================================================
+
+The next correct step is:
+Keep the platform admin page simple and finish only what is needed for onboarding.
+
+Concretely:
+- make org creation fully reliable
+- make slug routes work reliably
+- make org admin creation/editing reliable
+- keep users and visible passwords manageable from the same admin dash
+- avoid overcomplicating role UI too early
+
+Reason:
+This is enough for the first real client setup workflow.
+
+
+==================================================
+13. END RESULT WE ARE MOVING TOWARD
+==================================================
+
+When this rewrite succeeds, ACE should feel like:
+
+- one product
+- one domain
+- one clear admin login
+- one public demo entry
+- tenant-aware chatbot routes
+- platform admin control for onboarding clients
+- org-specific dashboards for client users
+- Java-centered architecture that is strong to show employers and clients
+
+Short version:
+We are turning ACE from a local multi-app prototype into a coherent Spring Boot-centered platform.
+
+End of file.

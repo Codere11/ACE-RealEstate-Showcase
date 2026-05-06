@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} ?: 'ACE Platform'">ACE Platform</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: rgba(255,255,255,0.08);
+            --panel-border: rgba(255,255,255,0.14);
+            --text: #eef2ff;
+            --muted: #b6c0e0;
+            --accent: #7c9cff;
+            --accent-2: #7ef0c7;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(124,156,255,0.35), transparent 28%),
+                radial-gradient(circle at top right, rgba(126,240,199,0.22), transparent 24%),
+                linear-gradient(180deg, #0b1020 0%, #121933 100%);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+        .shell {
+            width: min(960px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            backdrop-filter: blur(10px);
+            border-radius: 22px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        .eyebrow {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(124,156,255,0.14);
+            color: #dbe5ff;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        h1 {
+            margin: 0 0 14px;
+            font-size: clamp(34px, 7vw, 60px);
+            line-height: 0.98;
+        }
+        p.lead {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 18px;
+            max-width: 720px;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 26px;
+        }
+        a.btn {
+            text-decoration: none;
+            color: #0b1020;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        a.btn.secondary {
+            color: var(--text);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        .tile {
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .tile strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #ffffff;
+        }
+        .tile span, .tile code {
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .footer {
+            margin-top: 20px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="eyebrow">ACE Rewrite · Spring Boot Routing Shell</div>
+    <h1 th:text="${pageTitle} ?: 'ACE Platform'">ACE Platform</h1>
+    <p class="lead" th:text="${message}">ACE Spring Boot rewrite shell is running.</p>
+
+    <div class="actions">
+        <a class="btn" href="/demo">Open demo route</a>
+        <a class="btn secondary" href="/login">Open admin login</a>
+        <a class="btn secondary" href="/actuator/health">Health check</a>
+    </div>
+
+    <div class="grid">
+        <div class="tile">
+            <strong>Resolved route</strong>
+            <span th:text="${routeLabel} ?: '/'">/</span>
+        </div>
+        <div class="tile">
+            <strong>Page mode</strong>
+            <span th:text="${pageMode} ?: 'root'">root</span>
+        </div>
+        <div class="tile">
+            <strong>Tenant name</strong>
+            <span th:text="${tenantName} ?: 'No tenant resolved on this route yet.'">No tenant resolved on this route yet.</span>
+        </div>
+        <div class="tile">
+            <strong>Tenant slug</strong>
+            <span th:text="${tenantSlug} ?: 'N/A'">N/A</span>
+        </div>
+        <div class="tile">
+            <strong>Tenant active</strong>
+            <span th:text="${tenantActive != null ? tenantActive : 'N/A'}">N/A</span>
+        </div>
+        <div class="tile">
+            <strong>Available now</strong>
+            <code>/</code>, <code>/demo</code>, <code>/{tenantSlug}</code>, <code>/login</code>
+        </div>
+    </div>
+
+    <div class="footer">
+        This page now proves route ownership: root, demo, tenant slugs, and reserved-path protection.
+    </div>
+</div>
+</body>
+</html>
