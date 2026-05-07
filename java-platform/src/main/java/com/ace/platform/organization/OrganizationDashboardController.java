@@ -4,6 +4,8 @@ import com.ace.platform.chat.TakeoverService;
 import com.ace.platform.conversation.ConversationService;
 import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
+import com.ace.platform.survey.Survey;
+import com.ace.platform.survey.SurveyService;
 import com.ace.platform.tenant.TenantRouteService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
@@ -28,19 +30,22 @@ public class OrganizationDashboardController {
     private final LeadService leadService;
     private final ConversationService conversationService;
     private final TakeoverService takeoverService;
+    private final SurveyService surveyService;
 
     public OrganizationDashboardController(
         TenantRouteService tenantRouteService,
         UserRepository userRepository,
         LeadService leadService,
         ConversationService conversationService,
-        TakeoverService takeoverService
+        TakeoverService takeoverService,
+        SurveyService surveyService
     ) {
         this.tenantRouteService = tenantRouteService;
         this.userRepository = userRepository;
         this.leadService = leadService;
         this.conversationService = conversationService;
         this.takeoverService = takeoverService;
+        this.surveyService = surveyService;
     }
 
     @GetMapping("/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}/dashboard")
@@ -92,13 +97,22 @@ public class OrganizationDashboardController {
             return "public/not-found";
         }
 
+        String activeTab = normalizeTab(tab);
+        Long effectiveSurveyId = surveyId;
+        if ("surveys".equals(activeTab)) {
+            Survey currentSurvey = surveyService.ensureDefaultSurvey(organization);
+            if (effectiveSurveyId == null) {
+                effectiveSurveyId = currentSurvey.getId();
+            }
+        }
+
         model.addAttribute("organization", organization);
         model.addAttribute("organizationId", organization.getId());
-        model.addAttribute("activeTab", normalizeTab(tab));
+        model.addAttribute("activeTab", activeTab);
         model.addAttribute("viewer", principal.getName());
         model.addAttribute("orgUserCount", userRepository.countByOrganizationId(organization.getId()));
         model.addAttribute("selectedLeadSid", sid);
-        model.addAttribute("selectedSurveyId", surveyId);
+        model.addAttribute("selectedSurveyId", effectiveSurveyId);
         return "organization/dashboard";
     }
 

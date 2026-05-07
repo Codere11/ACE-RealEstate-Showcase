@@ -54,6 +54,9 @@ public class SurveyApiController {
     public List<SurveySummaryResponse> surveys(@PathVariable Long orgId, Authentication authentication) {
         User user = requireUser(authentication);
         requireOrgAccess(user, orgId);
+        Organization organization = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
+        surveyService.ensureDefaultSurvey(organization);
         return surveyService.listForOrganization(orgId).stream().map(SurveySummaryResponse::from).toList();
     }
 
