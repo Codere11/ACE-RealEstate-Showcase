@@ -10,6 +10,7 @@ import com.ace.platform.lead.LeadRepository;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
 import com.ace.platform.user.UserRole;
@@ -73,6 +74,9 @@ class AccessControlTests {
 
     @MockBean
     private TakeoverService takeoverService;
+
+    @MockBean
+    private SurveyService surveyService;
 
     @Test
     @WithMockUser(username = "orgadmin", roles = "ORG_ADMIN")

@@ -6,6 +6,8 @@ import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.lead.LeadStatus;
 import com.ace.platform.organization.Organization;
+import com.ace.platform.survey.SurveyQuestionType;
+import com.ace.platform.survey.SurveyService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,27 +16,23 @@ import java.util.List;
 @Service
 public class PublicChatService {
 
-    private static final List<String> FIRST_STEP_CHOICES = List.of(
-        "Buying a home",
-        "Selling a property",
-        "Renting",
-        "Just exploring options"
-    );
-
     private final LeadService leadService;
     private final ConversationService conversationService;
+    private final SurveyService surveyService;
 
-    public PublicChatService(LeadService leadService, ConversationService conversationService) {
+    public PublicChatService(LeadService leadService, ConversationService conversationService, SurveyService surveyService) {
         this.leadService = leadService;
         this.conversationService = conversationService;
+        this.surveyService = surveyService;
     }
 
     @Transactional
     public ChatResult handleVisitorMessage(Organization organization, String sid, String surveySlug, String message) {
         Lead lead = leadService.getOrCreateLead(organization, sid, surveySlug);
+        SurveyService.SurveyDefinition survey = surveyService.ensureDefaultSurveyDefinition(organization, surveySlug);
         String trimmed = message == null ? "" : message.trim();
         if (trimmed.isBlank()) {
-            return ChatResult.empty(lead.getSid(), lead.getSurveyProgress(), lead.isTakeoverActive());
+            return bootstrapState(organization, lead.getSid(), survey.slug());
         }
 
         conversationService.appendMessage(lead, ConversationRole.USER, trimmed);
@@ -45,56 +43,69 @@ public class PublicChatService {
         }
 
         long userCount = conversationService.countUserMessages(lead);
-        int progress = switch ((int) userCount) {
-            case 1 -> 20;
-            case 2 -> 40;
-            case 3 -> 60;
-            case 4 -> 80;
-            default -> 100;
-        };
+        int progress = progressFor(userCount, survey.questions().size());
         leadService.updateSurveyProgress(lead, progress);
         if (progress >= 100) {
             lead.setStatus(LeadStatus.OPEN_CHAT);
         }
 
-        String reply = buildReply(trimmed, userCount);
-        conversationService.appendMessage(lead, ConversationRole.ASSISTANT, reply);
-
+        SurveyStep nextStep = nextStep(survey, userCount);
+        boolean complete = nextStep == null;
         return new ChatResult(
             lead.getSid(),
-            reply,
-            progress >= 100 ? "open" : "guided",
-            progress >= 100,
+            null,
+            complete ? "open" : "guided",
+            complete,
             progress,
-            !lead.isTakeoverActive(),
-            FIRST_STEP_CHOICES
+            nextStep,
+            complete ? "Thanks — your information has been received." : null,
+            complete ? "A team member can continue from here when needed." : null
         );
     }
 
-    private String buildReply(String message, long userCount) {
-        if (userCount == 1) {
-            String normalized = message.toLowerCase();
-            if (normalized.contains("buy")) {
-                return "Great — are you looking for an apartment, a house, or land?";
-            }
-            if (normalized.contains("sell")) {
-                return "Understood — what type of property are you selling, and in which area?";
-            }
-            if (normalized.contains("rent")) {
-                return "Got it — what kind of rental are you searching for and in which location?";
-            }
-            return "Thanks — tell us what kind of property you are interested in and the general area you have in mind.";
+    @Transactional
+    public ChatResult bootstrapState(Organization organization, String sid, String surveySlug) {
+        Lead lead = leadService.getOrCreateLead(organization, sid, surveySlug);
+        SurveyService.SurveyDefinition survey = surveyService.ensureDefaultSurveyDefinition(organization, surveySlug);
+        long userCount = conversationService.countUserMessages(lead);
+        int progress = progressFor(userCount, survey.questions().size());
+        if (lead.getSurveyProgress() != progress) {
+            leadService.updateSurveyProgress(lead, progress);
         }
-        if (userCount == 2) {
-            return "Helpful. What budget range or price target are you working with?";
+        SurveyStep nextStep = lead.isTakeoverActive() ? null : nextStep(survey, userCount);
+        boolean complete = nextStep == null;
+        return new ChatResult(
+            lead.getSid(),
+            null,
+            lead.isTakeoverActive() || complete ? "open" : "guided",
+            complete,
+            progress,
+            nextStep,
+            complete && !lead.isTakeoverActive() ? "Thanks — your information has been received." : null,
+            complete && !lead.isTakeoverActive() ? "A team member can continue from here when needed." : null
+        );
+    }
+
+    private int progressFor(long answeredCount, int totalQuestions) {
+        if (totalQuestions <= 0) {
+            return 100;
         }
-        if (userCount == 3) {
-            return "Good. What is your ideal timeline for moving forward?";
+        return (int) Math.max(0, Math.min(100, Math.round((answeredCount * 100.0f) / totalQuestions)));
+    }
+
+    private SurveyStep nextStep(SurveyService.SurveyDefinition survey, long answeredCount) {
+        if (answeredCount >= survey.questions().size()) {
+            return null;
         }
-        if (userCount == 4) {
-            return "Perfect. Please share your preferred contact details so a manager can continue if needed.";
-        }
-        return "Thanks — your lead is now active in the dashboard, and a team member can take over from here if needed.";
+        SurveyService.QuestionDefinition question = survey.questions().get((int) answeredCount);
+        return new SurveyStep(
+            question.orderIndex(),
+            question.questionType().name(),
+            question.title(),
+            question.description(),
+            question.placeholder(),
+            question.options().stream().map(SurveyService.QuestionOptionDefinition::label).toList()
+        );
     }
 
     public record ChatResult(
@@ -103,15 +114,25 @@ public class PublicChatService {
         String chatMode,
         boolean storyComplete,
         int surveyProgress,
-        boolean choicesVisible,
-        List<String> suggestedChoices
+        SurveyStep currentStep,
+        String completionTitle,
+        String completionSubtitle
     ) {
-        static ChatResult empty(String sid, int progress, boolean takeoverActive) {
-            return new ChatResult(sid, null, takeoverActive ? "open" : "guided", false, progress, !takeoverActive, FIRST_STEP_CHOICES);
-        }
-
         static ChatResult humanMode(String sid, int progress) {
-            return new ChatResult(sid, null, "open", false, progress, false, List.of());
+            return new ChatResult(sid, null, "open", false, progress, null, null, null);
+        }
+    }
+
+    public record SurveyStep(
+        int orderIndex,
+        String questionType,
+        String title,
+        String description,
+        String placeholder,
+        List<String> options
+    ) {
+        public boolean singleChoice() {
+            return SurveyQuestionType.SINGLE_CHOICE.name().equals(questionType);
         }
     }
 }

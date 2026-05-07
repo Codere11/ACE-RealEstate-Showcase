@@ -48,6 +48,7 @@ public class OrganizationDashboardController {
         @PathVariable String tenantSlug,
         @RequestParam(name = "tab", defaultValue = "leads") String tab,
         @RequestParam(name = "sid", required = false) String sid,
+        @RequestParam(name = "surveyId", required = false) Long surveyId,
         Model model,
         Principal principal,
         HttpServletResponse response
@@ -97,6 +98,7 @@ public class OrganizationDashboardController {
         model.addAttribute("viewer", principal.getName());
         model.addAttribute("orgUserCount", userRepository.countByOrganizationId(organization.getId()));
         model.addAttribute("selectedLeadSid", sid);
+        model.addAttribute("selectedSurveyId", surveyId);
         return "organization/dashboard";
     }
 

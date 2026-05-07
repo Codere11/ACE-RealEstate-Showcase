@@ -9,6 +9,7 @@ import com.ace.platform.events.LeadEventService;
 import com.ace.platform.lead.LeadRepository;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,6 +53,9 @@ class JavaPlatformApplicationTests {
 
 	@MockBean
 	private TakeoverService takeoverService;
+
+	@MockBean
+	private SurveyService surveyService;
 
 	@Test
 	void contextLoads() {

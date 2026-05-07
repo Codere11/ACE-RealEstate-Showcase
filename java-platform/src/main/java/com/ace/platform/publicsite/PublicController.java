@@ -3,6 +3,7 @@ package com.ace.platform.publicsite;
 import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
+import com.ace.platform.survey.SurveyService;
 import com.ace.platform.tenant.TenantRouteService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
@@ -18,13 +19,16 @@ public class PublicController {
 
     private final TenantRouteService tenantRouteService;
     private final LeadService leadService;
+    private final SurveyService surveyService;
 
     public PublicController(
         TenantRouteService tenantRouteService,
-        LeadService leadService
+        LeadService leadService,
+        SurveyService surveyService
     ) {
         this.tenantRouteService = tenantRouteService;
         this.leadService = leadService;
+        this.surveyService = surveyService;
     }
 
     @GetMapping("/")
@@ -81,13 +85,15 @@ public class PublicController {
     }
 
     private String renderTenantSurvey(Model model, Organization organization, String surveySlug, String sid) {
-        Lead lead = leadService.getOrCreateLead(organization, sid, surveySlug);
+        SurveyService.SurveyDefinition surveyDefinition = surveyService.ensureDefaultSurveyDefinition(organization, surveySlug);
+        Lead lead = leadService.getOrCreateLead(organization, sid, surveyDefinition.slug());
         model.addAttribute("organization", organization);
-        model.addAttribute("surveySlug", surveySlug);
-        model.addAttribute("isDefaultSurvey", DEFAULT_SURVEY_SLUG.equalsIgnoreCase(surveySlug));
+        model.addAttribute("surveySlug", surveyDefinition.slug());
+        model.addAttribute("isDefaultSurvey", DEFAULT_SURVEY_SLUG.equalsIgnoreCase(surveyDefinition.slug()));
         model.addAttribute("sid", lead.getSid());
         model.addAttribute("lead", lead);
-        model.addAttribute("progressPercent", Math.max(20, lead.getSurveyProgress()));
+        model.addAttribute("surveyDefinition", surveyDefinition);
+        model.addAttribute("progressPercent", Math.max(0, lead.getSurveyProgress()));
         return "public/survey";
     }
 

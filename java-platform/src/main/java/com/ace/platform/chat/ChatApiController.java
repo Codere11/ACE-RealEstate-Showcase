@@ -63,7 +63,16 @@ public class ChatApiController {
             request.meta() != null ? request.meta().getOrDefault("survey_slug", "start") : "start",
             request.message()
         );
-        return new ChatResponse(result.sid(), result.reply(), result.chatMode(), result.storyComplete(), result.surveyProgress(), result.suggestedChoices());
+        return new ChatResponse(
+            result.sid(),
+            result.reply(),
+            result.chatMode(),
+            result.storyComplete(),
+            result.surveyProgress(),
+            result.currentStep() != null ? SurveyStepResponse.from(result.currentStep()) : null,
+            result.completionTitle(),
+            result.completionSubtitle()
+        );
     }
 
     @PostMapping({"/chat/staff", "/chat/staff/"})
@@ -200,7 +209,29 @@ public class ChatApiController {
     public record ChatRequest(String sid, String message, String tenant_slug, Map<String, String> meta) {
     }
 
-    public record ChatResponse(String sid, String reply, String chatMode, boolean storyComplete, int surveyProgress, List<String> quickReplies) {
+    public record ChatResponse(
+        String sid,
+        String reply,
+        String chatMode,
+        boolean storyComplete,
+        int surveyProgress,
+        SurveyStepResponse currentStep,
+        String completionTitle,
+        String completionSubtitle
+    ) {
+    }
+
+    public record SurveyStepResponse(
+        int orderIndex,
+        String questionType,
+        String title,
+        String description,
+        String placeholder,
+        List<String> options
+    ) {
+        static SurveyStepResponse from(PublicChatService.SurveyStep step) {
+            return new SurveyStepResponse(step.orderIndex(), step.questionType(), step.title(), step.description(), step.placeholder(), step.options());
+        }
     }
 
     public record StaffMessageRequest(Long orgId, String sid, String text) {

@@ -11,6 +11,7 @@ import com.ace.platform.lead.LeadRepository;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,32 @@ class PublicRoutingTests {
 
     private Lead leadFor(Organization organization, String sid) {
         return new Lead(organization, sid, "Visitor " + sid, "start");
+    }
+
+    private SurveyService.SurveyDefinition defaultSurvey() {
+        return new SurveyService.SurveyDefinition(
+            1L,
+            "Property intake survey",
+            "start",
+            "Default public-facing survey for visitor qualification.",
+            true,
+            true,
+            List.of(
+                new SurveyService.QuestionDefinition(
+                    1L,
+                    1,
+                    com.ace.platform.survey.SurveyQuestionType.SINGLE_CHOICE,
+                    "What kind of property are you interested in?",
+                    "",
+                    "",
+                    true,
+                    List.of(
+                        new SurveyService.QuestionOptionDefinition(1L, 1, "Buying a home", "Buying a home"),
+                        new SurveyService.QuestionOptionDefinition(2L, 2, "Selling a property", "Selling a property")
+                    )
+                )
+            )
+        );
     }
 
     @Autowired
@@ -75,6 +102,9 @@ class PublicRoutingTests {
     @MockBean
     private TakeoverService takeoverService;
 
+    @MockBean
+    private SurveyService surveyService;
+
     @Test
     void rootRouteLoads() throws Exception {
         mockMvc.perform(get("/"))
@@ -89,6 +119,8 @@ class PublicRoutingTests {
             .thenReturn(Optional.of(organization));
         when(leadService.getOrCreateLead(organization, null, "start"))
             .thenReturn(leadFor(organization, "sid_demo"));
+        when(surveyService.ensureDefaultSurveyDefinition(organization, "start"))
+            .thenReturn(defaultSurvey());
         when(conversationService.getThread(org.mockito.ArgumentMatchers.any(Lead.class)))
             .thenReturn(List.of());
 
@@ -105,6 +137,8 @@ class PublicRoutingTests {
             .thenReturn(Optional.of(organization));
         when(leadService.getOrCreateLead(organization, null, "start"))
             .thenReturn(leadFor(organization, "sid_acme"));
+        when(surveyService.ensureDefaultSurveyDefinition(organization, "start"))
+            .thenReturn(defaultSurvey());
         when(conversationService.getThread(org.mockito.ArgumentMatchers.any(Lead.class)))
             .thenReturn(List.of());
 
@@ -150,6 +184,8 @@ class PublicRoutingTests {
             .thenReturn(Optional.of(organization));
         when(leadService.getOrCreateLead(organization, null, "start"))
             .thenReturn(leadFor(organization, "sid_demo"));
+        when(surveyService.ensureDefaultSurveyDefinition(organization, "start"))
+            .thenReturn(defaultSurvey());
         when(conversationService.getThread(org.mockito.ArgumentMatchers.any(Lead.class)))
             .thenReturn(List.of());
 

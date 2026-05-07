@@ -156,6 +156,19 @@
             display: grid;
             gap: 10px;
         }
+        .survey-input {
+            display: none;
+            gap: 10px;
+        }
+        .survey-input textarea {
+            width: 100%;
+            min-height: 96px;
+            border-radius: 14px;
+            border: 1px solid #D7D0C0;
+            padding: 14px;
+            font: inherit;
+            resize: vertical;
+        }
         .takeover-chat {
             display: none;
             gap: 14px;
@@ -268,6 +281,12 @@
                     <button type="button" class="choice-button" data-choice="Renting">Renting</button>
                     <button type="button" class="choice-button" data-choice="Just exploring options">Just exploring options</button>
                 </div>
+                <div id="surveyInputWrap" class="survey-input">
+                    <textarea id="surveyInput" placeholder="Type your answer here…"></textarea>
+                    <div class="composer-actions">
+                        <button id="surveySendButton" type="button" class="nav-button primary">Continue</button>
+                    </div>
+                </div>
             </div>
 
             <div id="takeoverChat" class="takeover-chat" style="display:none;">
@@ -297,6 +316,10 @@
     takeoverActive: root.dataset.takeover === 'true',
     takeoverNoticeVisible: false,
     sending: false,
+    currentStep: null,
+    completed: false,
+    completedTitle: null,
+    completedSubtitle: null,
     since: 0,
     messageIds: new Set(),
     polling: false
@@ -310,9 +333,10 @@
     questionSubtitle: document.getElementById('questionSubtitle'),
     surveyFlow: document.getElementById('surveyFlow'),
     choicesGrid: document.getElementById('choicesGrid'),
+    surveyInputWrap: document.getElementById('surveyInputWrap'),
+    surveyInput: document.getElementById('surveyInput'),
+    surveySendButton: document.getElementById('surveySendButton'),
     thread: document.getElementById('thread'),
-    input: document.getElementById('messageInput'),
-    sendButton: document.getElementById('sendButton'),
     takeoverChat: document.getElementById('takeoverChat'),
     takeoverInput: document.getElementById('takeoverInput'),
     takeoverSendButton: document.getElementById('takeoverSendButton')
@@ -325,12 +349,10 @@
     if (state.takeoverActive) {
       els.questionTitle.style.display = 'none';
       els.questionSubtitle.style.display = 'none';
-    } else {
-      els.questionTitle.style.display = 'block';
-      els.questionSubtitle.style.display = 'block';
-      els.questionTitle.textContent = 'What kind of property are you interested in?';
-      els.questionSubtitle.textContent = 'Choose one of the quick starts below.';
+      return;
     }
+    els.questionTitle.style.display = 'block';
+    els.questionSubtitle.style.display = 'block';
   }
 
   function renderProgress() {
@@ -369,6 +391,65 @@
     els.choicesGrid.querySelectorAll('[data-choice]').forEach(button => {
       button.disabled = disabled;
     });
+    els.surveySendButton.disabled = disabled;
+  }
+
+  function renderSurveyStep() {
+    if (state.takeoverActive) return;
+
+    if (state.completed || !state.currentStep) {
+      els.questionTitle.textContent = state.completedTitle || 'Thanks — your information has been received.';
+      els.questionSubtitle.textContent = state.completedSubtitle || 'A team member can continue from here when needed.';
+      els.choicesGrid.style.display = 'none';
+      els.surveyInputWrap.style.display = 'none';
+      return;
+    }
+
+    els.questionTitle.textContent = state.currentStep.title || 'Let\'s continue.';
+    els.questionSubtitle.textContent = state.currentStep.description || `Question ${state.currentStep.orderIndex}`;
+
+    if (state.currentStep.questionType === 'SINGLE_CHOICE') {
+      els.choicesGrid.innerHTML = '';
+      (state.currentStep.options || []).forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'choice-button';
+        button.dataset.choice = option;
+        button.textContent = option;
+        button.disabled = state.sending;
+        els.choicesGrid.appendChild(button);
+      });
+      els.choicesGrid.style.display = 'grid';
+      els.surveyInputWrap.style.display = 'none';
+      return;
+    }
+
+    els.choicesGrid.style.display = 'none';
+    els.surveyInputWrap.style.display = 'grid';
+    els.surveyInput.placeholder = state.currentStep.placeholder || 'Type your answer here…';
+  }
+
+  function applySurveyState(data) {
+    if (!data) return;
+    state.progress = Number(data.surveyProgress || state.progress || 0);
+    state.currentStep = data.currentStep || null;
+    state.completed = !!data.storyComplete;
+    state.completedTitle = data.completionTitle || null;
+    state.completedSubtitle = data.completionSubtitle || null;
+    renderProgress();
+    renderSurveyStep();
+  }
+
+  async function loadSurveyState() {
+    const res = await fetch(`/api/public/organizations/${encodeURIComponent(state.orgSlug)}/surveys/${encodeURIComponent(state.surveySlug)}?sid=${encodeURIComponent(state.sid)}`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.sid && data.sid !== state.sid) {
+      state.sid = data.sid;
+      root.dataset.sid = data.sid;
+      history.replaceState({}, '', `/${state.orgSlug}/survey/${state.surveySlug}?sid=${encodeURIComponent(data.sid)}`);
+    }
+    applySurveyState(data);
   }
 
   async function sendMessage(text) {
@@ -380,6 +461,9 @@
       els.takeoverInput.value = '';
     } else {
       setChoicesDisabled(true);
+      if (state.currentStep?.questionType === 'SHORT_TEXT') {
+        els.surveyInput.value = '';
+      }
     }
     try {
       const res = await fetch('/chat', {
@@ -400,19 +484,7 @@
         root.dataset.sid = data.sid;
         history.replaceState({}, '', `/${state.orgSlug}/survey/${state.surveySlug}?sid=${encodeURIComponent(data.sid)}`);
       }
-      state.progress = Number(data.surveyProgress || state.progress || 0);
-      renderProgress();
-      if (data.chatMode === 'open' && data.reply == null) {
-        state.takeoverActive = true;
-        renderBanner();
-      }
-      if (data.reply) {
-        appendMessage('assistant', data.reply, Date.now());
-        if (!state.takeoverActive) {
-          els.questionTitle.textContent = data.reply;
-          els.questionSubtitle.textContent = 'Your answer was saved.';
-        }
-      }
+      applySurveyState(data);
     } finally {
       state.sending = false;
       if (!state.takeoverActive) setChoicesDisabled(false);
@@ -458,18 +530,15 @@
     }
   }
 
-  if (els.sendButton && els.input) {
-    els.sendButton.addEventListener('click', () => sendMessage(els.input.value));
-    els.input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendMessage(els.input.value);
-      }
-    });
-  }
+  els.surveySendButton.addEventListener('click', () => sendMessage(els.surveyInput.value));
+  els.surveyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(els.surveyInput.value);
+    }
+  });
 
   els.takeoverSendButton.addEventListener('click', () => sendMessage(els.takeoverInput.value));
-
   els.takeoverInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -484,7 +553,7 @@
 
   renderProgress();
   renderBanner();
-  loadThread().finally(poll);
+  loadSurveyState().finally(() => loadThread().finally(poll));
 })();
 </script>
 </body>

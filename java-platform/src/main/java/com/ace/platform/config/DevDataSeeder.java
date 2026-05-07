@@ -2,6 +2,7 @@ package com.ace.platform.config;
 
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
 import com.ace.platform.user.UserRole;
@@ -23,7 +24,8 @@ public class DevDataSeeder {
     ApplicationRunner seedDefaultData(
         OrganizationRepository organizationRepository,
         UserRepository userRepository,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        SurveyService surveyService
     ) {
         return args -> {
             Organization demoOrg = organizationRepository.findBySlug("demo")
@@ -52,6 +54,7 @@ public class DevDataSeeder {
                 log.info("Seeded platform admin user: username=admin password=test123");
             });
 
+            surveyService.ensureDefaultSurvey(demoOrg);
             log.info("Demo organization available at slug={} (id={})", demoOrg.getSlug(), demoOrg.getId());
         };
     }
