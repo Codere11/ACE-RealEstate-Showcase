@@ -1,5 +1,7 @@
 package com.ace.platform.publicsite;
 
+import com.ace.platform.lead.Lead;
+import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.tenant.TenantRouteService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -7,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class PublicController {
@@ -14,9 +17,14 @@ public class PublicController {
     private static final String DEFAULT_SURVEY_SLUG = "start";
 
     private final TenantRouteService tenantRouteService;
+    private final LeadService leadService;
 
-    public PublicController(TenantRouteService tenantRouteService) {
+    public PublicController(
+        TenantRouteService tenantRouteService,
+        LeadService leadService
+    ) {
         this.tenantRouteService = tenantRouteService;
+        this.leadService = leadService;
     }
 
     @GetMapping("/")
@@ -29,38 +37,57 @@ public class PublicController {
     }
 
     @GetMapping("/demo")
-    public String demo(Model model, HttpServletResponse response) {
+    public String demo(
+        @RequestParam(name = "sid", required = false) String sid,
+        Model model,
+        HttpServletResponse response
+    ) {
         return tenantRouteService.findActiveOrganizationBySlug("demo")
-            .map(org -> renderTenantSurvey(model, org, DEFAULT_SURVEY_SLUG))
+            .map(org -> renderTenantSurvey(model, org, DEFAULT_SURVEY_SLUG, sid))
             .orElseGet(() -> renderNotFound(model, response, "Tenant not found", "The demo route exists conceptually, but no active demo organization is available.", "demo"));
     }
 
     @GetMapping("/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}")
-    public String tenant(@PathVariable String tenantSlug, Model model, HttpServletResponse response) {
+    public String tenant(
+        @PathVariable String tenantSlug,
+        @RequestParam(name = "sid", required = false) String sid,
+        Model model,
+        HttpServletResponse response
+    ) {
         if (tenantRouteService.isReservedPathSegment(tenantSlug)) {
             return renderNotFound(model, response, "Reserved route", "This path is reserved by the platform and is not interpreted as a tenant slug.", tenantSlug);
         }
 
         return tenantRouteService.findActiveOrganizationBySlug(tenantSlug)
-            .map(org -> renderTenantSurvey(model, org, DEFAULT_SURVEY_SLUG))
+            .map(org -> renderTenantSurvey(model, org, DEFAULT_SURVEY_SLUG, sid))
             .orElseGet(() -> renderNotFound(model, response, "Tenant not found", "No active organization was found for this tenant slug.", tenantSlug));
     }
 
     @GetMapping("/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}/survey/{surveySlug:[a-zA-Z0-9][a-zA-Z0-9-]*}")
-    public String tenantSurvey(@PathVariable String tenantSlug, @PathVariable String surveySlug, Model model, HttpServletResponse response) {
+    public String tenantSurvey(
+        @PathVariable String tenantSlug,
+        @PathVariable String surveySlug,
+        @RequestParam(name = "sid", required = false) String sid,
+        Model model,
+        HttpServletResponse response
+    ) {
         if (tenantRouteService.isReservedPathSegment(tenantSlug)) {
             return renderNotFound(model, response, "Reserved route", "This path is reserved by the platform and is not interpreted as a tenant slug.", tenantSlug);
         }
 
         return tenantRouteService.findActiveOrganizationBySlug(tenantSlug)
-            .map(org -> renderTenantSurvey(model, org, surveySlug))
+            .map(org -> renderTenantSurvey(model, org, surveySlug, sid))
             .orElseGet(() -> renderNotFound(model, response, "Tenant not found", "No active organization was found for this survey route.", tenantSlug));
     }
 
-    private String renderTenantSurvey(Model model, Organization organization, String surveySlug) {
+    private String renderTenantSurvey(Model model, Organization organization, String surveySlug, String sid) {
+        Lead lead = leadService.getOrCreateLead(organization, sid, surveySlug);
         model.addAttribute("organization", organization);
         model.addAttribute("surveySlug", surveySlug);
         model.addAttribute("isDefaultSurvey", DEFAULT_SURVEY_SLUG.equalsIgnoreCase(surveySlug));
+        model.addAttribute("sid", lead.getSid());
+        model.addAttribute("lead", lead);
+        model.addAttribute("progressPercent", Math.max(20, lead.getSurveyProgress()));
         return "public/survey";
     }
 

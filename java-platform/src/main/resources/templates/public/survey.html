@@ -26,14 +26,11 @@
             gap: 8px;
         }
         .agent-hero__brand {
-            width: 100%;
             color: rgba(250,250,247,.92);
             font-size: .92rem;
-            line-height: 1;
             font-weight: 700;
             letter-spacing: .08em;
             text-transform: uppercase;
-            text-align: left;
         }
         .agent-hero__camera {
             width: min(100%, 520px);
@@ -71,12 +68,9 @@
             line-height: 1.25;
             max-width: 28rem;
         }
-        .agent-page {
-            display: block;
-            padding: 4px 14px 10px;
-        }
+        .agent-page { padding: 4px 14px 18px; }
         .survey-card {
-            max-width: 920px;
+            max-width: 980px;
             margin: 8px auto 12px;
             background: #FFFFFF;
             border: 1px solid #E6E2D6;
@@ -85,12 +79,10 @@
             padding: 18px;
         }
         .survey-container {
-            max-width: 600px;
+            max-width: 760px;
             margin: 0 auto;
-            padding: 6px 0 4px;
-        }
-        .survey-progress {
-            margin-bottom: 30px;
+            display: grid;
+            gap: 18px;
         }
         .progress-bar {
             width: 100%;
@@ -102,37 +94,45 @@
         }
         .progress-fill {
             height: 100%;
-            width: 20%;
+            width: 0%;
             background: linear-gradient(90deg, #C1A46C, #A98C58);
+            transition: width .2s ease;
         }
-        .progress-text {
-            text-align: center;
-            font-size: 14px;
+        .progress-text,
+        .question-subtitle,
+        .meta,
+        .muted {
             color: #6B7280;
         }
-        .survey-question {
-            margin-bottom: 28px;
+        .takeover-banner {
+            display: none;
+            border: 1px solid #E6D4A7;
+            background: #FBF5E7;
+            color: #5E4A20;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 700;
         }
         .question-title {
             font-size: 24px;
             font-weight: 700;
             color: #111827;
-            margin: 0 0 20px;
+            margin: 0 0 14px;
             line-height: 1.35;
             text-align: center;
         }
         .question-subtitle {
-            margin: 0 0 22px;
-            color: #6B7280;
+            margin: 0;
             text-align: center;
             font-size: 15px;
         }
-        .choices-container {
-            display: flex;
-            flex-direction: column;
+        .choices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
         }
         .choice-button {
+            width: 100%;
             padding: 16px 20px;
             border: 2px solid #E6E2D6;
             border-radius: 12px;
@@ -141,18 +141,72 @@
             color: #374151;
             text-align: left;
             font-weight: 600;
-            box-shadow: 0 2px 6px rgba(17,19,23,.04);
+            cursor: pointer;
         }
-        .choice-button.active {
+        .choice-button:hover {
             border-color: #C1A46C;
             background: #FBF7EE;
             color: #5E4A20;
         }
-        .survey-navigation {
+        .choice-button:disabled {
+            opacity: .65;
+            cursor: wait;
+        }
+        .survey-answer {
+            display: grid;
+            gap: 10px;
+        }
+        .takeover-chat {
+            display: none;
+            gap: 14px;
+        }
+        .thread {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #F8F7F3;
+            border: 1px solid #E6E2D6;
+            max-height: 420px;
+            min-height: 120px;
+            overflow-y: auto;
+        }
+        .bubble {
+            max-width: 82%;
+            border-radius: 14px;
+            padding: 12px 14px;
+            border: 1px solid #E6E2D6;
+            background: #FFFFFF;
+        }
+        .bubble.user { margin-left: auto; background: #F4F8FF; border-color: #C8D9FF; }
+        .bubble.assistant { margin-right: auto; }
+        .bubble.staff { margin-right: auto; background: #FBF5E7; border-color: #E6D4A7; }
+        .bubble .meta {
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            font-weight: 700;
+        }
+        .composer {
+            display: grid;
+            gap: 10px;
+        }
+        .composer textarea {
+            width: 100%;
+            min-height: 100px;
+            border-radius: 14px;
+            border: 1px solid #D7D0C0;
+            padding: 14px;
+            font: inherit;
+            resize: vertical;
+        }
+        .composer-actions {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
+            align-items: center;
             gap: 12px;
-            margin-top: 24px;
+            flex-wrap: wrap;
         }
         .nav-button {
             padding: 12px 18px;
@@ -161,6 +215,8 @@
             background: #FFFFFF;
             color: #374151;
             font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
         }
         .nav-button.primary {
             border-color: #C1A46C;
@@ -170,9 +226,8 @@
         @media (max-width: 640px) {
             .agent-page { padding: 4px 10px 10px; }
             .survey-card { padding: 16px; }
-            .survey-container { padding: 0; }
             .question-title { font-size: 21px; }
-            .survey-navigation { flex-direction: column; }
+            .composer-actions { flex-direction: column; align-items: stretch; }
             .nav-button { width: 100%; }
         }
     </style>
@@ -190,34 +245,247 @@
     </div>
 </section>
 
-<div class="agent-page">
+<div class="agent-page" id="chat-app"
+     th:attr="data-org-slug=${organization.slug},data-survey-slug=${surveySlug},data-sid=${sid},data-progress=${lead.surveyProgress},data-status=${lead.status},data-takeover=${lead.takeoverActive}">
     <div class="survey-card">
         <div class="survey-container">
-            <div class="survey-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <div class="progress-text">Question 1 of 5</div>
+            <div>
+                <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+                <div id="progressText" class="progress-text">0% complete</div>
             </div>
 
-            <div class="survey-question">
-                <h1 class="question-title" th:text="${isDefaultSurvey} ? 'What kind of property are you interested in?' : 'Let\'s continue with a few quick questions.'">What kind of property are you interested in?</h1>
-                <p class="question-subtitle" th:text="${isDefaultSurvey} ? 'Choose the option that best matches your search.' : 'We will use your answers to tailor the next steps.'">Choose the option that best matches your search.</p>
+            <div id="takeoverBanner" class="takeover-banner">Our team member has now entered the chat, you are speaking to a human.</div>
 
-                <div class="choices-container">
-                    <button type="button" class="choice-button active">Buying a home</button>
-                    <button type="button" class="choice-button">Selling a property</button>
-                    <button type="button" class="choice-button">Renting</button>
-                    <button type="button" class="choice-button">Just exploring options</button>
+            <div>
+                <h1 id="questionTitle" class="question-title" th:text="${isDefaultSurvey} ? 'What kind of property are you interested in?' : 'Let\'s continue with a few quick questions.'">What kind of property are you interested in?</h1>
+                <p id="questionSubtitle" class="question-subtitle">Choose one of the quick starts below.</p>
+            </div>
+
+            <div id="surveyFlow" class="survey-answer">
+                <div id="choicesGrid" class="choices-grid">
+                    <button type="button" class="choice-button" data-choice="Buying a home">Buying a home</button>
+                    <button type="button" class="choice-button" data-choice="Selling a property">Selling a property</button>
+                    <button type="button" class="choice-button" data-choice="Renting">Renting</button>
+                    <button type="button" class="choice-button" data-choice="Just exploring options">Just exploring options</button>
                 </div>
             </div>
 
-            <div class="survey-navigation">
-                <button type="button" class="nav-button">Back</button>
-                <button type="button" class="nav-button primary">Next</button>
+            <div id="takeoverChat" class="takeover-chat" style="display:none;">
+                <div id="thread" class="thread"></div>
+
+                <div class="composer">
+                    <textarea id="takeoverInput" placeholder="Write your message here…"></textarea>
+                    <div class="composer-actions">
+                        <button id="takeoverSendButton" type="button" class="nav-button primary">Send message</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script th:inline="javascript">
+(() => {
+  const root = document.getElementById('chat-app');
+  if (!root) return;
+
+  const state = {
+    orgSlug: root.dataset.orgSlug,
+    surveySlug: root.dataset.surveySlug,
+    sid: root.dataset.sid,
+    progress: Number(root.dataset.progress || 0),
+    takeoverActive: root.dataset.takeover === 'true',
+    takeoverNoticeVisible: false,
+    sending: false,
+    since: 0,
+    messageIds: new Set(),
+    polling: false
+  };
+
+  const els = {
+    progressFill: document.getElementById('progressFill'),
+    progressText: document.getElementById('progressText'),
+    takeoverBanner: document.getElementById('takeoverBanner'),
+    questionTitle: document.getElementById('questionTitle'),
+    questionSubtitle: document.getElementById('questionSubtitle'),
+    surveyFlow: document.getElementById('surveyFlow'),
+    choicesGrid: document.getElementById('choicesGrid'),
+    thread: document.getElementById('thread'),
+    input: document.getElementById('messageInput'),
+    sendButton: document.getElementById('sendButton'),
+    takeoverChat: document.getElementById('takeoverChat'),
+    takeoverInput: document.getElementById('takeoverInput'),
+    takeoverSendButton: document.getElementById('takeoverSendButton')
+  };
+
+  function renderBanner() {
+    els.takeoverBanner.style.display = state.takeoverNoticeVisible ? 'block' : 'none';
+    els.surveyFlow.style.display = state.takeoverActive ? 'none' : 'grid';
+    els.takeoverChat.style.display = state.takeoverActive ? 'grid' : 'none';
+    if (state.takeoverActive) {
+      els.questionTitle.style.display = 'none';
+      els.questionSubtitle.style.display = 'none';
+    } else {
+      els.questionTitle.style.display = 'block';
+      els.questionSubtitle.style.display = 'block';
+      els.questionTitle.textContent = 'What kind of property are you interested in?';
+      els.questionSubtitle.textContent = 'Choose one of the quick starts below.';
+    }
+  }
+
+  function renderProgress() {
+    const pct = Math.max(0, Math.min(100, state.progress || 0));
+    els.progressFill.style.width = pct + '%';
+    els.progressText.textContent = pct + '% complete';
+  }
+
+  function appendMessage(role, text, timestamp) {
+    const id = role + '|' + text + '|' + timestamp;
+    if (state.messageIds.has(id)) return;
+    state.messageIds.add(id);
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble ' + role;
+    bubble.innerHTML = `<div class="meta">${role}</div><div></div>`;
+    bubble.querySelector('div:last-child').textContent = text || '';
+    els.thread.appendChild(bubble);
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  async function loadThread() {
+    const res = await fetch(`/api/public/organizations/${encodeURIComponent(state.orgSlug)}/leads/${encodeURIComponent(state.sid)}/messages`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const items = await res.json();
+    els.thread.innerHTML = '';
+    state.messageIds.clear();
+    items.forEach(m => appendMessage(m.role, m.text, m.timestamp));
+    if (items.some(m => m.role === 'staff')) {
+      state.takeoverActive = true;
+      state.takeoverNoticeVisible = true;
+      renderBanner();
+    }
+  }
+
+  function setChoicesDisabled(disabled) {
+    els.choicesGrid.querySelectorAll('[data-choice]').forEach(button => {
+      button.disabled = disabled;
+    });
+  }
+
+  async function sendMessage(text) {
+    const trimmed = (text || '').trim();
+    if (!trimmed || state.sending) return;
+    state.sending = true;
+    if (state.takeoverActive) {
+      appendMessage('user', trimmed, Date.now());
+      els.takeoverInput.value = '';
+    } else {
+      setChoicesDisabled(true);
+    }
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sid: state.sid,
+          message: trimmed,
+          tenant_slug: state.orgSlug,
+          meta: { organization_slug: state.orgSlug, survey_slug: state.surveySlug }
+        })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.sid && data.sid !== state.sid) {
+        state.sid = data.sid;
+        root.dataset.sid = data.sid;
+        history.replaceState({}, '', `/${state.orgSlug}/survey/${state.surveySlug}?sid=${encodeURIComponent(data.sid)}`);
+      }
+      state.progress = Number(data.surveyProgress || state.progress || 0);
+      renderProgress();
+      if (data.chatMode === 'open' && data.reply == null) {
+        state.takeoverActive = true;
+        renderBanner();
+      }
+      if (data.reply) {
+        appendMessage('assistant', data.reply, Date.now());
+        if (!state.takeoverActive) {
+          els.questionTitle.textContent = data.reply;
+          els.questionSubtitle.textContent = 'Your answer was saved.';
+        }
+      }
+    } finally {
+      state.sending = false;
+      if (!state.takeoverActive) setChoicesDisabled(false);
+    }
+  }
+
+  async function poll() {
+    if (state.polling) return;
+    state.polling = true;
+    try {
+      const res = await fetch(`/chat-events/poll?sid=${encodeURIComponent(state.sid)}&tenantSlug=${encodeURIComponent(state.orgSlug)}&since=${state.since}&timeout=20`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+      (data.events || []).forEach(evt => {
+        state.since = Math.max(state.since, evt._seq || 0);
+        if (evt.type === 'message.created') {
+          const role = evt.payload?.role || 'assistant';
+          appendMessage(role, evt.payload?.text || '', evt.payload?.timestamp || evt.ts);
+          if (role === 'staff') {
+            state.takeoverActive = true;
+            state.takeoverNoticeVisible = true;
+            renderBanner();
+            loadThread();
+          }
+        }
+        if (evt.type === 'survey.paused' || evt.type === 'takeover.started') {
+          loadThread();
+        }
+        if (evt.type === 'takeover.ended') {
+          state.takeoverActive = false;
+          state.takeoverNoticeVisible = false;
+          renderBanner();
+        }
+        if (evt.type === 'lead.touched' && evt.payload?.survey_progress != null) {
+          state.progress = Number(evt.payload.survey_progress || 0);
+          renderProgress();
+        }
+      });
+      state.since = Math.max(state.since, data.next || state.since);
+    } finally {
+      state.polling = false;
+      setTimeout(poll, 250);
+    }
+  }
+
+  if (els.sendButton && els.input) {
+    els.sendButton.addEventListener('click', () => sendMessage(els.input.value));
+    els.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage(els.input.value);
+      }
+    });
+  }
+
+  els.takeoverSendButton.addEventListener('click', () => sendMessage(els.takeoverInput.value));
+
+  els.takeoverInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(els.takeoverInput.value);
+    }
+  });
+  els.choicesGrid.addEventListener('click', (e) => {
+    const button = e.target.closest('[data-choice]');
+    if (!button) return;
+    sendMessage(button.dataset.choice || '');
+  });
+
+  renderProgress();
+  renderBanner();
+  loadThread().finally(poll);
+})();
+</script>
 </body>
 </html>

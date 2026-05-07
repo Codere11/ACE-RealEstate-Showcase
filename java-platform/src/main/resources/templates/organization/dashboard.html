@@ -6,210 +6,734 @@
     <title th:text="${organization.name} + ' Dashboard'">Organization Dashboard</title>
     <style>
         * { box-sizing: border-box; }
-        html, body {
-            margin: 0;
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            color: #22252A;
-            background: #0E1014;
-        }
+        html, body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #22252A; background: #0E1014; }
+        button, input, textarea { font: inherit; }
         .topbar {
             display: grid;
             grid-template-columns: 160px 1fr 220px;
             align-items: center;
             padding: 12px 18px;
-            background:
-                radial-gradient(1000px 300px at 50% -120px, rgba(193,164,108,.22), transparent 60%),
-                linear-gradient(180deg, #121417, #0C0D10 70%);
+            background: radial-gradient(1000px 300px at 50% -120px, rgba(193,164,108,.22), transparent 60%), linear-gradient(180deg, #121417, #0C0D10 70%);
             border-bottom: 1px solid rgba(193,164,108,.32);
         }
         .left, .right { display: flex; align-items: center; }
         .right { justify-content: flex-end; gap: 10px; }
         .client-logo {
-            width: 44px; height: 44px; border-radius: 50%;
-            background: #111216; border: 1px solid rgba(193,164,108,.55);
-            color: #EDEBE6; display: grid; place-items: center; font-weight: 800;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #111216;
+            border: 1px solid rgba(193,164,108,.55);
+            color: #EDEBE6;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
             box-shadow: 0 6px 14px rgba(0,0,0,.25);
         }
-        .tabs {
-            display: flex; justify-content: center; gap: 10px; align-items: center;
+        .tabs { display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .tabs a, .tabs span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #171A1F;
+            border: 1px solid #2A2E34;
+            color: #EDEBE6;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-weight: 700;
+            text-decoration: none;
         }
-        .tabs a {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #171A1F; border: 1px solid #2A2E34;
-            color: #EDEBE6; padding: 8px 14px; border-radius: 999px;
-            font-weight: 700; letter-spacing: .2px; cursor: pointer; transition: all .18s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,.35); text-decoration: none;
-        }
-        .tabs a:hover { border-color: #C1A46C; transform: translateY(-1px); }
-        .tabs a.active {
-            color: #1E2126;
-            background: #C1A46C;
-            border-color: #C1A46C;
-            box-shadow: 0 8px 18px rgba(193,164,108,.28);
-            transform: translateY(-1px);
-        }
-        .user-pill {
-            background: #171A1F; border: 1px solid #2A2E34; color: #EDEBE6;
-            border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700;
-        }
-        .dashboard-background {
-            min-height: calc(100vh - 72px);
-            padding: 1.4rem 2rem 2rem;
-            background: #0E1014;
-        }
+        .tabs a.active { color: #1E2126; background: #C1A46C; border-color: #C1A46C; }
+        .tabs .disabled { opacity: .55; cursor: default; }
+        .user-pill { background: #171A1F; border: 1px solid #2A2E34; color: #EDEBE6; border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700; }
+        .dashboard-background { min-height: calc(100vh - 72px); padding: 1.4rem 2rem 2rem; background: #0E1014; }
         .dashboard-container {
-            max-width: 1180px; margin: auto; background: #FFFFFF;
-            padding: 2rem; border-radius: 18px; border: 1px solid #E6E2D6;
+            max-width: 1240px;
+            margin: auto;
+            background: #FFFFFF;
+            padding: 2rem;
+            border-radius: 18px;
+            border: 1px solid #E6E2D6;
             box-shadow: 0 28px 60px rgba(0,0,0,.35);
         }
-        .title {
-            text-align: center; font-size: 2rem; font-weight: 900; color: #121417;
-            letter-spacing: .2px; position: relative; padding-bottom: .3rem;
-            margin: 0;
-        }
-        .title:after {
-            content: ""; display: block; height: 4px; width: 180px; margin: .6rem auto 0;
-            background: linear-gradient(90deg, #C1A46C, #A98C58); border-radius: 999px;
-        }
+        .title { text-align: center; font-size: 2rem; font-weight: 900; color: #121417; margin: 0; }
         .subtitle { text-align: center; color: #6B7280; margin: .5rem 0 1.4rem; }
-        .hero-strip {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px; margin-bottom: 18px;
+        .hero-strip, .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
         }
-        .hero-card, .card {
-            background: #FFFFFF; border: 1px solid #E6E2D6; border-radius: 16px; padding: 18px;
+        .hero-strip { margin-bottom: 18px; }
+        .card, .hero-card {
+            background: #FFF;
+            border: 1px solid #E6E2D6;
+            border-radius: 16px;
+            padding: 18px;
             box-shadow: 0 10px 22px rgba(18,20,23,.06);
         }
-        .hero-card strong, .card h3 { color: #121417; }
-        .hero-card small, .card p, .muted { color: #6B7280; }
+        .hero-card strong, .card h3, .card h2 { color: #121417; margin-top: 0; }
+        .hero-card small, .muted, .card p { color: #6B7280; }
         .stack { display: grid; gap: 16px; }
-        .module-list { display: grid; gap: 12px; }
-        .module-item {
-            background: #F8F7F3; border: 1px solid #E6E2D6; border-radius: 14px; padding: 14px;
-        }
-        .lead-item {
-            display: flex; justify-content: space-between; gap: 12px; align-items: center;
-            padding: 12px 0; border-bottom: 1px solid #ECE7DC;
-        }
-        .lead-item:last-child { border-bottom: none; }
         .pill {
-            display: inline-block; padding: 5px 10px; border-radius: 999px;
-            font-size: 12px; font-weight: 800; background: #F3E8C9; color: #5E4A20;
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            background: #F3E8C9;
+            color: #5E4A20;
         }
-        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .pill.dark { background: #171A1F; color: #EDEBE6; }
+        .pill.success { background: #E8F6EC; color: #166534; }
+        .pill.warn { background: #FBF5E7; color: #8A6420; }
         .btn {
-            display: inline-block; text-decoration: none; background: #171A1F; color: #EDEBE6;
-            padding: 10px 14px; border-radius: 999px; border: 1px solid #2A2E34; font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            background: #171A1F;
+            color: #EDEBE6;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid #2A2E34;
+            font-weight: 700;
+            cursor: pointer;
         }
         .btn.primary { background: #C1A46C; color: #1E2126; border-color: #C1A46C; }
+        .btn.ghost { background: #FFF; color: #171A1F; border-color: #D7D0C0; }
+        .btn.danger { background: #fff; color: #8B1E1E; border-color: #E9C2C2; }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
+        .live-stage {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .live-stage__camera {
+            position: relative;
+            min-height: 240px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #121417 0%, #060708 100%);
+            border: 1px solid rgba(193,164,108,.28);
+            overflow: hidden;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        }
+        .live-stage__camera::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(193,164,108,.18), transparent 45%);
+            pointer-events: none;
+        }
+        .live-stage__overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-align: center;
+            padding: 24px;
+            color: #F9FAFB;
+        }
+        .live-stage__eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: rgba(249,250,251,.72); }
+        .live-stage__title { font-size: clamp(18px, 2vw, 24px); font-weight: 800; max-width: 32rem; }
+        .live-stage__meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .live-stage__meta-item {
+            background: #F8F7F3;
+            border: 1px solid #E6E2D6;
+            border-radius: 14px;
+            padding: 14px;
+            display: grid;
+            gap: 6px;
+        }
+        .leads-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 320px) 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        .sidebar { display: grid; gap: 16px; }
+        .filter-grid { display: grid; gap: 12px; }
+        .field { display: grid; gap: 6px; }
+        .field label { font-size: 13px; font-weight: 700; color: #374151; }
+        .field input, .field select, .composer textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid #D7D0C0;
+            background: #FFF;
+            padding: 12px 14px;
+            color: #111827;
+        }
+        .checkbox-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .checkbox-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #E6E2D6;
+            background: #F8F7F3;
+            color: #374151;
+            font-weight: 600;
+        }
+        .lead-list { display: grid; gap: 12px; }
+        .lead-entry {
+            border: 1px solid #E6E2D6;
+            border-radius: 16px;
+            background: #F8F7F3;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+            transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+        }
+        .lead-entry.active { border-color: #C1A46C; box-shadow: 0 12px 28px rgba(193,164,108,.14); }
+        .lead-entry:hover { transform: translateY(-1px); }
+        .lead-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .lead-title { font-size: 18px; font-weight: 800; color: #121417; }
+        .lead-subtitle, .lead-message { color: #6B7280; }
+        .lead-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+        .lead-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .thread-panel {
+            margin-top: 18px;
+            border: 1px solid #E6E2D6;
+            border-radius: 16px;
+            background: #F8F7F3;
+            padding: 16px;
+            display: grid;
+            gap: 14px;
+            position: sticky;
+            top: 16px;
+            height: calc(100vh - 150px);
+            min-height: 520px;
+            overflow: hidden;
+        }
+        #leadDetail {
+            min-height: 0;
+            height: 100%;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+        }
+        .thread {
+            display: grid;
+            gap: 10px;
+            min-height: 0;
+            height: 100%;
+            overflow-y: auto;
+            align-content: start;
+            padding-right: 4px;
+        }
+        .bubble { max-width: 86%; border-radius: 14px; padding: 12px 14px; border: 1px solid #E6E2D6; background: #FFF; }
+        .bubble.user { margin-left: auto; background: #F4F8FF; border-color: #C8D9FF; }
+        .bubble.assistant { margin-right: auto; }
+        .bubble.staff { margin-right: auto; background: #FBF5E7; border-color: #E6D4A7; }
+        .bubble .meta { font-size: 12px; color: #6B7280; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+        .status-row, .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .empty-card {
+            padding: 22px;
+            text-align: center;
+            color: #6B7280;
+            border: 1px dashed #D7D0C0;
+            border-radius: 16px;
+            background: #FFF;
+        }
+        .error-text { color: #8B1E1E; font-weight: 700; }
+        .info-note { color: #6B7280; font-size: 14px; }
+        .stats-grid .hero-card { padding: 16px; }
+        @media (max-width: 980px) {
+            .leads-grid { grid-template-columns: 1fr; }
+            .thread-panel {
+                position: static;
+                height: auto;
+                min-height: 0;
+            }
+            #leadDetail {
+                height: auto;
+                grid-template-rows: auto auto auto;
+            }
+            .thread {
+                max-height: 420px;
+            }
+        }
         @media (max-width: 900px) {
             .topbar { grid-template-columns: 1fr; gap: 10px; }
             .left, .right, .tabs { justify-content: center; }
+            .dashboard-background { padding: 1rem; }
+            .dashboard-container { padding: 1.2rem; }
         }
     </style>
 </head>
 <body>
 <header class="topbar">
-    <div class="left">
-        <div class="client-logo" th:text="${#strings.substring(organization.name,0,1).toUpperCase()}">A</div>
-    </div>
-
+    <div class="left"><div class="client-logo" th:text="${#strings.substring(organization.name,0,1).toUpperCase()}">A</div></div>
     <nav class="tabs">
         <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=leads'}" th:classappend="${activeTab == 'leads'} ? ' active'">LEADS</a>
         <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=surveys'}" th:classappend="${activeTab == 'surveys'} ? ' active'">SURVEYS</a>
         <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=qualifier'}" th:classappend="${activeTab == 'qualifier'} ? ' active'">AI QUALIFIER</a>
         <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=payments'}" th:classappend="${activeTab == 'payments'} ? ' active'">PAYMENTS</a>
+        <span class="disabled">ANALYTICS · coming soon</span>
     </nav>
-
-    <div class="right">
-        <div class="user-pill">Viewer: <span th:text="${viewer}">preview</span></div>
-    </div>
+    <div class="right"><div class="user-pill">Viewer: <span th:text="${viewer}">preview</span></div></div>
 </header>
 
 <div class="dashboard-background">
-    <div class="dashboard-container">
+    <div class="dashboard-container" id="dashboard-app"
+         th:attr="data-org-id=${organizationId},data-org-slug=${organization.slug},data-selected-sid=${selectedLeadSid}">
         <h1 class="title">ACE e-Counter Intelligence</h1>
-        <p class="subtitle">
-            <span th:text="${organization.name}">Organization</span>
-            · route <strong th:text="'/' + ${organization.slug}">/demo</strong>
-            · dashboard skeleton at <strong th:text="'/' + ${organization.slug} + '/dashboard'">/demo/dashboard</strong>
-        </p>
+        <p class="subtitle"><span th:text="${organization.name}">Organization</span> · route <strong th:text="'/' + ${organization.slug}">/demo</strong></p>
 
         <div class="hero-strip">
-            <div class="hero-card">
-                <strong>Organization</strong><br>
-                <small th:text="${organization.name}">Demo Agency</small>
-            </div>
-            <div class="hero-card">
-                <strong>Slug</strong><br>
-                <small th:text="${organization.slug}">demo</small>
-            </div>
-            <div class="hero-card">
-                <strong>Status</strong><br>
-                <small th:text="${organization.active} ? 'active' : 'inactive'">active</small>
-            </div>
-            <div class="hero-card">
-                <strong>Team members</strong><br>
-                <small th:text="${orgUserCount}">0</small>
-            </div>
+            <div class="hero-card"><strong>Organization</strong><br><small th:text="${organization.name}">Demo Agency</small></div>
+            <div class="hero-card"><strong>Slug</strong><br><small th:text="${organization.slug}">demo</small></div>
+            <div class="hero-card"><strong>Status</strong><br><small th:text="${organization.active} ? 'active' : 'inactive'">active</small></div>
+            <div class="hero-card"><strong>Team members</strong><br><small th:text="${orgUserCount}">0</small></div>
         </div>
 
         <section th:if="${activeTab == 'leads'}" class="stack">
-            <div class="card">
-                <h3>Leads</h3>
-                <p class="muted">This stays focused on the actual product surface. The Angular-style shell is in place; the visitor-facing survey/chat route and ownership model should be locked next before we deepen the tab content.</p>
-                <div class="module-list">
-                    <div class="lead-item">
-                        <div>
-                            <strong>Lead pipeline shell</strong>
-                            <div class="muted">Placeholder row for upcoming Spring lead list</div>
-                        </div>
-                        <span class="pill">Coming next</span>
-                    </div>
-                    <div class="lead-item">
-                        <div>
-                            <strong>Lead detail handoff</strong>
-                            <div class="muted">Will connect dashboard ownership to survey/chat sessions and qualifier outcomes</div>
-                        </div>
-                        <span class="pill">Planned</span>
+            <div class="live-stage">
+                <div class="live-stage__camera">
+                    <div class="live-stage__overlay">
+                        <div class="live-stage__eyebrow">Human support stage</div>
+                        <div id="stageTitle" class="live-stage__title">Select a lead to prepare takeover from the dashboard.</div>
                     </div>
                 </div>
+                <div class="live-stage__meta">
+                    <div class="live-stage__meta-item">
+                        <strong>Selected lead</strong>
+                        <span id="selectedLeadLabel" class="muted">None yet</span>
+                    </div>
+                    <div class="live-stage__meta-item">
+                        <strong>Public survey route</strong>
+                        <span class="muted" th:text="'/' + ${organization.slug} + '/survey/start'">/demo/survey/start</span>
+                    </div>
+                    <div class="live-stage__meta-item">
+                        <strong>Live leads</strong>
+                        <span id="leadCount" class="muted">0</span>
+                    </div>
+                    <div class="live-stage__meta-item">
+                        <strong>Active takeovers</strong>
+                        <span id="takeoverCount" class="muted">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="leads-grid">
+                <aside class="sidebar">
+                    <div class="card">
+                        <h3>Filters</h3>
+                        <div class="filter-grid">
+                            <div class="field">
+                                <label for="searchInput">Search by lead name or SID</label>
+                                <input id="searchInput" type="text" placeholder="Type a lead name or SID…">
+                            </div>
+                            <div class="field">
+                                <label for="statusFilter">Status</label>
+                                <select id="statusFilter">
+                                    <option value="all">All statuses</option>
+                                    <option value="SURVEY">Survey</option>
+                                    <option value="OPEN_CHAT">Open chat</option>
+                                    <option value="HUMAN_TAKEOVER">Human takeover</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="progressFilter">Minimum survey progress</label>
+                                <select id="progressFilter">
+                                    <option value="0">Any progress</option>
+                                    <option value="20">20%+</option>
+                                    <option value="40">40%+</option>
+                                    <option value="60">60%+</option>
+                                    <option value="80">80%+</option>
+                                    <option value="100">100%</option>
+                                </select>
+                            </div>
+                            <div class="checkbox-row">
+                                <label class="checkbox-pill"><input id="takeoverOnly" type="checkbox"> Takeovers only</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Quick overview</h3>
+                        <div class="stats-grid">
+                            <div class="hero-card">
+                                <strong id="filteredCount">0</strong><br>
+                                <small>Visible leads</small>
+                            </div>
+                            <div class="hero-card">
+                                <strong id="surveyCount">0</strong><br>
+                                <small>Still in survey</small>
+                            </div>
+                            <div class="hero-card">
+                                <strong id="openChatCount">0</strong><br>
+                                <small>Open chat</small>
+                            </div>
+                            <div class="hero-card">
+                                <strong id="humanCount">0</strong><br>
+                                <small>Human takeover</small>
+                            </div>
+                        </div>
+                        <p class="info-note" style="margin-top:12px;">Use the list on the right like the Angular dashboard: monitor leads, open the thread, take over, or delete a lead directly.</p>
+                    </div>
+                </aside>
+
+                <main class="stack">
+                    <div class="card">
+                        <h2 style="margin-bottom:8px;">Survey and chat leads</h2>
+                        <p class="muted">Same layout model as the Angular org dashboard, kept in the Java visual style.</p>
+                        <div id="leadList" class="lead-list"><div class="empty-card">Loading leads…</div></div>
+                    </div>
+
+                    <div class="thread-panel">
+                        <div id="leadDetailEmpty" class="empty-card">Select a lead above to inspect the thread and manage the takeover.</div>
+                        <div id="leadDetail" class="stack" style="display:none;">
+                            <div class="lead-head">
+                                <div>
+                                    <h3 id="leadName" style="margin:0 0 8px;">Visitor</h3>
+                                    <div id="leadStatusRow" class="status-row"></div>
+                                </div>
+                                <div class="lead-actions">
+                                    <button id="leadDeleteTop" type="button" class="btn danger">Delete lead</button>
+                                </div>
+                            </div>
+                            <div id="thread" class="thread"></div>
+                            <div class="composer">
+                                <textarea id="takeoverInput" placeholder="Write a takeover message as the manager…"></textarea>
+                                <div id="takeoverError" class="error-text" style="display:none;"></div>
+                                <div class="actions">
+                                    <button id="takeoverSend" type="button" class="btn primary">Start takeover + send message</button>
+                                    <button id="takeoverEnd" type="button" class="btn danger" style="display:none;">End takeover</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
             </div>
         </section>
 
-        <section th:if="${activeTab == 'surveys'}" class="stack">
-            <div class="card">
-                <h3>Surveys</h3>
-                <p class="muted">Survey management shell for <span th:text="${organization.name}">organization</span>. This tab exists now so the Spring dashboard keeps the same mental model as the Angular dashboard.</p>
-                <div class="actions">
-                    <a class="btn primary" href="#">Survey list coming next</a>
-                    <a class="btn" href="#">Builder integration later</a>
-                </div>
-            </div>
-        </section>
-
-        <section th:if="${activeTab == 'qualifier'}" class="stack">
-            <div class="card">
-                <h3>AI Qualifier</h3>
-                <p class="muted">Qualifier shell is ready. Existing qualifier concepts from the Angular dashboard will be ported here while the broader runtime stays practical during migration.</p>
-                <div class="module-list">
-                    <div class="module-item"><strong>Active qualifier</strong><p>Placeholder for current live qualifier status.</p></div>
-                    <div class="module-item"><strong>Publish/archive controls</strong><p>Planned next after the skeleton is accepted.</p></div>
-                </div>
-            </div>
-        </section>
-
-        <section th:if="${activeTab == 'payments'}" class="stack">
-            <div class="card">
-                <h3>Payments</h3>
-                <p class="muted">Payments tab is in place now, matching the Angular dashboard structure. Stripe and payment request details will be layered in after the shell.</p>
-                <div class="module-list">
-                    <div class="module-item"><strong>Provider status</strong><p>Placeholder for Stripe/mock payment status.</p></div>
-                    <div class="module-item"><strong>Requests</strong><p>Placeholder for recent payment request activity.</p></div>
-                </div>
-            </div>
-        </section>
+        <section th:if="${activeTab == 'surveys'}" class="stack"><div class="card"><h3>Surveys</h3><p class="muted">Survey management shell remains ready for the next pass.</p></div></section>
+        <section th:if="${activeTab == 'qualifier'}" class="stack"><div class="card"><h3>AI Qualifier</h3><p class="muted">Qualifier shell is ready for the next pass.</p></div></section>
+        <section th:if="${activeTab == 'payments'}" class="stack"><div class="card"><h3>Payments</h3><p class="muted">Payments shell remains ready for the next pass.</p></div></section>
     </div>
 </div>
+
+<script th:inline="javascript">
+(() => {
+  const root = document.getElementById('dashboard-app');
+  if (!root || !root.dataset.orgId || !window.location.search.includes('tab=leads') && !window.location.pathname.endsWith('/dashboard')) return;
+
+  const state = {
+    orgId: root.dataset.orgId,
+    orgSlug: root.dataset.orgSlug,
+    selectedSid: root.dataset.selectedSid || '',
+    since: 0,
+    leads: [],
+    messages: [],
+    filters: {
+      search: '',
+      status: 'all',
+      minProgress: 0,
+      takeoverOnly: false
+    }
+  };
+
+  const els = {
+    stageTitle: document.getElementById('stageTitle'),
+    leadCount: document.getElementById('leadCount'),
+    takeoverCount: document.getElementById('takeoverCount'),
+    selectedLeadLabel: document.getElementById('selectedLeadLabel'),
+    filteredCount: document.getElementById('filteredCount'),
+    surveyCount: document.getElementById('surveyCount'),
+    openChatCount: document.getElementById('openChatCount'),
+    humanCount: document.getElementById('humanCount'),
+    leadList: document.getElementById('leadList'),
+    leadDetail: document.getElementById('leadDetail'),
+    leadDetailEmpty: document.getElementById('leadDetailEmpty'),
+    leadName: document.getElementById('leadName'),
+    leadStatusRow: document.getElementById('leadStatusRow'),
+    thread: document.getElementById('thread'),
+    takeoverInput: document.getElementById('takeoverInput'),
+    takeoverSend: document.getElementById('takeoverSend'),
+    takeoverEnd: document.getElementById('takeoverEnd'),
+    takeoverError: document.getElementById('takeoverError'),
+    searchInput: document.getElementById('searchInput'),
+    statusFilter: document.getElementById('statusFilter'),
+    progressFilter: document.getElementById('progressFilter'),
+    takeoverOnly: document.getElementById('takeoverOnly'),
+    leadDeleteTop: document.getElementById('leadDeleteTop')
+  };
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function selectedLead() {
+    return state.leads.find(l => l.sid === state.selectedSid) || null;
+  }
+
+  function visibleLeads() {
+    const q = state.filters.search.trim().toLowerCase();
+    return state.leads.filter(lead => {
+      if (state.filters.status !== 'all' && lead.status !== state.filters.status) return false;
+      if (Number(lead.surveyProgress || 0) < state.filters.minProgress) return false;
+      if (state.filters.takeoverOnly && !lead.takeoverActive) return false;
+      if (!q) return true;
+      return (lead.name || '').toLowerCase().includes(q) || (lead.sid || '').toLowerCase().includes(q);
+    });
+  }
+
+  function updateOverview() {
+    const visible = visibleLeads();
+    els.leadCount.textContent = String(state.leads.length);
+    els.takeoverCount.textContent = String(state.leads.filter(l => l.takeoverActive).length);
+    els.filteredCount.textContent = String(visible.length);
+    els.surveyCount.textContent = String(state.leads.filter(l => l.status === 'SURVEY').length);
+    els.openChatCount.textContent = String(state.leads.filter(l => l.status === 'OPEN_CHAT').length);
+    els.humanCount.textContent = String(state.leads.filter(l => l.status === 'HUMAN_TAKEOVER').length);
+  }
+
+  function renderLeadList() {
+    const leads = visibleLeads();
+    updateOverview();
+    if (!leads.length) {
+      els.leadList.innerHTML = '<div class="empty-card">No leads match the current filters.</div>';
+      return;
+    }
+    els.leadList.innerHTML = '';
+    leads.forEach(lead => {
+      const card = document.createElement('div');
+      card.className = 'lead-entry' + (lead.sid === state.selectedSid ? ' active' : '');
+      card.dataset.selectSid = lead.sid;
+      card.innerHTML = `
+        <div class="lead-head">
+          <div>
+            <div class="lead-title">${escapeHtml(lead.name)}</div>
+            <div class="lead-subtitle">SID ${escapeHtml(lead.sid)} · ${escapeHtml(lead.status)} · ${Number(lead.surveyProgress || 0)}% complete</div>
+          </div>
+          <div class="lead-meta">
+            <span class="pill">${escapeHtml(lead.status)}</span>
+            ${lead.takeoverActive ? '<span class="pill success">Human takeover active</span>' : ''}
+          </div>
+        </div>
+        <div class="lead-message">${escapeHtml(lead.lastMessage || 'Waiting for the next visitor message.')}</div>
+        <div class="lead-actions">
+          <button type="button" class="btn primary" data-action="open" data-sid="${escapeHtml(lead.sid)}">Take over chat</button>
+          <button type="button" class="btn danger" data-action="delete" data-sid="${escapeHtml(lead.sid)}">Delete lead</button>
+        </div>`;
+      els.leadList.appendChild(card);
+    });
+  }
+
+  function renderThread() {
+    const lead = selectedLead();
+    if (!lead) {
+      els.leadDetail.style.display = 'none';
+      els.leadDetailEmpty.style.display = 'block';
+      els.selectedLeadLabel.textContent = 'None yet';
+      els.stageTitle.textContent = 'Select a lead to prepare takeover from the dashboard.';
+      return;
+    }
+
+    els.leadDetail.style.display = 'grid';
+    els.leadDetailEmpty.style.display = 'none';
+    els.selectedLeadLabel.textContent = `${lead.name} · ${lead.sid}`;
+    els.stageTitle.textContent = lead.takeoverActive
+      ? `Human takeover active for ${lead.name}.`
+      : `Ready to start takeover for ${lead.name}.`;
+    els.leadName.textContent = lead.name;
+    els.takeoverSend.textContent = lead.takeoverActive ? 'Send manager reply' : 'Start takeover + send message';
+    els.takeoverEnd.style.display = lead.takeoverActive ? 'inline-flex' : 'none';
+    els.leadStatusRow.innerHTML = `
+      <span class="pill">${escapeHtml(lead.status)}</span>
+      <span class="pill dark">${Number(lead.surveyProgress || 0)}% complete</span>
+      ${lead.takeoverActive ? '<span class="pill success">Human takeover active</span>' : '<span class="pill warn">Bot-guided flow</span>'}`;
+
+    els.thread.innerHTML = '';
+    if (!state.messages.length) {
+      els.thread.innerHTML = '<div class="empty-card">No conversation messages yet.</div>';
+      return;
+    }
+
+    state.messages.forEach(m => {
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble ' + m.role;
+      bubble.innerHTML = `<div class="meta">${escapeHtml(m.role)}</div><div>${escapeHtml(m.text || '')}</div>`;
+      els.thread.appendChild(bubble);
+    });
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  async function loadLeads() {
+    const res = await fetch(`/api/organizations/${state.orgId}/leads`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    state.leads = await res.json();
+    if (state.selectedSid && !state.leads.some(l => l.sid === state.selectedSid)) {
+      state.selectedSid = '';
+      state.messages = [];
+    }
+    renderLeadList();
+    if (state.selectedSid) await loadMessages(state.selectedSid); else renderThread();
+  }
+
+  async function loadMessages(sid) {
+    const res = await fetch(`/api/organizations/${state.orgId}/leads/${encodeURIComponent(sid)}/messages`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    state.messages = await res.json();
+    renderThread();
+  }
+
+  async function selectLead(sid) {
+    if (state.selectedSid === sid) {
+      state.selectedSid = '';
+      state.messages = [];
+      history.replaceState({}, '', `/${state.orgSlug}/dashboard?tab=leads`);
+      renderLeadList();
+      renderThread();
+      state.since = 0;
+      return;
+    }
+    state.selectedSid = sid;
+    history.replaceState({}, '', `/${state.orgSlug}/dashboard?tab=leads&sid=${encodeURIComponent(sid)}`);
+    renderLeadList();
+    await loadMessages(sid);
+    state.since = 0;
+  }
+
+  async function sendTakeoverMessage() {
+    const lead = selectedLead();
+    const text = (els.takeoverInput.value || '').trim();
+    if (!lead || !text) return;
+    els.takeoverError.style.display = 'none';
+    els.takeoverError.textContent = '';
+    els.takeoverInput.value = '';
+    const res = await fetch('/chat/staff', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId: Number(state.orgId), sid: lead.sid, text })
+    });
+    if (!res.ok) {
+      let message = 'Failed to start takeover.';
+      try {
+        const data = await res.json();
+        message = data.message || data.error || message;
+      } catch {}
+      els.takeoverError.textContent = message;
+      els.takeoverError.style.display = 'block';
+      return;
+    }
+    await loadLeads();
+    await loadMessages(lead.sid);
+  }
+
+  async function endTakeover() {
+    const lead = selectedLead();
+    if (!lead) return;
+    els.takeoverError.style.display = 'none';
+    const res = await fetch(`/api/organizations/${state.orgId}/leads/${encodeURIComponent(lead.sid)}/takeover/end`, {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+    if (!res.ok) {
+      els.takeoverError.textContent = 'Failed to end takeover.';
+      els.takeoverError.style.display = 'block';
+      return;
+    }
+    await loadLeads();
+    await loadMessages(lead.sid);
+  }
+
+  async function deleteLead(sid) {
+    const lead = state.leads.find(item => item.sid === sid);
+    if (!lead) return;
+    if (!confirm(`Delete lead ${lead.name} (${lead.sid})?`)) return;
+    els.takeoverError.style.display = 'none';
+    const res = await fetch(`/api/organizations/${state.orgId}/leads/${encodeURIComponent(sid)}`, {
+      method: 'DELETE',
+      credentials: 'same-origin'
+    });
+    if (!res.ok) {
+      els.takeoverError.textContent = 'Failed to delete lead.';
+      els.takeoverError.style.display = 'block';
+      return;
+    }
+    if (state.selectedSid === sid) {
+      state.selectedSid = '';
+      state.messages = [];
+    }
+    await loadLeads();
+  }
+
+  async function poll() {
+    const res = await fetch(`/chat-events/poll?sid=*&tenantSlug=${encodeURIComponent(state.orgSlug)}&since=${state.since}&timeout=20`, { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      state.since = Math.max(state.since, data.next || 0);
+      if ((data.events || []).length) {
+        await loadLeads();
+        if (state.selectedSid) await loadMessages(state.selectedSid);
+      }
+    }
+    setTimeout(poll, 300);
+  }
+
+  els.searchInput.addEventListener('input', (e) => {
+    state.filters.search = e.target.value || '';
+    renderLeadList();
+  });
+  els.statusFilter.addEventListener('change', (e) => {
+    state.filters.status = e.target.value || 'all';
+    renderLeadList();
+  });
+  els.progressFilter.addEventListener('change', (e) => {
+    state.filters.minProgress = Number(e.target.value || 0);
+    renderLeadList();
+  });
+  els.takeoverOnly.addEventListener('change', (e) => {
+    state.filters.takeoverOnly = !!e.target.checked;
+    renderLeadList();
+  });
+
+  els.leadList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (button) {
+      const sid = button.dataset.sid;
+      if (!sid) return;
+      if (button.dataset.action === 'open') selectLead(sid);
+      if (button.dataset.action === 'delete') deleteLead(sid);
+      return;
+    }
+
+    const card = event.target.closest('[data-select-sid]');
+    if (!card) return;
+    selectLead(card.dataset.selectSid);
+  });
+
+  els.takeoverSend.addEventListener('click', sendTakeoverMessage);
+  els.takeoverEnd.addEventListener('click', endTakeover);
+  els.leadDeleteTop.addEventListener('click', () => state.selectedSid && deleteLead(state.selectedSid));
+  els.takeoverInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendTakeoverMessage();
+    }
+  });
+
+  loadLeads().finally(poll);
+})();
+</script>
 </body>
 </html>

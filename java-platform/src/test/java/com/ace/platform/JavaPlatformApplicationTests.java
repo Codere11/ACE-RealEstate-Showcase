@@ -1,5 +1,13 @@
 package com.ace.platform;
 
+import com.ace.platform.chat.PublicChatService;
+import com.ace.platform.chat.TakeoverService;
+import com.ace.platform.conversation.ConversationMessageRepository;
+import com.ace.platform.conversation.ConversationService;
+import com.ace.platform.events.LeadEventRepository;
+import com.ace.platform.events.LeadEventService;
+import com.ace.platform.lead.LeadRepository;
+import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.OrganizationRepository;
 import com.ace.platform.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -20,6 +28,30 @@ class JavaPlatformApplicationTests {
 
 	@MockBean
 	private PasswordEncoder passwordEncoder;
+
+	@MockBean
+	private LeadRepository leadRepository;
+
+	@MockBean
+	private ConversationMessageRepository conversationMessageRepository;
+
+	@MockBean
+	private LeadEventRepository leadEventRepository;
+
+	@MockBean
+	private LeadService leadService;
+
+	@MockBean
+	private ConversationService conversationService;
+
+	@MockBean
+	private LeadEventService leadEventService;
+
+	@MockBean
+	private PublicChatService publicChatService;
+
+	@MockBean
+	private TakeoverService takeoverService;
 
 	@Test
 	void contextLoads() {

@@ -1,5 +1,13 @@
 package com.ace.platform.security;
 
+import com.ace.platform.chat.PublicChatService;
+import com.ace.platform.chat.TakeoverService;
+import com.ace.platform.conversation.ConversationMessageRepository;
+import com.ace.platform.conversation.ConversationService;
+import com.ace.platform.events.LeadEventRepository;
+import com.ace.platform.events.LeadEventService;
+import com.ace.platform.lead.LeadRepository;
+import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
 import com.ace.platform.user.User;
@@ -18,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -41,6 +50,30 @@ class AccessControlTests {
     @MockBean
     private PasswordEncoder passwordEncoder;
 
+    @MockBean
+    private LeadRepository leadRepository;
+
+    @MockBean
+    private ConversationMessageRepository conversationMessageRepository;
+
+    @MockBean
+    private LeadEventRepository leadEventRepository;
+
+    @MockBean
+    private LeadService leadService;
+
+    @MockBean
+    private ConversationService conversationService;
+
+    @MockBean
+    private LeadEventService leadEventService;
+
+    @MockBean
+    private PublicChatService publicChatService;
+
+    @MockBean
+    private TakeoverService takeoverService;
+
     @Test
     @WithMockUser(username = "orgadmin", roles = "ORG_ADMIN")
     void orgAdminCannotOpenPlatformAdminDashboard() throws Exception {
@@ -58,6 +91,8 @@ class AccessControlTests {
             .thenReturn(Optional.of(organization));
         when(userRepository.findByUsername("orgadmin"))
             .thenReturn(Optional.of(user));
+        when(userRepository.countByOrganizationId(anyLong())).thenReturn(1L);
+        when(leadService.listForOrganization(anyLong())).thenReturn(List.of());
 
         mockMvc.perform(get("/demo/dashboard"))
             .andExpect(status().isOk())
@@ -99,6 +134,8 @@ class AccessControlTests {
             .thenReturn(1L);
         when(userRepository.count())
             .thenReturn(1L);
+        when(userRepository.countByOrganizationId(anyLong())).thenReturn(1L);
+        when(leadService.listForOrganization(anyLong())).thenReturn(List.of());
 
         mockMvc.perform(get("/admin/dashboard"))
             .andExpect(status().isOk());

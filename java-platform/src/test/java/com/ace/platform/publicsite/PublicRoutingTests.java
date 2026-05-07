@@ -1,5 +1,14 @@
 package com.ace.platform.publicsite;
 
+import com.ace.platform.chat.PublicChatService;
+import com.ace.platform.chat.TakeoverService;
+import com.ace.platform.conversation.ConversationMessageRepository;
+import com.ace.platform.conversation.ConversationService;
+import com.ace.platform.events.LeadEventRepository;
+import com.ace.platform.events.LeadEventService;
+import com.ace.platform.lead.Lead;
+import com.ace.platform.lead.LeadRepository;
+import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
 import com.ace.platform.user.UserRepository;
@@ -12,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,6 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class PublicRoutingTests {
 
+    private Lead leadFor(Organization organization, String sid) {
+        return new Lead(organization, sid, "Visitor " + sid, "start");
+    }
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -37,6 +51,30 @@ class PublicRoutingTests {
     @MockBean
     private PasswordEncoder passwordEncoder;
 
+    @MockBean
+    private LeadRepository leadRepository;
+
+    @MockBean
+    private ConversationMessageRepository conversationMessageRepository;
+
+    @MockBean
+    private LeadEventRepository leadEventRepository;
+
+    @MockBean
+    private LeadService leadService;
+
+    @MockBean
+    private ConversationService conversationService;
+
+    @MockBean
+    private LeadEventService leadEventService;
+
+    @MockBean
+    private PublicChatService publicChatService;
+
+    @MockBean
+    private TakeoverService takeoverService;
+
     @Test
     void rootRouteLoads() throws Exception {
         mockMvc.perform(get("/"))
@@ -46,23 +84,33 @@ class PublicRoutingTests {
 
     @Test
     void demoRouteResolvesFromDatabase() throws Exception {
+        Organization organization = new Organization("Demo Agency", "demo", true);
         when(organizationRepository.findBySlugAndActiveTrue("demo"))
-            .thenReturn(Optional.of(new Organization("Demo Agency", "demo", true)));
+            .thenReturn(Optional.of(organization));
+        when(leadService.getOrCreateLead(organization, null, "start"))
+            .thenReturn(leadFor(organization, "sid_demo"));
+        when(conversationService.getThread(org.mockito.ArgumentMatchers.any(Lead.class)))
+            .thenReturn(List.of());
 
         mockMvc.perform(get("/demo"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Question 1 of 5")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("0% complete")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Buying a home")));
     }
 
     @Test
     void tenantRouteResolvesFromDatabase() throws Exception {
+        Organization organization = new Organization("Acme Realty", "acme", true);
         when(organizationRepository.findBySlugAndActiveTrue("acme"))
-            .thenReturn(Optional.of(new Organization("Acme Realty", "acme", true)));
+            .thenReturn(Optional.of(organization));
+        when(leadService.getOrCreateLead(organization, null, "start"))
+            .thenReturn(leadFor(organization, "sid_acme"));
+        when(conversationService.getThread(org.mockito.ArgumentMatchers.any(Lead.class)))
+            .thenReturn(List.of());
 
         mockMvc.perform(get("/acme"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Question 1 of 5")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("0% complete")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("What kind of property are you interested in?")));
     }
 
@@ -97,12 +145,17 @@ class PublicRoutingTests {
 
     @Test
     void tenantSurveyRouteLoads() throws Exception {
+        Organization organization = new Organization("Demo Agency", "demo", true);
         when(organizationRepository.findBySlugAndActiveTrue("demo"))
-            .thenReturn(Optional.of(new Organization("Demo Agency", "demo", true)));
+            .thenReturn(Optional.of(organization));
+        when(leadService.getOrCreateLead(organization, null, "start"))
+            .thenReturn(leadFor(organization, "sid_demo"));
+        when(conversationService.getThread(org.mockito.ArgumentMatchers.any(Lead.class)))
+            .thenReturn(List.of());
 
         mockMvc.perform(get("/demo/survey/start"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Question 1 of 5")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("0% complete")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Buying a home")));
     }
 }

@@ -21,9 +21,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/chat", "/chat/", "/chat/staff", "/chat/staff/", "/chat-events/**", "/api/organizations/**")
+            )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/", "/*", "/*/survey/*", "/actuator/health", "/css/**", "/js/**", "/images/**").permitAll()
-                .requestMatchers(HttpMethod.HEAD, "/", "/*", "/*/survey/*", "/actuator/health", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/", "/*", "/*/survey/*", "/actuator/health", "/chat-events/poll", "/api/public/organizations/*/leads/*/messages", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.HEAD, "/", "/*", "/*/survey/*", "/actuator/health", "/chat-events/poll", "/api/public/organizations/*/leads/*/messages", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/chat", "/chat/", "/*/survey/*/send").permitAll()
                 .requestMatchers("/login").permitAll()
                 .requestMatchers("/admin/**").hasRole("PLATFORM_ADMIN")
                 .anyRequest().authenticated()
