@@ -355,20 +355,36 @@ def get_survey_stats(
     ).scalar() or 0.0
     
     # Get average completion time
-    avg_time_result = db.query(
-        func.avg(
-            func.cast(
-                func.julianday(SurveyResponse.survey_completed_at) -
-                func.julianday(SurveyResponse.survey_started_at),
-                Float
-            ) * 24 * 60
-        )
-    ).filter(
-        SurveyResponse.survey_id == survey_id,
-        SurveyResponse.survey_completed_at.isnot(None)
-    ).scalar()
-    
-    avg_completion_time = float(avg_time_result) if avg_time_result else None
+    dialect_name = (getattr(getattr(db, "bind", None), "dialect", None) and db.bind.dialect.name) or ""
+    if dialect_name == "postgresql":
+        avg_time_result = db.query(
+            func.avg(
+                func.extract(
+                    "epoch",
+                    SurveyResponse.survey_completed_at - SurveyResponse.survey_started_at,
+                ) / 60.0
+            )
+        ).filter(
+            SurveyResponse.survey_id == survey_id,
+            SurveyResponse.survey_completed_at.isnot(None),
+            SurveyResponse.survey_started_at.isnot(None),
+        ).scalar()
+    else:
+        avg_time_result = db.query(
+            func.avg(
+                func.cast(
+                    func.julianday(SurveyResponse.survey_completed_at) -
+                    func.julianday(SurveyResponse.survey_started_at),
+                    Float
+                ) * 24 * 60
+            )
+        ).filter(
+            SurveyResponse.survey_id == survey_id,
+            SurveyResponse.survey_completed_at.isnot(None),
+            SurveyResponse.survey_started_at.isnot(None),
+        ).scalar()
+
+    avg_completion_time = float(avg_time_result) if avg_time_result is not None else None
     
     stats = SurveyStats(
         survey_id=survey_id,

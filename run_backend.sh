@@ -5,7 +5,7 @@ VENV_DIR="venv"
 FASTAPI_PORT=8000
 FASTAPI_MODULE="app.main:app"
 
-echo "🟢 Starting ACE Real Estate backend..."
+echo "🟢 Starting ACE e-Counter backend..."
 
 # --- CREATE AND ACTIVATE VENV ---
 if [ ! -d "$VENV_DIR" ]; then

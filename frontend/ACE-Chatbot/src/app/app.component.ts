@@ -92,7 +92,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // ====== Infra ======
   sid = 'SSR_NO_SID';
-  backendUrl = 'http://localhost:8000';
+  backendUrl = '';
 
   private singleSubmitting = false;
   private surveySubmitting = false;
@@ -281,8 +281,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loading = true;
 
     this.http.post<ChatResponse>(
-      `${this.backendUrl}/chat/`,
-      { sid: this.sid, message: `/contact ${JSON.stringify(payload)}` },
+      `${this.backendUrl}/api/public/chat`,
+      { sid: this.sid, message: `/contact ${JSON.stringify(payload)}`, tenant_slug: this.organizationSlug, meta: { organization_slug: this.organizationSlug } },
       { headers: this.headers(rid) }
     ).subscribe({
       next: (res) => { this.i('[HTTP /chat] contact dual OK', { rid, res }); this.loading = false; this.consume(res); },
@@ -304,10 +304,10 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.messages.push({ role: 'assistant', text: 'A team member can continue here. You can keep typing below.', _id: this.rid('MSG') });
     this.scrollToBottomSoon();
 
-    fetch(`${this.backendUrl}/chat/`, {
+    fetch(`${this.backendUrl}/api/public/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Req-Id': rid, 'X-Sid': this.sid },
-      body: JSON.stringify({ sid: this.sid, message: '/skip_to_human' })
+      body: JSON.stringify({ sid: this.sid, message: '/skip_to_human', tenant_slug: this.organizationSlug, meta: { organization_slug: this.organizationSlug } })
     }).catch(err => this.e('[FE] skip notify ERR', { rid, err }));
   }
 
@@ -334,7 +334,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       meta: { organization_slug: this.organizationSlug }
     };
 
-    this.http.post<ChatResponse>(`${this.backendUrl}/chat/`, body, { headers: this.headers(rid) })
+    this.http.post<ChatResponse>(`${this.backendUrl}/api/public/chat`, body, { headers: this.headers(rid) })
       .subscribe({
         next: res => { this.i('[HTTP /chat] OK', { rid, res }); this.consume(res); },
         error: err => { this.e('[HTTP /chat] ERR', { rid, err }); this.loading = false; this.stopTyping('⚠️ Server communication error.'); }
@@ -343,50 +343,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async sendStream(text: string, ridOuter?: string) {
     if (!this.isBrowser) return;
-    const rid = ridOuter || this.rid('STRM');
-
-    if (this.humanMode) { this.i('sendStream: humanMode → fallback send'); this.send(text); return; }
-
-    this.i('sendStream()', { text, rid });
-
-    try {
-      const response = await fetch(`${this.backendUrl}/chat/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Req-Id': rid, 'X-Sid': this.sid },
-        body: JSON.stringify({
-          message: text,
-          sid: this.sid,
-          tenant_slug: this.organizationSlug,
-          meta: { organization_slug: this.organizationSlug }
-        })
-      });
-
-      if (!response.body) throw new Error('No response body');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      this.messages.pop();
-      this.messages.push({ role: 'assistant', text: '', _id: this.rid('MSG') });
-      this.scrollToBottomSoon();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        this.messages[this.messages.length - 1].text = buffer;
-        this.scrollToBottomSoon();
-      }
-
-      this._rememberHash(`assistant|${buffer}`);
-      this.loading = false;
-      this.i('sendStream complete', { bufferLen: buffer.length });
-    } catch (err) {
-      this.e('[HTTP /chat/stream] ERR', { rid, err });
-      this.loading = false;
-      this.stopTyping('⚠️ Streaming response failed.');
-    }
+    this.send(text);
   }
 
   sendSingle(answer: string) {
@@ -413,7 +370,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       meta: { organization_slug: this.organizationSlug }
     };
 
-    this.http.post<ChatResponse>(`${this.backendUrl}/chat/`, body, { headers: this.headers(rid) })
+    this.http.post<ChatResponse>(`${this.backendUrl}/api/public/chat`, body, { headers: this.headers(rid) })
       .subscribe({
         next: res => { this.i('[HTTP /chat] single OK', { rid, res }); this.singleSubmitting = false; this.consume(res); },
         error: err => { this.e('[HTTP /chat] single ERR', { rid, err }); this.singleSubmitting = false; this.loading = false; this.stopTyping('⚠️ Failed to send your message.'); }
@@ -438,9 +395,14 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startTyping('Sestavljam odgovore…');
     this.loading = true;
 
-    const body = { sid: this.sid, industry: '', budget: '', experience: '', question1: ans1, question2: ans2 };
+    const body = {
+      sid: this.sid,
+      message: combo,
+      tenant_slug: this.organizationSlug,
+      meta: { organization_slug: this.organizationSlug }
+    };
 
-    this.http.post<ChatResponse>(`${this.backendUrl}/chat/survey`, body, { headers: this.headers(rid) })
+    this.http.post<ChatResponse>(`${this.backendUrl}/api/public/chat`, body, { headers: this.headers(rid) })
       .subscribe({
         next: res => { this.i('[HTTP /chat/survey] OK', { rid, res }); this.surveySubmitting = false; this.consume(res); },
         error: err => { this.e('[HTTP /chat/survey] ERR', { rid, err }); this.surveySubmitting = false; this.loading = false; this.stopTyping('⚠️ Failed to submit the form.'); }

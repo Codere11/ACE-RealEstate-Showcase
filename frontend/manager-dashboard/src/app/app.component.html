@@ -33,7 +33,7 @@
   <div class="right">
     <div class="user-menu" (click)="agentMenuOpen=!agentMenuOpen" tabindex="0">
       <img class="agent-logo" 
-           [src]="currentUser?.avatar_url ? ('http://localhost:8000' + currentUser.avatar_url) : agentLogoUrl" 
+           [src]="currentUser?.avatar_url ? currentUser.avatar_url : agentLogoUrl" 
            alt="Agent" 
            (error)="onAgentLogoError($event)" />
       <span class="username" *ngIf="currentUser">{{ currentUser.username }}</span>

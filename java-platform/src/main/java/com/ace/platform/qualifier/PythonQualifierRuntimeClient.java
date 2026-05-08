@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
@@ -22,7 +23,10 @@ public class PythonQualifierRuntimeClient {
     private final String baseUrl;
 
     public PythonQualifierRuntimeClient(ObjectMapper objectMapper, @Value("${ace.python-backend-url:http://127.0.0.1:8000}") String baseUrl) {
-        this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .version(Version.HTTP_1_1)
+            .build();
         this.objectMapper = objectMapper;
         this.baseUrl = baseUrl != null ? baseUrl.replaceAll("/+$", "") : "http://127.0.0.1:8000";
     }

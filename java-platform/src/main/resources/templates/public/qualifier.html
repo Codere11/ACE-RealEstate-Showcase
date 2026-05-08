@@ -13,10 +13,91 @@
             background: #0C0D10;
         }
         .agent-hero {
-            padding: 14px 18px 8px;
+            padding: 10px 18px 4px;
             background: radial-gradient(1200px 400px at 18% -80px, rgba(193,164,108,.12), transparent 60%), linear-gradient(180deg, #121417 0%, #0C0D10 70%);
             border-bottom: 1px solid rgba(193,164,108,.18);
             color: #F9FAFB;
+        }
+        .agent-hero__inner {
+            width: 100%;
+            display: grid;
+            gap: 8px;
+        }
+        .agent-hero__brand {
+            color: rgba(250,250,247,.92);
+            font-size: .92rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .agent-hero__camera {
+            width: min(100%, 520px);
+            aspect-ratio: 16 / 9;
+            justify-self: center;
+            border-radius: 18px;
+            background: #020303;
+            border: 1px solid rgba(255,255,255,.09);
+            box-shadow: 0 24px 60px rgba(0,0,0,.38);
+            position: relative;
+            overflow: hidden;
+        }
+        .agent-hero__camera.joining { border-color: rgba(193,164,108,.52); }
+        .agent-hero__camera.live {
+            border-color: rgba(16,185,129,.55);
+            box-shadow: 0 24px 60px rgba(16,185,129,.18);
+        }
+        .agent-hero__camera.ended { border-color: rgba(239,68,68,.42); }
+        .agent-hero__live-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            transition: opacity .2s ease;
+            background: #020303;
+        }
+        .agent-hero__live-video.visible { opacity: 1; }
+        .agent-hero__camera-state {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(2,3,3,.18), rgba(2,3,3,.5));
+            color: #F9FAFB;
+        }
+        .agent-hero__camera-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: rgba(249,250,251,.72); }
+        .agent-hero__camera-title { font-size: clamp(16px, 2vw, 22px); font-weight: 700; line-height: 1.25; max-width: 28rem; }
+        .agent-hero__live-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(2,3,3,.72);
+            color: #F9FAFB;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .04em;
+        }
+        .agent-hero__audio-toggle {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(2,3,3,.78);
+            color: #F9FAFB;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .agent-hero__audio-toggle:hover {
+            background: rgba(17,24,39,.9);
         }
         .agent-hero__eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: rgba(249,250,251,.72); }
         .agent-hero__title { margin: 6px 0 4px; font-size: clamp(20px, 2.4vw, 30px); font-weight: 800; }
@@ -46,8 +127,9 @@
             width: fit-content;
         }
         .thread {
-            display: grid;
-            gap: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             padding: 14px;
             border-radius: 16px;
             background: #F8F7F3;
@@ -55,24 +137,33 @@
             min-height: 360px;
             max-height: 60vh;
             overflow-y: auto;
+            align-items: stretch;
         }
         .bubble {
-            max-width: 82%;
+            width: auto;
+            max-width: 75%;
+            align-self: flex-start;
             border-radius: 14px;
             padding: 12px 14px;
             border: 1px solid #E6E2D6;
             background: #FFFFFF;
+            line-height: 1.45;
+            box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 2px 6px rgba(17,19,23,.04);
         }
-        .bubble.user { margin-left: auto; background: #F4F8FF; border-color: #C8D9FF; }
-        .bubble.assistant, .bubble.staff { margin-right: auto; }
-        .bubble.staff { background: #FBF5E7; border-color: #E6D4A7; }
-        .bubble .meta {
-            font-size: 12px;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            font-weight: 700;
-            color: #6B7280;
+        .bubble.user {
+            align-self: flex-end;
+            background: #1A1D22;
+            color: #FAFAF7;
+            border-color: #2C2F35;
+            box-shadow: 0 8px 18px rgba(0,0,0,.25);
+        }
+        .bubble.assistant, .bubble.staff { align-self: flex-start; }
+        .bubble.staff { background: #FBF5E7; border-color: #E6D4A7; color: #1F2937; }
+        .bubble.pending { opacity: .72; }
+        .bubble__body {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.45;
         }
         .composer { display: grid; gap: 10px; }
         .composer textarea {
@@ -100,9 +191,19 @@
 </head>
 <body>
 <section class="agent-hero">
-    <div class="agent-hero__eyebrow" th:text="${organization.name}">Demo Agency</div>
-    <h1 class="agent-hero__title" th:text="${qualifierName} ?: 'ACE e-Counter'">ACE e-Counter</h1>
-    <p class="agent-hero__subtitle">Tell us about your business, how customers reach you today, and where the bottleneck is. We’ll guide the next step conversationally.</p>
+    <div class="agent-hero__inner">
+        <div class="agent-hero__brand">ACE e-Counter</div>
+        <div id="liveHelpCamera" class="agent-hero__camera">
+            <video id="liveHelpVideo" class="agent-hero__live-video" autoplay playsinline></video>
+            <audio id="liveHelpAudio" autoplay muted></audio>
+            <div id="liveHelpState" class="agent-hero__camera-state" style="display:none;">
+                <div class="agent-hero__camera-eyebrow">Live help</div>
+                <div id="liveHelpTitle" class="agent-hero__camera-title">Live help has ended</div>
+            </div>
+            <div id="liveHelpBadge" class="agent-hero__live-badge" style="display:none;">A team member live</div>
+            <button id="liveHelpAudioToggle" class="agent-hero__audio-toggle" type="button" style="display:none;">Unmute</button>
+        </div>
+    </div>
 </section>
 
 <div class="agent-page" id="qualifier-app"
@@ -120,6 +221,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script th:inline="javascript">
 (() => {
   const root = document.getElementById('qualifier-app');
@@ -132,25 +234,102 @@
     sending: false,
     since: 0,
     polling: false,
-    messageIds: new Set()
+    messageIds: new Set(),
+    pendingMessageIds: new Set(),
+    liveHelpState: 'idle',
+    liveHelpManagerName: '',
+    liveHelpAudioMuted: true
   };
 
   const els = {
     thread: document.getElementById('thread'),
     chatInput: document.getElementById('chatInput'),
-    chatSendButton: document.getElementById('chatSendButton')
+    chatSendButton: document.getElementById('chatSendButton'),
+    liveHelpCamera: document.getElementById('liveHelpCamera'),
+    liveHelpState: document.getElementById('liveHelpState'),
+    liveHelpTitle: document.getElementById('liveHelpTitle'),
+    liveHelpBadge: document.getElementById('liveHelpBadge'),
+    liveHelpVideo: document.getElementById('liveHelpVideo'),
+    liveHelpAudio: document.getElementById('liveHelpAudio'),
+    liveHelpAudioToggle: document.getElementById('liveHelpAudioToggle')
   };
 
-  function appendMessage(role, text, timestamp) {
+  let liveRoom = null;
+  let liveRoomName = null;
+
+  function renderLiveHelp() {
+    els.liveHelpCamera.classList.remove('joining', 'live', 'ended');
+    if (state.liveHelpState !== 'idle') {
+      els.liveHelpCamera.classList.add(state.liveHelpState);
+    }
+    els.liveHelpVideo.classList.toggle('visible', state.liveHelpState === 'live');
+    els.liveHelpState.style.display = (state.liveHelpState === 'joining' || state.liveHelpState === 'ended') ? 'flex' : 'none';
+    els.liveHelpBadge.style.display = state.liveHelpState === 'live' ? 'block' : 'none';
+    els.liveHelpAudioToggle.style.display = state.liveHelpState === 'live' ? 'inline-flex' : 'none';
+    els.liveHelpAudioToggle.textContent = state.liveHelpAudioMuted ? 'Unmute' : 'Mute';
+
+    if (state.liveHelpState === 'joining') {
+      els.liveHelpTitle.textContent = `${state.liveHelpManagerName || 'A team member'} is joining to help`;
+      return;
+    }
+    if (state.liveHelpState === 'live') {
+      els.liveHelpBadge.textContent = `${state.liveHelpManagerName || 'A team member'} live`;
+      return;
+    }
+    if (state.liveHelpState === 'ended') {
+      els.liveHelpTitle.textContent = 'Live help has ended';
+    }
+  }
+
+  function toggleLiveHelpAudio() {
+    state.liveHelpAudioMuted = !state.liveHelpAudioMuted;
+    els.liveHelpAudio.muted = state.liveHelpAudioMuted;
+    els.liveHelpAudioToggle.textContent = state.liveHelpAudioMuted ? 'Unmute' : 'Mute';
+    if (!state.liveHelpAudioMuted) {
+      els.liveHelpAudio.play().catch(() => {});
+    }
+  }
+
+  function appendMessage(role, text, timestamp, options = {}) {
     const id = role + '|' + text + '|' + timestamp;
-    if (state.messageIds.has(id)) return;
-    state.messageIds.add(id);
+    const pending = !!options.pending;
+    if (!pending && role === 'user') {
+      const pendingBubble = Array.from(els.thread.querySelectorAll('.bubble.pending[data-role="user"]')).find(node => (node.dataset.text || '') === String(text || ''));
+      if (pendingBubble) {
+        pendingBubble.classList.remove('pending');
+        pendingBubble.dataset.pending = 'false';
+        pendingBubble.dataset.messageId = id;
+        state.pendingMessageIds.delete(pendingBubble.dataset.tempId || '');
+        state.messageIds.add(id);
+        return;
+      }
+    }
+    if (!pending && state.messageIds.has(id)) return;
+    if (!pending) state.messageIds.add(id);
     const bubble = document.createElement('div');
-    bubble.className = 'bubble ' + role;
-    bubble.innerHTML = `<div class="meta">${role}</div><div></div>`;
-    bubble.querySelector('div:last-child').textContent = text || '';
+    bubble.className = 'bubble ' + role + (pending ? ' pending' : '');
+    bubble.dataset.role = role;
+    bubble.dataset.text = text || '';
+    bubble.dataset.pending = pending ? 'true' : 'false';
+    if (options.tempId) bubble.dataset.tempId = options.tempId;
+    if (!pending) bubble.dataset.messageId = id;
+    bubble.innerHTML = `<div class="bubble__body"></div>`;
+    bubble.querySelector('.bubble__body').textContent = text || '';
     els.thread.appendChild(bubble);
     els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  function appendPendingUserMessage(text) {
+    const tempId = 'pending-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    state.pendingMessageIds.add(tempId);
+    appendMessage('user', text, tempId, { pending: true, tempId });
+    return tempId;
+  }
+
+  function removePendingMessage(tempId) {
+    if (!tempId) return;
+    state.pendingMessageIds.delete(tempId);
+    els.thread.querySelector(`[data-temp-id="${tempId}"]`)?.remove();
   }
 
   async function loadThread() {
@@ -159,10 +338,87 @@
     const items = await res.json();
     els.thread.innerHTML = '';
     state.messageIds.clear();
+    state.pendingMessageIds.clear();
     items.forEach(item => appendMessage(item.role, item.text, item.timestamp));
     if (!items.length && state.initialMessage) {
       appendMessage('assistant', state.initialMessage, 'init');
     }
+  }
+
+  function disconnectLiveHelpRoom() {
+    try { liveRoom?.disconnect(); } catch {}
+    liveRoom = null;
+    liveRoomName = null;
+    els.liveHelpVideo.srcObject = null;
+    els.liveHelpAudio.srcObject = null;
+    try { els.liveHelpVideo.load(); } catch {}
+    try { els.liveHelpAudio.load(); } catch {}
+  }
+
+  async function connectToLiveHelp(live) {
+    const client = window.LivekitClient;
+    if (!client || !live?.ws_url || !live?.token || !live?.room_name) return;
+    if (liveRoom && liveRoomName === live.room_name) {
+      state.liveHelpState = 'live';
+      renderLiveHelp();
+      return;
+    }
+
+    disconnectLiveHelpRoom();
+    state.liveHelpState = 'joining';
+    renderLiveHelp();
+
+    try {
+      const room = new client.Room();
+      room.on(client.RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === client.Track.Kind.Video) {
+          track.attach(els.liveHelpVideo);
+          els.liveHelpVideo.autoplay = true;
+          els.liveHelpVideo.playsInline = true;
+          els.liveHelpVideo.play().catch(() => {});
+          state.liveHelpState = 'live';
+          renderLiveHelp();
+        }
+        if (track.kind === client.Track.Kind.Audio) {
+          els.liveHelpAudio.autoplay = true;
+          els.liveHelpAudio.muted = state.liveHelpAudioMuted;
+          track.attach(els.liveHelpAudio);
+        }
+      });
+      room.on(client.RoomEvent.Disconnected, () => {
+        disconnectLiveHelpRoom();
+        state.liveHelpState = 'ended';
+        renderLiveHelp();
+      });
+      await room.connect(live.ws_url, live.token);
+      liveRoom = room;
+      liveRoomName = live.room_name;
+    } catch (error) {
+      disconnectLiveHelpRoom();
+      state.liveHelpState = 'ended';
+      renderLiveHelp();
+    }
+  }
+
+  async function loadLiveHelpState() {
+    const res = await fetch(`/api/public/organizations/${encodeURIComponent(state.orgSlug)}/live-session?sid=${encodeURIComponent(state.sid)}`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const live = await res.json();
+    state.liveHelpManagerName = live.manager_display_name || live.managerDisplayName || '';
+    if (live.status === 'live') {
+      await connectToLiveHelp(live);
+      state.liveHelpState = 'live';
+    } else if (live.status === 'preview') {
+      disconnectLiveHelpRoom();
+      state.liveHelpState = 'joining';
+    } else if (live.status === 'ended') {
+      disconnectLiveHelpRoom();
+      state.liveHelpState = 'ended';
+    } else {
+      disconnectLiveHelpRoom();
+      state.liveHelpState = 'idle';
+    }
+    renderLiveHelp();
   }
 
   async function sendMessage() {
@@ -171,6 +427,7 @@
     state.sending = true;
     els.chatSendButton.disabled = true;
     els.chatInput.value = '';
+    const pendingId = appendPendingUserMessage(text);
     try {
       const res = await fetch('/chat', {
         method: 'POST',
@@ -178,13 +435,20 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sid: state.sid, message: text, tenant_slug: state.orgSlug, meta: { organization_slug: state.orgSlug } })
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        removePendingMessage(pendingId);
+        return;
+      }
       const data = await res.json();
       if (data.sid && data.sid !== state.sid) {
         state.sid = data.sid;
         history.replaceState({}, '', `/${state.orgSlug}?sid=${encodeURIComponent(data.sid)}`);
       }
       await loadThread();
+      await loadLiveHelpState();
+    } catch (error) {
+      removePendingMessage(pendingId);
+      throw error;
     } finally {
       state.sending = false;
       els.chatSendButton.disabled = false;
@@ -203,6 +467,21 @@
         if (evt.type === 'message.created') {
           appendMessage(evt.payload?.role || 'assistant', evt.payload?.text || '', evt.payload?.timestamp || evt.ts);
         }
+        if (evt.type === 'live_session.live') {
+          state.liveHelpManagerName = evt.payload?.managerDisplayName || evt.payload?.manager_display_name || state.liveHelpManagerName;
+          loadLiveHelpState();
+        }
+        if (evt.type === 'live_session.ended') {
+          disconnectLiveHelpRoom();
+          state.liveHelpState = 'ended';
+          renderLiveHelp();
+          setTimeout(() => {
+            if (state.liveHelpState === 'ended') {
+              state.liveHelpState = 'idle';
+              renderLiveHelp();
+            }
+          }, 3200);
+        }
       });
       state.since = Math.max(state.since, data.next || state.since);
     } finally {
@@ -211,6 +490,7 @@
     }
   }
 
+  els.liveHelpAudioToggle.addEventListener('click', toggleLiveHelpAudio);
   els.chatSendButton.addEventListener('click', sendMessage);
   els.chatInput.addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -219,7 +499,8 @@
     }
   });
 
-  loadThread().finally(poll);
+  renderLiveHelp();
+  loadLiveHelpState().finally(() => loadThread().finally(poll));
 })();
 </script>
 </body>

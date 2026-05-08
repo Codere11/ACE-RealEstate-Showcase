@@ -2,7 +2,7 @@
 
 ## Overview
 
-The ACE Real Estate system has been transformed from a conversational AI chatbot to a **structured survey system** while preserving the critical **agent takeover** functionality. Users now fill out predefined forms created in a visual flow designer instead of having open-ended AI conversations.
+The ACE e-Counter system has been transformed from a conversational AI chatbot to a **structured survey system** while preserving the critical **agent takeover** functionality. Users now fill out predefined forms created in a visual flow designer instead of having open-ended AI conversations.
 
 ---
 

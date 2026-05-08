@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🧪 ACE Real Estate - Docker Test"
+echo "🧪 ACE e-Counter - Docker Test"
 echo "=================================="
 echo ""
 

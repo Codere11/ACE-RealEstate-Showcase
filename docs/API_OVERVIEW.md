@@ -17,7 +17,9 @@ Base URL (local): `http://localhost:8000`
 
 ## Survey and Flow Routes
 - Survey flow management routes are registered without a static prefix (see `survey_flow.router`)
-- Public survey access includes slug-based endpoints via `public_survey.router`
+- Public survey access uses organization-scoped routes via `public_survey.router`
+  - `GET /s/{org_slug}/{survey_slug}`
+  - `POST /s/{org_slug}/{survey_slug}/submit`
 
 ## Auth and Access Control
 - `/api/auth/*` — authentication routes
@@ -51,7 +53,8 @@ Local origins allowed include:
 ## Qualifier Runtime Notes
 - `/chat/` now returns open chat mode when a live qualifier is active for the organization
 - chat responses can include qualifier metadata such as band, confidence, reasoning, and takeover flags
-- the active qualifier path currently runs a lightweight LangGraph-style flow: `extract -> score -> reply`
+- the active qualifier path currently runs a fixed minimal LangGraph flow: `interpret_turn -> decide_next_step -> persist`
+- qualifier configuration is edited from the dashboard as qualification policy, while the runtime graph remains product-owned in code
 
 ## Live Help Notes
 - the current live-help implementation is **one-way**: manager publishes, visitor watches

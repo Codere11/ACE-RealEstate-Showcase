@@ -107,6 +107,16 @@ public class SurveyApiController {
         return SurveyDetailResponse.from(survey);
     }
 
+    @PostMapping("/api/organizations/{orgId}/surveys/{surveyId}/archive")
+    public SurveyDetailResponse archiveSurvey(@PathVariable Long orgId, @PathVariable Long surveyId, Authentication authentication) {
+        User user = requireUser(authentication);
+        requireOrgAccess(user, orgId);
+        Organization organization = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
+        Survey survey = surveyService.setPublished(organization, surveyId, false);
+        return SurveyDetailResponse.from(survey);
+    }
+
     @PostMapping("/api/organizations/{orgId}/surveys/{surveyId}/questions")
     public SurveyQuestionResponse createQuestion(@PathVariable Long orgId, @PathVariable Long surveyId, @RequestBody QuestionUpsertRequest request, Authentication authentication) {
         User user = requireUser(authentication);

@@ -150,7 +150,7 @@ export type ChatLog = {
   providedIn: 'root'
 })
 export class DashboardService {
-  private baseUrl = 'http://127.0.0.1:8000';
+  private baseUrl = '';
 
   constructor(
     private http: HttpClient,

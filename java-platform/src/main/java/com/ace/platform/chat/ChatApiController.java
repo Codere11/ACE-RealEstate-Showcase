@@ -62,7 +62,7 @@ public class ChatApiController {
         this.leadEventService = leadEventService;
     }
 
-    @PostMapping({"/chat", "/chat/"})
+    @PostMapping({"/chat", "/chat/", "/api/public/chat"})
     public ChatResponse chat(@RequestBody ChatRequest request) {
         Organization organization = resolveOrganization(request.tenant_slug(), request.meta());
         boolean explicitSurveyMode = request.meta() != null
@@ -201,10 +201,17 @@ public class ChatApiController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
         }
         User user = requireUser(authentication);
-        if (user.getOrganization() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization context is required");
+        if (user.getOrganization() != null) {
+            return user.getOrganization().getId();
         }
-        return user.getOrganization().getId();
+        if (user.getRole().name().equals("PLATFORM_ADMIN")) {
+            return organizationRepository.findAll().stream()
+                .filter(Organization::isActive)
+                .findFirst()
+                .map(Organization::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization context is required"));
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Organization context is required");
     }
 
     private User requireUser(Authentication authentication) {

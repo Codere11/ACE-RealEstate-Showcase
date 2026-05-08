@@ -1,7 +1,7 @@
 # Product Overview
 
-## What ACE Real Estate is
-ACE Real Estate is a multi-tenant lead qualification and conversion system for real-estate teams.
+## What ACE e-Counter is
+ACE e-Counter is a multi-tenant visitor-intake, qualification, and conversion system for teams that need better inbound lead handling.
 
 It combines:
 - a visitor-facing chatbot/survey UI
@@ -15,8 +15,8 @@ The project is designed to demonstrate a coherent product, not a collection of d
 ---
 
 ## Core product problem
-Real-estate teams often have to juggle:
-- slow manual lead qualification
+Teams handling inbound leads often have to juggle:
+- slow manual qualification
 - low-context contact forms
 - fragmented follow-up tools
 - weak visibility into which leads are actually worth pursuing
@@ -56,11 +56,11 @@ A chat experience alone is not enough; the business side needs structured signal
 
 ### What it does
 The qualifier:
-- extracts lead facts from conversation
+- interprets each turn in context
 - updates a structured lead profile
-- scores the lead deterministically
-- assigns a hot/warm/cold band
-- explains why the score is what it is
+- chooses the next qualification step and reply
+- stores operator-facing score/band/confidence metadata
+- explains why the current decision was made
 
 ### Why this matters
 Managers need something more useful than “the bot had a chat.”
@@ -69,6 +69,7 @@ They need:
 - confidence
 - reasoning
 - next-step guidance
+- a safe editor for qualification policy, not prompt spaghetti
 
 ---
 
@@ -80,7 +81,7 @@ If the system does not help the operator act, it is just an intake toy.
 The dashboard lets managers:
 - inspect leads
 - review qualification output
-- configure the qualifier
+- configure ACE e-Counter qualification policy
 - take over chat
 - send payment requests
 

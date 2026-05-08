@@ -9,9 +9,18 @@ import jwt
 
 class LiveKitService:
     def __init__(self) -> None:
-        self.ws_url = os.getenv("ACE_LIVEKIT_WS_URL", "ws://127.0.0.1:7880")
+        self.ws_url = os.getenv("ACE_LIVEKIT_WS_URL", "").strip()
         self.api_key = os.getenv("ACE_LIVEKIT_API_KEY", "devkey")
         self.api_secret = os.getenv("ACE_LIVEKIT_API_SECRET", "devsecretkey_for_local_livekit_32chars")
+
+    def resolved_ws_url(self, request_host: str | None = None, request_scheme: str | None = None) -> str:
+        if self.ws_url:
+            return self.ws_url
+        host = (request_host or "127.0.0.1").strip()
+        if ":" in host:
+            host = host.split(":", 1)[0]
+        scheme = "wss" if request_scheme == "https" else "ws"
+        return f"{scheme}://{host}:7880"
 
     def manager_token(self, *, room_name: str, identity: str, display_name: str) -> str:
         return self._build_token(

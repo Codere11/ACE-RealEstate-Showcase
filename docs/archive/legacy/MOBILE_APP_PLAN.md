@@ -1,8 +1,8 @@
-# ACE Real Estate Mobile App Implementation Plan
+# ACE e-Counter Mobile App Implementation Plan
 
 ## Overview
 
-This document outlines the implementation plan for adding a mobile notification app to the ACE Real Estate system. The app will notify real estate agents when high-interest/compatibility leads are actively chatting.
+This document outlines the implementation plan for adding a mobile notification app to the ACE e-Counter system. The app will notify e-counter agents when high-interest/compatibility leads are actively chatting.
 
 ## Current System Analysis
 
@@ -12,7 +12,7 @@ This document outlines the implementation plan for adding a mobile notification 
   - `interest`: "High" | "Medium" | "Low" 
   - `compatibility`: 0-100 score
   - `category`: "good_fit" | "could_fit" | "bad_fit"
-- **Multi-tenant**: Each real estate agency is isolated by `tenant_slug`
+- **Multi-tenant**: Each e-counter agency is isolated by `tenant_slug`
 - **Real-time Events**: SSE and long-polling already implemented
 
 ### Notification Triggers
@@ -261,9 +261,9 @@ def should_notify_high_interest(ai_result: dict) -> bool:
 ### Environment Variables
 ```bash
 # Firebase Configuration
-FIREBASE_PROJECT_ID=ace-real-estate-prod
+FIREBASE_PROJECT_ID=ace-e-counter-prod
 FIREBASE_PRIVATE_KEY_PATH=/secrets/firebase-admin-key.json
-FIREBASE_DATABASE_URL=https://ace-real-estate-prod.firebaseio.com
+FIREBASE_DATABASE_URL=https://ace-e-counter-prod.firebaseio.com
 
 # Mobile App Settings  
 MOBILE_API_VERSION=v1
@@ -319,4 +319,4 @@ NOTIFICATION_RETENTION_DAYS=90
 4. Set up Android development environment
 5. Install required VS Code extensions for React Native
 
-This comprehensive plan provides a structured approach to implementing mobile notifications while leveraging the existing ACE Real Estate architecture and ensuring scalability for the multi-tenant system.
+This comprehensive plan provides a structured approach to implementing mobile notifications while leveraging the existing ACE e-Counter architecture and ensuring scalability for the multi-tenant system.

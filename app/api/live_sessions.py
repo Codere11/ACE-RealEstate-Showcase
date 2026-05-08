@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.auth.permissions import AuthContext, require_org_admin, require_org_user
@@ -31,7 +31,7 @@ def _event_payload(session) -> dict:
     }
 
 
-def _serialize_live_session(session, *, token: str | None = None) -> dict:
+def _serialize_live_session(session, *, ws_url: str, token: str | None = None) -> dict:
     return {
         "id": session.id,
         "organization_id": session.organization_id,
@@ -42,7 +42,7 @@ def _serialize_live_session(session, *, token: str | None = None) -> dict:
         "status": session.status,
         "room_name": session.room_name,
         "stage_message": session.stage_message,
-        "ws_url": livekit_service.ws_url,
+        "ws_url": ws_url,
         "token": token,
         "started_at": session.started_at,
         "live_at": session.live_at,
@@ -55,6 +55,7 @@ def _serialize_live_session(session, *, token: str | None = None) -> dict:
 @router.get("/current", response_model=LiveSessionResponse | None)
 def get_current_live_session(
     org_id: int,
+    request: Request,
     sid: str = Query(..., min_length=1, max_length=64),
     auth: AuthContext = Depends(require_org_user),
     db: Session = Depends(get_db),
@@ -63,18 +64,20 @@ def get_current_live_session(
     session = live_session_service.get_current(db, organization_id=org_id, sid=sid)
     if not session:
         return None
+    ws_url = livekit_service.resolved_ws_url(request.headers.get("host"), request.headers.get("x-forwarded-proto", request.url.scheme))
     token = livekit_service.manager_token(
         room_name=session.room_name or live_session_service._room_name(organization_id=org_id, sid=sid),
         identity=f"manager-{auth.user_id}-sid-{sid}",
         display_name=auth.username,
     )
-    return _serialize_live_session(session, token=token)
+    return _serialize_live_session(session, ws_url=ws_url, token=token)
 
 
 @router.post("/preview", response_model=LiveSessionResponse)
 def start_live_preview(
     org_id: int,
     payload: LiveSessionCreate,
+    request: Request,
     auth: AuthContext = Depends(require_org_admin),
     db: Session = Depends(get_db),
 ):
@@ -86,18 +89,20 @@ def start_live_preview(
         manager_user_id=auth.user_id,
         manager_display_name=auth.username,
     )
+    ws_url = livekit_service.resolved_ws_url(request.headers.get("host"), request.headers.get("x-forwarded-proto", request.url.scheme))
     token = livekit_service.manager_token(
         room_name=session.room_name or live_session_service._room_name(organization_id=org_id, sid=payload.sid),
         identity=f"manager-{auth.user_id}-sid-{payload.sid}",
         display_name=auth.username,
     )
-    return _serialize_live_session(session, token=token)
+    return _serialize_live_session(session, ws_url=ws_url, token=token)
 
 
 @router.post("/go-live", response_model=LiveSessionResponse)
 async def go_live(
     org_id: int,
     payload: LiveSessionCreate,
+    request: Request,
     auth: AuthContext = Depends(require_org_admin),
     db: Session = Depends(get_db),
 ):
@@ -115,18 +120,20 @@ async def go_live(
         "text": f"{session.manager_display_name} is joining to help live.",
         "timestamp": int(session.updated_at.timestamp()),
     })
+    ws_url = livekit_service.resolved_ws_url(request.headers.get("host"), request.headers.get("x-forwarded-proto", request.url.scheme))
     token = livekit_service.manager_token(
         room_name=session.room_name or live_session_service._room_name(organization_id=org_id, sid=payload.sid),
         identity=f"manager-{auth.user_id}-sid-{payload.sid}",
         display_name=auth.username,
     )
-    return _serialize_live_session(session, token=token)
+    return _serialize_live_session(session, ws_url=ws_url, token=token)
 
 
 @router.post("/{session_id}/end", response_model=LiveSessionResponse)
 async def end_live_session(
     org_id: int,
     session_id: int,
+    request: Request,
     auth: AuthContext = Depends(require_org_admin),
     db: Session = Depends(get_db),
 ):
@@ -140,4 +147,5 @@ async def end_live_session(
         "text": "Live help has ended.",
         "timestamp": int(session.updated_at.timestamp()),
     })
-    return _serialize_live_session(session)
+    ws_url = livekit_service.resolved_ws_url(request.headers.get("host"), request.headers.get("x-forwarded-proto", request.url.scheme))
+    return _serialize_live_session(session, ws_url=ws_url)

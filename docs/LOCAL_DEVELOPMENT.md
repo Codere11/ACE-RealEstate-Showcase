@@ -1,6 +1,6 @@
 <!-- Created: 2026-04-18T12:20:22Z -->
 # Local Development Runbook
-This runbook is the fastest path to running ACE Real Estate locally.
+This runbook is the fastest path to running ACE e-Counter locally.
 
 If you want the big-picture product explanation first, read:
 - `docs/PRODUCT_OVERVIEW.md`

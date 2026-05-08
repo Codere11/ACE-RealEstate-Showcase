@@ -103,53 +103,124 @@
         .btn.ghost { background: #FFF; color: #171A1F; border-color: #D7D0C0; }
         .btn.danger { background: #fff; color: #8B1E1E; border-color: #E9C2C2; }
         .btn:disabled { opacity: .55; cursor: not-allowed; }
-        .live-stage {
-            display: grid;
-            gap: 14px;
-            margin-bottom: 16px;
+        .live-preview-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 16px;
         }
-        .live-stage__camera {
-            position: relative;
-            min-height: 240px;
+        .live-preview-stage__camera {
+            width: min(100%, 520px);
+            aspect-ratio: 16 / 9;
             border-radius: 18px;
-            background: linear-gradient(180deg, #121417 0%, #060708 100%);
-            border: 1px solid rgba(193,164,108,.28);
+            background: #050607;
+            border: 1px solid rgba(18,20,23,.14);
+            box-shadow: 0 16px 36px rgba(0,0,0,.18);
+            position: relative;
             overflow: hidden;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
         }
-        .live-stage__camera::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top, rgba(193,164,108,.18), transparent 45%);
-            pointer-events: none;
+        .live-preview-stage__video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            transition: opacity .18s ease;
+            background: #050607;
         }
-        .live-stage__overlay {
+        .live-preview-stage__video.visible {
+            opacity: 1;
+        }
+        .live-preview-stage__camera.preview {
+            border-color: rgba(193,164,108,.55);
+        }
+        .live-preview-stage__camera.live {
+            border-color: rgba(16,185,129,.55);
+            box-shadow: 0 16px 36px rgba(16,185,129,.16);
+        }
+        .live-preview-stage__overlay {
             position: absolute;
             inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            text-align: center;
-            padding: 24px;
+            gap: 8px;
             color: #F9FAFB;
+            background: linear-gradient(180deg, rgba(5,6,7,.18), rgba(5,6,7,.38));
         }
-        .live-stage__eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: rgba(249,250,251,.72); }
-        .live-stage__title { font-size: clamp(18px, 2vw, 24px); font-weight: 800; max-width: 32rem; }
-        .live-stage__meta {
+        .live-preview-stage__badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(5,6,7,.72);
+            color: #F9FAFB;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .06em;
+        }
+        .live-preview-stage__eyebrow {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: rgba(249,250,251,.72);
+        }
+        .live-preview-stage__title {
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+        .live-preview-stage__meta {
+            text-align: center;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .live-preview-stage__meta-label,
+        .live-preview-stage__meta-value {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .live-preview-stage__meta-label {
+            font-weight: 700;
+        }
+        .live-preview-stage__actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .live-stage-stats {
+            width: 100%;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
         }
-        .live-stage__meta-item {
+        .live-stage-stats__item {
             background: #F8F7F3;
             border: 1px solid #E6E2D6;
             border-radius: 14px;
             padding: 14px;
-            display: grid;
-            gap: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .live-stage-stats__label,
+        .live-stage-stats__value {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .live-stage-stats__label {
+            font-weight: 700;
         }
         .leads-grid {
             display: grid;
@@ -323,6 +394,7 @@
         .stats-grid .hero-card { padding: 16px; }
         @media (max-width: 980px) {
             .leads-grid { grid-template-columns: 1fr; }
+            .live-stage-stats { grid-template-columns: 1fr; }
             .thread-panel {
                 position: static;
                 height: auto;
@@ -371,29 +443,40 @@
         </div>
 
         <section th:if="${activeTab == 'leads'}" class="stack">
-            <div class="live-stage">
-                <div class="live-stage__camera">
-                    <div class="live-stage__overlay">
-                        <div class="live-stage__eyebrow">Human support stage</div>
-                        <div id="stageTitle" class="live-stage__title">Select a lead to prepare takeover from the dashboard.</div>
+            <div class="live-preview-stage">
+                <div id="livePreviewCamera" class="live-preview-stage__camera">
+                    <video id="livePreviewVideo" class="live-preview-stage__video" autoplay playsinline muted></video>
+                    <div id="livePreviewOverlay" class="live-preview-stage__overlay">
+                        <div class="live-preview-stage__eyebrow">Live help</div>
+                        <div id="stageTitle" class="live-preview-stage__title">Camera stage</div>
                     </div>
+                    <div id="livePreviewBadge" class="live-preview-stage__badge" style="display:none;">PREVIEW</div>
                 </div>
-                <div class="live-stage__meta">
-                    <div class="live-stage__meta-item">
-                        <strong>Selected lead</strong>
-                        <span id="selectedLeadLabel" class="muted">None yet</span>
+
+                <div class="live-preview-stage__meta">
+                    <span class="live-preview-stage__meta-label">Live help stage</span>
+                    <span id="selectedLeadLabel" class="live-preview-stage__meta-value">Open a lead chat to choose the live-help target.</span>
+                </div>
+
+                <div class="live-preview-stage__actions">
+                    <button id="startPreviewBtn" type="button" class="btn ghost">Start preview</button>
+                    <button id="goLiveBtn" type="button" class="btn primary">Go live</button>
+                    <button id="endLiveBtn" type="button" class="btn danger">End live</button>
+                </div>
+                <div id="liveSessionError" class="error-text" style="display:none;"></div>
+
+                <div class="live-stage-stats">
+                    <div class="live-stage-stats__item">
+                        <span class="live-stage-stats__label">Public survey route</span>
+                        <span class="live-stage-stats__value muted" th:text="'/' + ${organization.slug} + '/survey/start'">/demo/survey/start</span>
                     </div>
-                    <div class="live-stage__meta-item">
-                        <strong>Public survey route</strong>
-                        <span class="muted" th:text="'/' + ${organization.slug} + '/survey/start'">/demo/survey/start</span>
+                    <div class="live-stage-stats__item">
+                        <span class="live-stage-stats__label">Live leads</span>
+                        <span id="leadCount" class="live-stage-stats__value muted">0</span>
                     </div>
-                    <div class="live-stage__meta-item">
-                        <strong>Live leads</strong>
-                        <span id="leadCount" class="muted">0</span>
-                    </div>
-                    <div class="live-stage__meta-item">
-                        <strong>Active takeovers</strong>
-                        <span id="takeoverCount" class="muted">0</span>
+                    <div class="live-stage-stats__item">
+                        <span class="live-stage-stats__label">Active takeovers</span>
+                        <span id="takeoverCount" class="live-stage-stats__value muted">0</span>
                     </div>
                 </div>
             </div>
@@ -750,6 +833,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script th:inline="javascript">
 (() => {
   const root = document.getElementById('dashboard-app');
@@ -792,16 +876,29 @@
   }
 
   function initLeads() {
+    const livekit = window.LivekitClient;
     const state = {
       selectedSid: root.dataset.selectedSid || '',
       since: 0,
       leads: [],
       messages: [],
+      livePreviewState: 'idle',
+      livePreviewHasVideo: false,
+      liveSession: null,
+      liveSessionLoading: false,
       filters: { search: '', status: 'all', minProgress: 0, takeoverOnly: false }
     };
 
     const els = {
       stageTitle: document.getElementById('stageTitle'),
+      livePreviewCamera: document.getElementById('livePreviewCamera'),
+      livePreviewOverlay: document.getElementById('livePreviewOverlay'),
+      livePreviewBadge: document.getElementById('livePreviewBadge'),
+      livePreviewVideo: document.getElementById('livePreviewVideo'),
+      startPreviewBtn: document.getElementById('startPreviewBtn'),
+      goLiveBtn: document.getElementById('goLiveBtn'),
+      endLiveBtn: document.getElementById('endLiveBtn'),
+      liveSessionError: document.getElementById('liveSessionError'),
       leadCount: document.getElementById('leadCount'),
       takeoverCount: document.getElementById('takeoverCount'),
       selectedLeadLabel: document.getElementById('selectedLeadLabel'),
@@ -826,8 +923,19 @@
       leadDeleteTop: document.getElementById('leadDeleteTop')
     };
 
+    let localVideoTrack = null;
+    let localAudioTrack = null;
+    let liveRoom = null;
+    let liveRoomName = null;
+    let suppressLiveRoomDisconnectHandler = false;
+
     function selectedLead() {
       return state.leads.find(l => l.sid === state.selectedSid) || null;
+    }
+
+    function showLiveError(text) {
+      els.liveSessionError.textContent = text || '';
+      els.liveSessionError.style.display = text ? 'block' : 'none';
     }
 
     function visibleLeads() {
@@ -841,6 +949,182 @@
       });
     }
 
+    function renderLiveStage() {
+      const lead = selectedLead();
+      els.livePreviewCamera.classList.remove('preview', 'live');
+      if (state.livePreviewState === 'preview') els.livePreviewCamera.classList.add('preview');
+      if (state.livePreviewState === 'live') els.livePreviewCamera.classList.add('live');
+      els.livePreviewVideo.classList.toggle('visible', state.livePreviewHasVideo);
+      els.livePreviewOverlay.style.display = state.livePreviewHasVideo ? 'none' : 'flex';
+      els.livePreviewBadge.style.display = state.livePreviewHasVideo && state.livePreviewState !== 'idle' ? 'block' : 'none';
+      els.livePreviewBadge.textContent = state.livePreviewState === 'live' ? 'LIVE' : 'PREVIEW';
+
+      if (!lead) {
+        els.selectedLeadLabel.textContent = 'Open a lead chat to choose the live-help target.';
+        els.stageTitle.textContent = 'Camera stage';
+        els.startPreviewBtn.disabled = true || state.liveSessionLoading;
+        els.goLiveBtn.disabled = true || state.liveSessionLoading;
+        els.endLiveBtn.disabled = true || state.liveSessionLoading;
+        return;
+      }
+
+      els.selectedLeadLabel.textContent = `Target: ${lead.name} · SID ${lead.sid}`;
+      els.startPreviewBtn.disabled = state.liveSessionLoading;
+      els.goLiveBtn.disabled = state.liveSessionLoading || state.livePreviewState === 'live';
+      els.endLiveBtn.disabled = state.liveSessionLoading || !state.liveSession?.id;
+
+      if (state.livePreviewState === 'live') {
+        els.stageTitle.textContent = state.livePreviewHasVideo ? 'Broadcast ready' : 'Going live';
+        return;
+      }
+      if (state.livePreviewState === 'preview') {
+        els.stageTitle.textContent = state.livePreviewHasVideo ? 'Preview ready' : 'Preparing preview';
+        return;
+      }
+      els.stageTitle.textContent = 'Camera stage';
+    }
+
+    async function ensurePreviewMedia() {
+      if (!livekit) throw new Error('LiveKit client failed to load.');
+      if (!localVideoTrack) {
+        localVideoTrack = await livekit.createLocalVideoTrack();
+      }
+      if (!localAudioTrack) {
+        localAudioTrack = await livekit.createLocalAudioTrack();
+      }
+      localVideoTrack.attach(els.livePreviewVideo);
+      els.livePreviewVideo.muted = true;
+      els.livePreviewVideo.autoplay = true;
+      els.livePreviewVideo.playsInline = true;
+      els.livePreviewVideo.play().catch(() => {});
+      state.livePreviewHasVideo = true;
+      renderLiveStage();
+    }
+
+    function releasePreviewMedia() {
+      try { localVideoTrack?.stop(); } catch {}
+      try { localAudioTrack?.stop(); } catch {}
+      localVideoTrack = null;
+      localAudioTrack = null;
+      els.livePreviewVideo.srcObject = null;
+      try { els.livePreviewVideo.load(); } catch {}
+      state.livePreviewHasVideo = false;
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function hasPublishedLocalTrack(room, kind) {
+      const publications = room?.localParticipant?.trackPublications;
+      if (!publications || typeof publications.values !== 'function') return false;
+      for (const publication of publications.values()) {
+        const publishedKind = publication?.track?.kind || publication?.kind;
+        if (publishedKind === kind) return true;
+      }
+      return false;
+    }
+
+    async function publishTrackWithRetry(room, track, kind, optional = false) {
+      if (!room || !track) return;
+      if (hasPublishedLocalTrack(room, kind)) return;
+      let lastError = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          await room.localParticipant.publishTrack(track);
+        } catch (error) {
+          lastError = error;
+        }
+        await wait(700);
+        if (hasPublishedLocalTrack(room, kind)) return;
+      }
+      if (optional) {
+        console.warn(`Failed to publish optional ${kind} track`, lastError);
+        return;
+      }
+      throw lastError || new Error(`Failed to publish ${kind} track.`);
+    }
+
+    async function connectManagerRoom(session) {
+      if (!livekit) throw new Error('LiveKit client failed to load.');
+      const wsUrl = session?.ws_url || session?.wsUrl;
+      const token = session?.token;
+      const roomName = session?.room_name || session?.roomName;
+      if (!wsUrl || !token || !roomName) throw new Error('Missing LiveKit connection details.');
+      if (liveRoom && liveRoomName === roomName) return;
+
+      disconnectLiveRoom();
+      const room = new livekit.Room();
+      room.on(livekit.RoomEvent.Disconnected, () => {
+        const suppressed = suppressLiveRoomDisconnectHandler;
+        suppressLiveRoomDisconnectHandler = false;
+        liveRoom = null;
+        liveRoomName = null;
+        if (suppressed) return;
+        state.livePreviewState = 'preview';
+        renderLiveStage();
+      });
+      await room.connect(wsUrl, token, { autoSubscribe: false });
+      liveRoom = room;
+      liveRoomName = roomName;
+      await wait(1000);
+      await publishTrackWithRetry(room, localVideoTrack, livekit.Track.Kind.Video);
+      await publishTrackWithRetry(room, localAudioTrack, livekit.Track.Kind.Audio, true);
+    }
+
+    function disconnectLiveRoom() {
+      const room = liveRoom;
+      if (room) suppressLiveRoomDisconnectHandler = true;
+      try { room?.disconnect(); } catch {}
+      liveRoom = null;
+      liveRoomName = null;
+    }
+
+    async function loadCurrentLiveSession(sid) {
+      if (!sid) {
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+        disconnectLiveRoom();
+        releasePreviewMedia();
+        renderLiveStage();
+        return;
+      }
+      const res = await fetch(`/api/organizations/${base.orgId}/live-sessions/current?sid=${encodeURIComponent(sid)}`, { credentials: 'same-origin' });
+      if (!res.ok) {
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+        disconnectLiveRoom();
+        releasePreviewMedia();
+        renderLiveStage();
+        return;
+      }
+      const session = await res.json();
+      state.liveSession = session;
+      if (!session) {
+        state.livePreviewState = 'idle';
+        disconnectLiveRoom();
+        releasePreviewMedia();
+        renderLiveStage();
+        return;
+      }
+      if (session.status === 'live') {
+        await ensurePreviewMedia();
+        if (liveRoomName !== (session.room_name || session.roomName) || state.livePreviewState !== 'live') {
+          await connectManagerRoom(session);
+        }
+        state.livePreviewState = 'live';
+      } else if (session.status === 'preview') {
+        await ensurePreviewMedia();
+        disconnectLiveRoom();
+        state.livePreviewState = 'preview';
+      } else {
+        disconnectLiveRoom();
+        releasePreviewMedia();
+        state.livePreviewState = 'idle';
+      }
+      renderLiveStage();
+    }
+
     function updateOverview() {
       const visible = visibleLeads();
       els.leadCount.textContent = String(state.leads.length);
@@ -849,6 +1133,7 @@
       els.surveyCount.textContent = String(state.leads.filter(l => l.status === 'SURVEY').length);
       els.openChatCount.textContent = String(state.leads.filter(l => l.status === 'OPEN_CHAT').length);
       els.humanCount.textContent = String(state.leads.filter(l => l.status === 'HUMAN_TAKEOVER').length);
+      renderLiveStage();
     }
 
     function renderLeadList() {
@@ -888,16 +1173,12 @@
       if (!lead) {
         els.leadDetail.style.display = 'none';
         els.leadDetailEmpty.style.display = 'block';
-        els.selectedLeadLabel.textContent = 'None yet';
-        els.stageTitle.textContent = 'Select a lead to prepare takeover from the dashboard.';
         return;
       }
       els.leadDetail.style.display = 'grid';
-      els.leadDetailEmpty.style.display = 'block';
       els.leadDetailEmpty.style.display = 'none';
-      els.selectedLeadLabel.textContent = `${lead.name} · ${lead.sid}`;
-      els.stageTitle.textContent = lead.takeoverActive ? `Human takeover active for ${lead.name}.` : `Ready to start takeover for ${lead.name}.`;
       els.leadName.textContent = lead.name;
+      renderLiveStage();
       els.takeoverSend.textContent = lead.takeoverActive ? 'Send manager reply' : 'Start takeover + send message';
       els.takeoverEnd.style.display = lead.takeoverActive ? 'inline-flex' : 'none';
       els.leadStatusRow.innerHTML = `
@@ -926,9 +1207,17 @@
       if (state.selectedSid && !state.leads.some(l => l.sid === state.selectedSid)) {
         state.selectedSid = '';
         state.messages = [];
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+        disconnectLiveRoom();
+        releasePreviewMedia();
       }
       renderLeadList();
-      if (state.selectedSid) await loadMessages(state.selectedSid); else renderThread();
+      if (state.selectedSid) {
+        await loadMessages(state.selectedSid);
+      } else {
+        renderThread();
+      }
     }
 
     async function loadMessages(sid) {
@@ -939,9 +1228,14 @@
     }
 
     async function selectLead(sid) {
+      showLiveError('');
       if (state.selectedSid === sid) {
         state.selectedSid = '';
         state.messages = [];
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+        disconnectLiveRoom();
+        releasePreviewMedia();
         updateHistory('leads');
         renderLeadList();
         renderThread();
@@ -952,7 +1246,94 @@
       updateHistory('leads', { sid });
       renderLeadList();
       await loadMessages(sid);
+      await loadCurrentLiveSession(sid);
       state.since = 0;
+    }
+
+    async function startLivePreview() {
+      const lead = selectedLead();
+      if (!lead) return;
+      showLiveError('');
+      state.liveSessionLoading = true;
+      renderLiveStage();
+      try {
+        await ensurePreviewMedia();
+        const res = await fetch(`/api/organizations/${base.orgId}/live-sessions/preview`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sid: lead.sid })
+        });
+        if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to start live preview.'));
+        state.liveSession = await res.json();
+        state.livePreviewState = 'preview';
+      } catch (error) {
+        showLiveError(error?.message || 'Failed to start live preview.');
+        disconnectLiveRoom();
+        releasePreviewMedia();
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+      } finally {
+        state.liveSessionLoading = false;
+        renderLiveStage();
+      }
+    }
+
+    async function goLive() {
+      const lead = selectedLead();
+      if (!lead) return;
+      showLiveError('');
+      state.liveSessionLoading = true;
+      renderLiveStage();
+      try {
+        await ensurePreviewMedia();
+        const res = await fetch(`/api/organizations/${base.orgId}/live-sessions/go-live`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sid: lead.sid })
+        });
+        if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to go live.'));
+        const session = await res.json();
+        state.liveSession = session;
+        await connectManagerRoom(session);
+        state.livePreviewState = 'live';
+      } catch (error) {
+        showLiveError(error?.message || 'Failed to go live.');
+        if (lead?.sid) {
+          try { await loadCurrentLiveSession(lead.sid); } catch {}
+        }
+      } finally {
+        state.liveSessionLoading = false;
+        renderLiveStage();
+      }
+    }
+
+    async function endLive() {
+      const lead = selectedLead();
+      if (!lead || !state.liveSession?.id) return;
+      showLiveError('');
+      state.liveSessionLoading = true;
+      renderLiveStage();
+      try {
+        const res = await fetch(`/api/organizations/${base.orgId}/live-sessions/${encodeURIComponent(state.liveSession.id)}/end`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sid: lead.sid })
+        });
+        if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to end live help.'));
+        await res.json();
+        disconnectLiveRoom();
+        releasePreviewMedia();
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+      } catch (error) {
+        showLiveError(error?.message || 'Failed to end live help.');
+      } finally {
+        state.liveSessionLoading = false;
+        renderLiveStage();
+      }
     }
 
     async function sendTakeoverMessage() {
@@ -1002,6 +1383,10 @@
       if (state.selectedSid === sid) {
         state.selectedSid = '';
         state.messages = [];
+        state.liveSession = null;
+        state.livePreviewState = 'idle';
+        disconnectLiveRoom();
+        releasePreviewMedia();
       }
       await loadLeads();
     }
@@ -1010,10 +1395,19 @@
       const res = await fetch(`/chat-events/poll?sid=*&tenantSlug=${encodeURIComponent(base.orgSlug)}&since=${state.since}&timeout=20`, { credentials: 'same-origin' });
       if (res.ok) {
         const data = await res.json();
+        const events = data.events || [];
         state.since = Math.max(state.since, data.next || 0);
-        if ((data.events || []).length) {
+        if (events.length) {
           await loadLeads();
-          if (state.selectedSid) await loadMessages(state.selectedSid);
+          if (state.selectedSid) {
+            const selectedEvents = events.filter(evt => evt.sid === state.selectedSid);
+            if (selectedEvents.length) {
+              await loadMessages(state.selectedSid);
+            }
+            if (selectedEvents.some(evt => evt.type === 'live_session.live' || evt.type === 'live_session.ended')) {
+              await loadCurrentLiveSession(state.selectedSid);
+            }
+          }
         }
       }
       setTimeout(poll, 300);
@@ -1036,6 +1430,9 @@
       if (!card) return;
       selectLead(card.dataset.selectSid);
     });
+    els.startPreviewBtn.addEventListener('click', startLivePreview);
+    els.goLiveBtn.addEventListener('click', goLive);
+    els.endLiveBtn.addEventListener('click', endLive);
     els.takeoverSend.addEventListener('click', sendTakeoverMessage);
     els.takeoverEnd.addEventListener('click', endTakeover);
     els.leadDeleteTop.addEventListener('click', () => state.selectedSid && deleteLead(state.selectedSid));
@@ -1046,7 +1443,10 @@
       }
     });
 
-    loadLeads().finally(poll);
+    renderLiveStage();
+    loadLeads().then(async () => {
+      if (state.selectedSid) await loadCurrentLiveSession(state.selectedSid);
+    }).finally(poll);
   }
 
   function initQualifiers() {

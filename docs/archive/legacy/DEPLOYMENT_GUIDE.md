@@ -1,4 +1,4 @@
-# ACE Real Estate - Deployment Guide
+# ACE e-Counter - Deployment Guide
 
 ## Prerequisites
 - A VPS or cloud server (Ubuntu 20.04+ recommended)
@@ -160,7 +160,7 @@ db = SessionLocal()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create organization
-org = Organization(slug="demo-agency", name="Demo Real Estate Agency", active=True)
+org = Organization(slug="demo-agency", name="Demo e-Counter Agency", active=True)
 db.add(org)
 db.commit()
 db.refresh(org)

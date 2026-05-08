@@ -1,5 +1,5 @@
 <!-- Created: 2026-03-14T20:44:39Z -->
-# Architecture — ACE Real Estate
+# Architecture — ACE e-Counter
 
 System overview
 ```mermaid

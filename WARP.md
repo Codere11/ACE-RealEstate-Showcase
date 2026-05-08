@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-ACE Real Estate is a comprehensive multi-tenant real estate lead generation and management system. It combines a Python FastAPI backend with multiple Angular frontends, providing chatbot functionality, lead management, and administrative interfaces.
+ACE e-Counter is a comprehensive multi-tenant visitor-intake, lead-qualification, and operator-handoff system. It combines a Python FastAPI backend with multiple Angular frontends, providing chatbot functionality, lead management, and administrative interfaces.
 
 **Technology Stack:**
 - Backend: FastAPI (Python 3.x) with SQLAlchemy ORM
@@ -126,7 +126,7 @@ Each Angular app is independent with its own package.json and can run on differe
 
 ### Multi-Tenant System
 
-The system supports multiple real estate agencies (tenants):
+The system supports multiple tenant organizations:
 - Each tenant has isolated data and conversation flows
 - Admin users can manage all tenants
 - Manager users are restricted to their tenant

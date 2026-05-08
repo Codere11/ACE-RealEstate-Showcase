@@ -1,6 +1,6 @@
 # Docker Deployment Guide
 
-Complete guide for deploying ACE Real Estate platform using Docker.
+Complete guide for deploying ACE e-Counter platform using Docker.
 
 ## Prerequisites
 

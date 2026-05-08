@@ -1,6 +1,6 @@
 # HOW-TO: Profile Picture Upload
 
-This guide explains how managers can upload and change their profile pictures in the ACE Real Estate Manager Dashboard.
+This guide explains how managers can upload and change their profile pictures in the ACE e-Counter Manager Dashboard.
 
 ## For End Users (Managers)
 

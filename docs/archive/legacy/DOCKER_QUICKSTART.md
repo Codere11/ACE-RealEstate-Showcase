@@ -1,6 +1,6 @@
 # Docker Quick Start
 
-Get ACE Real Estate running in 5 minutes.
+Get ACE e-Counter running in 5 minutes.
 
 ## Prerequisites
 

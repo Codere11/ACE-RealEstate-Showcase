@@ -12,7 +12,7 @@ from app.api import survey_flow
 from app.services.bootstrap_db import create_all
 
 # New multi-tenant API endpoints
-from app.api import organizations, users, surveys, public_survey, avatar, org_avatar, qualifiers, public_qualifiers, payments, public_payments, payment_settings, public_payment_settings, stripe_webhooks, live_sessions, public_live_sessions, internal_qualifier_runtime
+from app.api import organizations, users, surveys, public_survey, avatar, org_avatar, qualifiers, public_qualifiers, payments, public_payments, payment_settings, public_payment_settings, stripe_webhooks, live_sessions, public_live_sessions, internal_qualifier_runtime, internal_live_sessions
 from app.auth import routes as auth_routes
 
 # 👉 NEW: portal imports (adds login/admin/manager + public flow + static mounting)
@@ -103,6 +103,7 @@ app.include_router(stripe_webhooks.router)    # /api/payments/webhooks/stripe
 app.include_router(avatar.router)             # /api/users/me/avatar
 app.include_router(org_avatar.router)         # /api/organizations/{slug}/avatar
 app.include_router(internal_qualifier_runtime.router)  # /api/internal/qualifier-runtime/*
+app.include_router(internal_live_sessions.router)      # /api/internal/live-sessions/*
 
 logger.info("Routers registered.")
 

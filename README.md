@@ -56,9 +56,9 @@ Exists to make qualification configurable and useful instead of hardcoded.
 
 It gives the manager:
 - structured lead profile updates
-- deterministic scoring and banding
-- confidence and reasoning
+- confidence, reasoning, and supporting business context
 - takeover/video eligibility signals
+- a fixed, product-owned qualification runtime with a safer policy editor in the dashboard
 
 ### 3. Manager dashboard
 Exists to make the system operational, not just conversational.
@@ -112,7 +112,7 @@ The project is currently coherent enough to demo this end-to-end story:
 ## Product Demo
 ### 1) Survey Intake
 ![Survey intake screen](docs/media/chatbot-survey-screen.png)
-User can still start with a short property questionnaire when no active AI qualifier is configured.
+User can still start with a short intake questionnaire when no active AI qualifier is configured.
 
 ### 2) Open AI Qualification Chat
 ![Chat follow-up screen](docs/media/chatbot-chat-screen.png)
@@ -120,7 +120,7 @@ When an organization has a live qualifier, the chatbot starts directly in free-t
 
 ### 3) Manager Dashboard
 ![Manager dashboard screen](docs/media/dashboard-leads-screen.png)
-Managers can configure qualifiers, inspect lead quality, and send payment requests.
+Managers can configure ACE e-Counter qualification policy, inspect lead quality, and send payment requests.
 
 ### 4) Screencast
 - [Watch product walkthrough video (WebM)](docs/media/ace-demo-1min.webm)
@@ -129,7 +129,8 @@ Managers can configure qualifiers, inspect lead quality, and send payment reques
 ### Implemented now
 - multi-tenant organizations, users, surveys, qualifiers, and lead profiles
 - manager-driven AI qualifier resource with CRUD + publish/archive flow
-- qualifier runtime with `extract -> score -> reply`
+- redesigned dashboard qualifier editor organized around Offer / Learn / Next step policy / Graph view
+- fixed minimal LangGraph runtime with `interpret_turn -> decide_next_step -> persist`
 - live qualifier-aware chatbot entry mode
 - dashboard lead visibility for score, confidence, reasoning, takeover/video flags
 - live-help session shell with manager preview/live controls and visitor-side live stage
@@ -201,7 +202,8 @@ Useful demo routes:
 - API route overview: `docs/API_OVERVIEW.md`
 
 ### Core feature docs
-- AI qualifier spec: `docs/AI_QUALIFIER_SPEC.md`
+- AI qualifier implementation/runtime spec: `docs/AI_QUALIFIER_SPEC.md`
+- ACE e-Counter qualification funnel/product spec: `docs/ACE_ECOUNTER_QUALIFICATION_SPEC.md`
 - Live help spec: `docs/LIVE_HELP_SPEC.md`
 - Data contracts: `docs/DATA_CONTRACTS.md`
 - Live events: `docs/EVENTS.md`

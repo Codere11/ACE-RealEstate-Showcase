@@ -60,7 +60,7 @@ GET /api/organizations/{org_slug}/avatar
 Response:
 {
   "avatar_url": "/static/avatars/abc123.png",
-  "organization_name": "ACME Real Estate"
+  "organization_name": "ACME e-Counter"
 }
 ```
 

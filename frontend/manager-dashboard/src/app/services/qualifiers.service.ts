@@ -8,7 +8,7 @@ import { Qualifier, QualifierCreate, QualifierUpdate } from '../models/qualifier
   providedIn: 'root'
 })
 export class QualifiersService {
-  private apiUrl = 'http://localhost:8000/api/organizations';
+  private apiUrl = '/api/organizations';
 
   constructor(
     private http: HttpClient,

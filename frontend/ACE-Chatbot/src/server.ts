@@ -22,7 +22,7 @@ const angularApp = new AngularNodeAppEngine();
 app.use((req, res, next) => {
   res.setHeader(
   'Content-Security-Policy',
-  "default-src 'self'; connect-src 'self' http://localhost:8000; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self';"
+  "default-src 'self'; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 ws://localhost:7880 ws://127.0.0.1:7880; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self';"
 );
 
   next();

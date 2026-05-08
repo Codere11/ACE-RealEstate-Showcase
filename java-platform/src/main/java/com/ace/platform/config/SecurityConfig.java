@@ -1,5 +1,6 @@
 package com.ace.platform.config;
 
+import com.ace.platform.auth.BearerTokenAuthenticationFilter;
 import com.ace.platform.auth.RoleBasedAuthenticationSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,30 +9,36 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
 
     private final RoleBasedAuthenticationSuccessHandler roleBasedAuthenticationSuccessHandler;
+    private final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter;
 
-    public SecurityConfig(RoleBasedAuthenticationSuccessHandler roleBasedAuthenticationSuccessHandler) {
+    public SecurityConfig(
+        RoleBasedAuthenticationSuccessHandler roleBasedAuthenticationSuccessHandler,
+        BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter
+    ) {
         this.roleBasedAuthenticationSuccessHandler = roleBasedAuthenticationSuccessHandler;
+        this.bearerTokenAuthenticationFilter = bearerTokenAuthenticationFilter;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/chat", "/chat/", "/chat/staff", "/chat/staff/", "/chat-events/**", "/api/organizations/**")
-            )
+            .cors(cors -> {})
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/", "/*", "/*/survey/*", "/actuator/health", "/chat-events/poll", "/api/public/organizations/*/leads/*/messages", "/api/public/organizations/*/surveys/*", "/api/public/organizations/*/qualifier-active", "/css/**", "/js/**", "/images/**").permitAll()
-                .requestMatchers(HttpMethod.HEAD, "/", "/*", "/*/survey/*", "/actuator/health", "/chat-events/poll", "/api/public/organizations/*/leads/*/messages", "/api/public/organizations/*/surveys/*", "/api/public/organizations/*/qualifier-active", "/css/**", "/js/**", "/images/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/chat", "/chat/", "/*/survey/*/send").permitAll()
-                .requestMatchers("/login").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/", "/demo", "/*", "/*/survey/*", "/login", "/actuator/health", "/chat-events/poll", "/api/public/**", "/s/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.HEAD, "/", "/demo", "/*", "/*/survey/*", "/login", "/actuator/health", "/chat-events/poll", "/api/public/**", "/s/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/chat", "/chat/", "/chat/staff", "/chat/staff/", "/chat/survey/submit", "/api/public/chat", "/api/public/chat/**", "/*/survey/*/send", "/api/auth/login").permitAll()
                 .requestMatchers("/admin/**").hasRole("PLATFORM_ADMIN")
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .formLogin(form -> form
                 .successHandler(roleBasedAuthenticationSuccessHandler)
             )

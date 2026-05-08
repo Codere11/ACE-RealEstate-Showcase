@@ -1,6 +1,6 @@
-# ACE Real Estate - Docker Deployment
+# ACE e-Counter - Docker Deployment
 
-Complete Docker setup for the ACE Real Estate multi-tenant SaaS platform.
+Complete Docker setup for the ACE e-Counter multi-tenant SaaS platform.
 
 ## 📦 What's Included
 

@@ -7,7 +7,7 @@ export type ChatEvent = { type: string; sid: string; ts: number; payload: any; _
 
 @Injectable({ providedIn: 'root' })
 export class LiveEventsService implements OnDestroy {
-  private base = 'http://localhost:8000/chat-events';
+  private base = '/chat-events';
   private sub?: Subscription;
   private nextSeq = 0;
   private topic = '*';

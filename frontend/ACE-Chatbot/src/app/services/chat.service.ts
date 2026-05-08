@@ -38,7 +38,7 @@ export interface ChatResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
-  private base = 'http://localhost:8000';
+  private base = '';
 
   constructor(private http: HttpClient) {
     console.debug('[FE][ChatService] init', { base: this.base });

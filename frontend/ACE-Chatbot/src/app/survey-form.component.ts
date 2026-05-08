@@ -345,7 +345,7 @@ interface SurveyFlow {
 export class SurveyFormComponent implements OnInit, OnDestroy, OnChanges {
   @Input() flow: SurveyFlow | null = null;
   @Input() sid: string = '';
-  @Input() backendUrl: string = 'http://localhost:8000';
+  @Input() backendUrl: string = '';
   @Input() orgSlug: string | null = null;
   @Input() surveySlug: string | null = null;
   @Output() completed = new EventEmitter<void>();
@@ -635,7 +635,7 @@ export class SurveyFormComponent implements OnInit, OnDestroy, OnChanges {
     };
 
     const response = await this.http.post<any>(
-      `${this.backendUrl}/chat/survey/submit`,
+      `${this.backendUrl}/api/public/chat/survey/submit`,
       payload
     ).toPromise();
 

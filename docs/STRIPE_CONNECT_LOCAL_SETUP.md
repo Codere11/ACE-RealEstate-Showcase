@@ -1,6 +1,6 @@
 # Stripe Connect Local Setup
 
-This document describes the intended local-development setup for **Stripe Connect Standard** in ACE Real Estate.
+This document describes the intended local-development setup for **Stripe Connect Standard** in ACE e-Counter.
 
 ## Goal
 The goal is:

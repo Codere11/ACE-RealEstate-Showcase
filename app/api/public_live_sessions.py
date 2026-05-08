@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
@@ -15,6 +15,7 @@ router = APIRouter(tags=["public-live-sessions"])
 @router.get("/api/public/organizations/{org_slug}/live-session", response_model=PublicLiveSessionResponse)
 def get_public_live_session(
     org_slug: str,
+    request: Request,
     sid: str = Query(..., min_length=1, max_length=64),
     db: Session = Depends(get_db),
 ):
@@ -23,7 +24,7 @@ def get_public_live_session(
         raise HTTPException(status_code=404, detail="Organization not found")
     state = live_session_service.public_state(db, organization_id=organization.id, sid=sid)
     if state.get("status") == "live" and state.get("room_name"):
-        state["ws_url"] = livekit_service.ws_url
+        state["ws_url"] = livekit_service.resolved_ws_url(request.headers.get("host"), request.headers.get("x-forwarded-proto", request.url.scheme))
         state["token"] = livekit_service.visitor_token(
             room_name=state["room_name"],
             identity=f"visitor-sid-{sid}",

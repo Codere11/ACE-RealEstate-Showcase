@@ -1,5 +1,8 @@
 # AI Qualifier Spec
 
+See also:
+- `docs/ACE_ECOUNTER_QUALIFICATION_SPEC.md` — product-facing qualification funnel redesign for ACE e-Counter
+
 ## Status
 ### Implemented first step (2026-04-30)
 The current implementation now supports a real, manager-driven qualifier flow instead of forcing users into the survey first.
@@ -9,12 +12,11 @@ Implemented now:
 - qualifier CRUD + publish/archive lifecycle
 - public active-qualifier detection per organization
 - chatbot entry-mode switch: when a live qualifier exists, chat starts in open free-text mode
-- manager dashboard qualifier management UI
+- redesigned manager dashboard qualifier editor around Offer / Learn / Next step policy / Graph view
 - manager lead-profile visibility with score / confidence / reasoning / takeover flags
-- LLM-backed structured extraction
-- deterministic scoring / banding / takeover decisions
-- LLM-backed assistant reply generation
-- lightweight LangGraph runtime with `extract -> score -> reply`
+- thin JSON-only LLM client behind a fixed qualifier runtime
+- minimal LangGraph runtime with `interpret_turn -> decide_next_step -> persist`
+- supporting quotes / grounded business context carried into qualification state
 
 Not implemented yet:
 - grounded listing/inventory retrieval
@@ -68,6 +70,8 @@ Use **LangChain Core** utilities only where helpful:
 ### Avoid
 Do not build a fully open-ended agent loop for qualification. Qualification should be a **controlled graph**, not an autonomous agent.
 
+Also do not turn the manager dashboard into a freeform graph-programming UI. The runtime graph should stay product-owned; the dashboard should edit qualification policy safely.
+
 ## System Boundaries
 ### Source of truth
 - Qualifier config: database
@@ -118,34 +122,35 @@ The qualifier runs:
 - after explicit contact submission
 - before takeover offer decision
 
-## Runtime graph (recommended LangGraph shape)
+## Runtime graph (current implemented shape)
 ### Current implemented graph
-1. **Extract**
-   - collect recent chat window
-   - combine heuristic extraction with LLM structured extraction
-   - merge partial fields into the stored lead profile
-   - store field-level confidence and reasoning hints
-2. **Score**
-   - apply deterministic scoring rules / thresholds
-   - compute `qualification_score`
-   - compute `band` (`hot`, `warm`, `cold`)
-   - compute `takeover_eligible` and `video_offer_eligible`
-   - determine missing required fields and recommended next action
-3. **Reply**
-   - generate the next assistant response with the LLM
-   - use qualifier config, recent conversation, known profile, missing fields, and takeover state
-   - answer the user's message first when possible
-   - ask at most one useful follow-up when more information is needed
-4. **Persist + emit events**
+1. **Interpret turn**
+   - read recent chat window with roles
+   - classify the conversation type
+   - update business context and ACE fit in one semantic pass
+   - keep supporting quotes close to the interpreted meaning
+2. **Decide next step**
+   - choose the next action
+   - choose the next question when needed
+   - write the assistant reply
+   - emit operator-facing metadata such as score / band / confidence / takeover flags
+3. **Persist + emit events**
    - save lead profile
    - save qualifier run audit
    - publish live events
 
-### Next graph extension
-Optional next nodes can be inserted cleanly before reply generation:
-- **Retrieve tenant context** for grounded availability / listing / FAQ answers
-- **Offer takeover** for non-intrusive human escalation
-- **Offer video** when the qualifier and lead state justify it
+### Why this shape is used now
+- smaller prompt surface
+- fewer semantic hops
+- less paraphrase drift
+- safer editor/runtime separation
+- easier to debug than a many-node qualifier graph
+
+### Possible later extension points
+If the product genuinely needs them later, the fixed graph can grow with carefully bounded nodes such as:
+- **Retrieve tenant context** for grounded FAQ / inventory answers
+- **Confirm meaning** for ambiguous short turns
+- **Offer takeover** as a dedicated action step
 
 ## Effortless User Experience Requirements
 The qualifier must optimize for low friction:
@@ -323,12 +328,12 @@ Phase 1:
 - ✅ completed
 
 Phase 2:
-- LLM structured extraction
+- semantic turn interpretation
 - field confidence
 - explanations
 - event-driven dashboard updates
-- LLM-generated assistant replies
-- lightweight LangGraph orchestration
+- LLM-generated next-step decisions and replies
+- fixed minimal LangGraph orchestration
 - ✅ mostly completed as the current first production-ready step
 
 Phase 3:

@@ -3,7 +3,7 @@
 How to present this repository as a flagship portfolio project.
 
 ## 30-Second Pitch
-ACE Real Estate is a multi-tenant lead qualification platform that automates customer intake, lead scoring, and operator handoff.  
+ACE e-Counter is a multi-tenant lead qualification platform that automates customer intake, lead scoring, and operator handoff.  
 It combines a FastAPI backend, PostgreSQL, and three Angular frontends, and runs locally with Docker Compose.
 
 ## What to Emphasize in Applications

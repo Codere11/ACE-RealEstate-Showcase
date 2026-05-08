@@ -1,4 +1,4 @@
-# Backend Dockerfile for ACE Real Estate FastAPI
+# Backend Dockerfile for ACE e-Counter FastAPI
 FROM python:3.11-slim
 
 # Set working directory

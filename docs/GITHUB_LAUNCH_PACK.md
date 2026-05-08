@@ -1,6 +1,6 @@
 <!-- Created: 2026-04-18T12:20:22Z -->
 # GitHub Launch Pack
-Use this to present ACE Real Estate as your flagship repository.
+Use this to present ACE e-Counter as your flagship repository.
 
 ## 1) Suggested GitHub Bio
 `Junior Python/Backend developer building production-style SaaS systems with FastAPI, PostgreSQL, Docker, and Angular.`
