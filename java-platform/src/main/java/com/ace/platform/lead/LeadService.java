@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,6 +62,12 @@ public class LeadService {
     }
 
     @Transactional
+    public Lead markOpenChat(Lead lead) {
+        lead.setStatus(LeadStatus.OPEN_CHAT);
+        return leadRepository.save(lead);
+    }
+
+    @Transactional
     public Lead activateTakeover(Lead lead, User user) {
         lead.setTakeoverActive(true);
         lead.setStatus(LeadStatus.HUMAN_TAKEOVER);
@@ -73,6 +80,29 @@ public class LeadService {
     public Lead endTakeover(Lead lead) {
         lead.setTakeoverActive(false);
         lead.setStatus(LeadStatus.OPEN_CHAT);
+        return leadRepository.save(lead);
+    }
+
+    @Transactional
+    public Lead applyQualifierResult(
+        Lead lead,
+        Map<String, Object> profile,
+        List<String> missingFields,
+        Integer qualificationScore,
+        String qualificationBand,
+        Double confidenceOverall,
+        String reasoning,
+        boolean takeoverEligible,
+        boolean videoOfferEligible
+    ) {
+        lead.setQualifierProfile(profile);
+        lead.setQualifierMissingFields(missingFields);
+        lead.setQualificationScore(qualificationScore);
+        lead.setQualificationBand(qualificationBand);
+        lead.setConfidenceOverall(confidenceOverall);
+        lead.setQualificationReasoning(reasoning);
+        lead.setTakeoverEligible(takeoverEligible);
+        lead.setVideoOfferEligible(videoOfferEligible);
         return leadRepository.save(lead);
     }
 

@@ -4,6 +4,7 @@ import com.ace.platform.chat.TakeoverService;
 import com.ace.platform.conversation.ConversationService;
 import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
+import com.ace.platform.qualifier.QualifierService;
 import com.ace.platform.survey.Survey;
 import com.ace.platform.survey.SurveyService;
 import com.ace.platform.tenant.TenantRouteService;
@@ -31,6 +32,7 @@ public class OrganizationDashboardController {
     private final ConversationService conversationService;
     private final TakeoverService takeoverService;
     private final SurveyService surveyService;
+    private final QualifierService qualifierService;
 
     public OrganizationDashboardController(
         TenantRouteService tenantRouteService,
@@ -38,7 +40,8 @@ public class OrganizationDashboardController {
         LeadService leadService,
         ConversationService conversationService,
         TakeoverService takeoverService,
-        SurveyService surveyService
+        SurveyService surveyService,
+        QualifierService qualifierService
     ) {
         this.tenantRouteService = tenantRouteService;
         this.userRepository = userRepository;
@@ -46,6 +49,7 @@ public class OrganizationDashboardController {
         this.conversationService = conversationService;
         this.takeoverService = takeoverService;
         this.surveyService = surveyService;
+        this.qualifierService = qualifierService;
     }
 
     @GetMapping("/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}/dashboard")
@@ -54,6 +58,7 @@ public class OrganizationDashboardController {
         @RequestParam(name = "tab", defaultValue = "leads") String tab,
         @RequestParam(name = "sid", required = false) String sid,
         @RequestParam(name = "surveyId", required = false) Long surveyId,
+        @RequestParam(name = "qualifierId", required = false) Long qualifierId,
         Model model,
         Principal principal,
         HttpServletResponse response
@@ -99,11 +104,17 @@ public class OrganizationDashboardController {
 
         String activeTab = normalizeTab(tab);
         Long effectiveSurveyId = surveyId;
+        Long effectiveQualifierId = qualifierId;
         if ("surveys".equals(activeTab)) {
             Survey currentSurvey = surveyService.ensureDefaultSurvey(organization);
             if (effectiveSurveyId == null) {
                 effectiveSurveyId = currentSurvey.getId();
             }
+        }
+        if ("qualifier".equals(activeTab) && effectiveQualifierId == null) {
+            effectiveQualifierId = qualifierService.findDefaultSelection(organization.getId())
+                .map(q -> q.getId())
+                .orElse(null);
         }
 
         model.addAttribute("organization", organization);
@@ -113,6 +124,7 @@ public class OrganizationDashboardController {
         model.addAttribute("orgUserCount", userRepository.countByOrganizationId(organization.getId()));
         model.addAttribute("selectedLeadSid", sid);
         model.addAttribute("selectedSurveyId", effectiveSurveyId);
+        model.addAttribute("selectedQualifierId", effectiveQualifierId);
         return "organization/dashboard";
     }
 

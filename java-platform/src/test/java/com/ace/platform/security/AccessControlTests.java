@@ -10,6 +10,8 @@ import com.ace.platform.lead.LeadRepository;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.qualifier.QualifierChatService;
+import com.ace.platform.qualifier.QualifierService;
 import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
@@ -77,6 +79,12 @@ class AccessControlTests {
 
     @MockBean
     private SurveyService surveyService;
+
+    @MockBean
+    private QualifierService qualifierService;
+
+    @MockBean
+    private QualifierChatService qualifierChatService;
 
     @Test
     @WithMockUser(username = "orgadmin", roles = "ORG_ADMIN")

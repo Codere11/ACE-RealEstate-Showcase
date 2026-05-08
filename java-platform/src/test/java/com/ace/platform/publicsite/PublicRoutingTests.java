@@ -11,6 +11,8 @@ import com.ace.platform.lead.LeadRepository;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.qualifier.QualifierChatService;
+import com.ace.platform.qualifier.QualifierService;
 import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -105,6 +108,12 @@ class PublicRoutingTests {
     @MockBean
     private SurveyService surveyService;
 
+    @MockBean
+    private QualifierService qualifierService;
+
+    @MockBean
+    private QualifierChatService qualifierChatService;
+
     @Test
     void rootRouteLoads() throws Exception {
         mockMvc.perform(get("/"))
@@ -117,6 +126,7 @@ class PublicRoutingTests {
         Organization organization = new Organization("Demo Agency", "demo", true);
         when(organizationRepository.findBySlugAndActiveTrue("demo"))
             .thenReturn(Optional.of(organization));
+        when(qualifierService.findActive(anyLong())).thenReturn(Optional.empty());
         when(leadService.getOrCreateLead(organization, null, "start"))
             .thenReturn(leadFor(organization, "sid_demo"));
         when(surveyService.ensureDefaultSurveyDefinition(organization, "start"))
@@ -135,6 +145,7 @@ class PublicRoutingTests {
         Organization organization = new Organization("Acme Realty", "acme", true);
         when(organizationRepository.findBySlugAndActiveTrue("acme"))
             .thenReturn(Optional.of(organization));
+        when(qualifierService.findActive(anyLong())).thenReturn(Optional.empty());
         when(leadService.getOrCreateLead(organization, null, "start"))
             .thenReturn(leadFor(organization, "sid_acme"));
         when(surveyService.ensureDefaultSurveyDefinition(organization, "start"))
@@ -172,6 +183,7 @@ class PublicRoutingTests {
     void organizationDashboardRouteLoads() throws Exception {
         when(organizationRepository.findBySlugAndActiveTrue("demo"))
             .thenReturn(Optional.of(new Organization("Demo Agency", "demo", true)));
+        when(qualifierService.findActive(anyLong())).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/demo/dashboard"))
             .andExpect(status().is3xxRedirection());

@@ -164,8 +164,8 @@ public class SurveyService {
     @Transactional(readOnly = true)
     public SurveyDefinition ensureDefaultSurveyDefinition(Organization organization, String surveySlug) {
         if (surveySlug == null || surveySlug.isBlank() || "start".equalsIgnoreCase(surveySlug)) {
-            Survey survey = ensureDefaultSurvey(organization);
-            return toDefinition(surveyRepository.findById(survey.getId()).orElse(survey));
+            ensureDefaultSurvey(organization);
+            return getPublicSurveyDefinition(organization, "start");
         }
         return getPublicSurveyDefinition(organization, surveySlug);
     }

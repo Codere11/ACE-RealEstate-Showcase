@@ -7,6 +7,8 @@ import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.qualifier.QualifierChatService;
+import com.ace.platform.qualifier.QualifierService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,8 @@ public class ChatApiController {
     private final LeadService leadService;
     private final ConversationService conversationService;
     private final PublicChatService publicChatService;
+    private final QualifierService qualifierService;
+    private final QualifierChatService qualifierChatService;
     private final TakeoverService takeoverService;
     private final LeadEventService leadEventService;
 
@@ -42,6 +46,8 @@ public class ChatApiController {
         LeadService leadService,
         ConversationService conversationService,
         PublicChatService publicChatService,
+        QualifierService qualifierService,
+        QualifierChatService qualifierChatService,
         TakeoverService takeoverService,
         LeadEventService leadEventService
     ) {
@@ -50,6 +56,8 @@ public class ChatApiController {
         this.leadService = leadService;
         this.conversationService = conversationService;
         this.publicChatService = publicChatService;
+        this.qualifierService = qualifierService;
+        this.qualifierChatService = qualifierChatService;
         this.takeoverService = takeoverService;
         this.leadEventService = leadEventService;
     }
@@ -57,6 +65,26 @@ public class ChatApiController {
     @PostMapping({"/chat", "/chat/"})
     public ChatResponse chat(@RequestBody ChatRequest request) {
         Organization organization = resolveOrganization(request.tenant_slug(), request.meta());
+        boolean explicitSurveyMode = request.meta() != null
+            && request.meta().get("survey_slug") != null
+            && !request.meta().get("survey_slug").isBlank();
+        if (!explicitSurveyMode && qualifierService.findActive(organization.getId()).isPresent()) {
+            QualifierChatService.QualifierChatResult result = qualifierChatService.handleVisitorMessage(
+                organization,
+                request.sid(),
+                request.message()
+            );
+            return new ChatResponse(
+                result.sid(),
+                result.reply(),
+                "open",
+                false,
+                100,
+                null,
+                null,
+                null
+            );
+        }
         PublicChatService.ChatResult result = publicChatService.handleVisitorMessage(
             organization,
             request.sid(),

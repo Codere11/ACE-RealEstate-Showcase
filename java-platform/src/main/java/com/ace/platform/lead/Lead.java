@@ -11,8 +11,12 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "leads")
@@ -56,6 +60,32 @@ public class Lead extends BaseEntity {
 
     @Column(name = "takeover_active", nullable = false)
     private boolean takeoverActive;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "qualifier_profile", columnDefinition = "jsonb")
+    private Map<String, Object> qualifierProfile;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "qualifier_missing_fields", columnDefinition = "jsonb")
+    private List<String> qualifierMissingFields;
+
+    @Column(name = "qualification_score")
+    private Integer qualificationScore;
+
+    @Column(name = "qualification_band", length = 16)
+    private String qualificationBand;
+
+    @Column(name = "confidence_overall")
+    private Double confidenceOverall;
+
+    @Column(name = "qualification_reasoning", columnDefinition = "text")
+    private String qualificationReasoning;
+
+    @Column(name = "takeover_eligible", nullable = false)
+    private boolean takeoverEligible;
+
+    @Column(name = "video_offer_eligible", nullable = false)
+    private boolean videoOfferEligible;
 
     protected Lead() {
     }
@@ -163,5 +193,69 @@ public class Lead extends BaseEntity {
 
     public void setTakeoverActive(boolean takeoverActive) {
         this.takeoverActive = takeoverActive;
+    }
+
+    public Map<String, Object> getQualifierProfile() {
+        return qualifierProfile;
+    }
+
+    public void setQualifierProfile(Map<String, Object> qualifierProfile) {
+        this.qualifierProfile = qualifierProfile;
+    }
+
+    public List<String> getQualifierMissingFields() {
+        return qualifierMissingFields;
+    }
+
+    public void setQualifierMissingFields(List<String> qualifierMissingFields) {
+        this.qualifierMissingFields = qualifierMissingFields;
+    }
+
+    public Integer getQualificationScore() {
+        return qualificationScore;
+    }
+
+    public void setQualificationScore(Integer qualificationScore) {
+        this.qualificationScore = qualificationScore;
+    }
+
+    public String getQualificationBand() {
+        return qualificationBand;
+    }
+
+    public void setQualificationBand(String qualificationBand) {
+        this.qualificationBand = qualificationBand;
+    }
+
+    public Double getConfidenceOverall() {
+        return confidenceOverall;
+    }
+
+    public void setConfidenceOverall(Double confidenceOverall) {
+        this.confidenceOverall = confidenceOverall;
+    }
+
+    public String getQualificationReasoning() {
+        return qualificationReasoning;
+    }
+
+    public void setQualificationReasoning(String qualificationReasoning) {
+        this.qualificationReasoning = qualificationReasoning;
+    }
+
+    public boolean isTakeoverEligible() {
+        return takeoverEligible;
+    }
+
+    public void setTakeoverEligible(boolean takeoverEligible) {
+        this.takeoverEligible = takeoverEligible;
+    }
+
+    public boolean isVideoOfferEligible() {
+        return videoOfferEligible;
+    }
+
+    public void setVideoOfferEligible(boolean videoOfferEligible) {
+        this.videoOfferEligible = videoOfferEligible;
     }
 }

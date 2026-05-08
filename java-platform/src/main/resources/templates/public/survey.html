@@ -457,7 +457,6 @@
     if (!trimmed || state.sending) return;
     state.sending = true;
     if (state.takeoverActive) {
-      appendMessage('user', trimmed, Date.now());
       els.takeoverInput.value = '';
     } else {
       setChoicesDisabled(true);
@@ -484,7 +483,11 @@
         root.dataset.sid = data.sid;
         history.replaceState({}, '', `/${state.orgSlug}/survey/${state.surveySlug}?sid=${encodeURIComponent(data.sid)}`);
       }
-      applySurveyState(data);
+      if (state.takeoverActive) {
+        await loadThread();
+      } else {
+        applySurveyState(data);
+      }
     } finally {
       state.sending = false;
       if (!state.takeoverActive) setChoicesDisabled(false);

@@ -9,6 +9,8 @@ import com.ace.platform.events.LeadEventService;
 import com.ace.platform.lead.LeadRepository;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.qualifier.QualifierChatService;
+import com.ace.platform.qualifier.QualifierService;
 import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,12 @@ class JavaPlatformApplicationTests {
 
 	@MockBean
 	private SurveyService surveyService;
+
+	@MockBean
+	private QualifierService qualifierService;
+
+	@MockBean
+	private QualifierChatService qualifierChatService;
 
 	@Test
 	void contextLoads() {

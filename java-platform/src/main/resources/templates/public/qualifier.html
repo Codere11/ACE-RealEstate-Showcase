@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${organization.name} + ' · ACE e-Counter'">ACE e-Counter</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            color: #22252A;
+            background: #0C0D10;
+        }
+        .agent-hero {
+            padding: 14px 18px 8px;
+            background: radial-gradient(1200px 400px at 18% -80px, rgba(193,164,108,.12), transparent 60%), linear-gradient(180deg, #121417 0%, #0C0D10 70%);
+            border-bottom: 1px solid rgba(193,164,108,.18);
+            color: #F9FAFB;
+        }
+        .agent-hero__eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: rgba(249,250,251,.72); }
+        .agent-hero__title { margin: 6px 0 4px; font-size: clamp(20px, 2.4vw, 30px); font-weight: 800; }
+        .agent-hero__subtitle { margin: 0; color: rgba(249,250,251,.8); max-width: 46rem; }
+        .agent-page { padding: 12px 14px 20px; }
+        .chat-card {
+            max-width: 980px;
+            margin: 0 auto;
+            background: #FFF;
+            border: 1px solid #E6E2D6;
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(0,0,0,.35);
+            padding: 18px;
+            display: grid;
+            gap: 14px;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: #FBF5E7;
+            color: #7E663B;
+            font-weight: 800;
+            font-size: 12px;
+            width: fit-content;
+        }
+        .thread {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #F8F7F3;
+            border: 1px solid #E6E2D6;
+            min-height: 360px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .bubble {
+            max-width: 82%;
+            border-radius: 14px;
+            padding: 12px 14px;
+            border: 1px solid #E6E2D6;
+            background: #FFFFFF;
+        }
+        .bubble.user { margin-left: auto; background: #F4F8FF; border-color: #C8D9FF; }
+        .bubble.assistant, .bubble.staff { margin-right: auto; }
+        .bubble.staff { background: #FBF5E7; border-color: #E6D4A7; }
+        .bubble .meta {
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            font-weight: 700;
+            color: #6B7280;
+        }
+        .composer { display: grid; gap: 10px; }
+        .composer textarea {
+            width: 100%;
+            min-height: 110px;
+            border-radius: 14px;
+            border: 1px solid #D7D0C0;
+            padding: 14px;
+            font: inherit;
+            resize: vertical;
+        }
+        .composer-actions { display: flex; justify-content: flex-end; }
+        .btn {
+            padding: 12px 18px;
+            border-radius: 999px;
+            border: 1px solid #C1A46C;
+            background: #C1A46C;
+            color: #1E2126;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .btn:disabled { opacity: .6; cursor: wait; }
+        .muted { color: #6B7280; }
+    </style>
+</head>
+<body>
+<section class="agent-hero">
+    <div class="agent-hero__eyebrow" th:text="${organization.name}">Demo Agency</div>
+    <h1 class="agent-hero__title" th:text="${qualifierName} ?: 'ACE e-Counter'">ACE e-Counter</h1>
+    <p class="agent-hero__subtitle">Tell us about your business, how customers reach you today, and where the bottleneck is. We’ll guide the next step conversationally.</p>
+</section>
+
+<div class="agent-page" id="qualifier-app"
+     th:attr="data-org-slug=${organization.slug},data-sid=${sid},data-initial-message=${initialAssistantMessage}">
+    <div class="chat-card">
+        <div class="pill">Open qualifier mode</div>
+        <div id="thread" class="thread"></div>
+        <div class="composer">
+            <label for="chatInput" class="muted">Message</label>
+            <textarea id="chatInput" placeholder="Describe your business and what you want help with…"></textarea>
+            <div class="composer-actions">
+                <button id="chatSendButton" type="button" class="btn">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+(() => {
+  const root = document.getElementById('qualifier-app');
+  if (!root) return;
+
+  const state = {
+    orgSlug: root.dataset.orgSlug,
+    sid: root.dataset.sid,
+    initialMessage: root.dataset.initialMessage || '',
+    sending: false,
+    since: 0,
+    polling: false,
+    messageIds: new Set()
+  };
+
+  const els = {
+    thread: document.getElementById('thread'),
+    chatInput: document.getElementById('chatInput'),
+    chatSendButton: document.getElementById('chatSendButton')
+  };
+
+  function appendMessage(role, text, timestamp) {
+    const id = role + '|' + text + '|' + timestamp;
+    if (state.messageIds.has(id)) return;
+    state.messageIds.add(id);
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble ' + role;
+    bubble.innerHTML = `<div class="meta">${role}</div><div></div>`;
+    bubble.querySelector('div:last-child').textContent = text || '';
+    els.thread.appendChild(bubble);
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  async function loadThread() {
+    const res = await fetch(`/api/public/organizations/${encodeURIComponent(state.orgSlug)}/leads/${encodeURIComponent(state.sid)}/messages`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const items = await res.json();
+    els.thread.innerHTML = '';
+    state.messageIds.clear();
+    items.forEach(item => appendMessage(item.role, item.text, item.timestamp));
+    if (!items.length && state.initialMessage) {
+      appendMessage('assistant', state.initialMessage, 'init');
+    }
+  }
+
+  async function sendMessage() {
+    const text = (els.chatInput.value || '').trim();
+    if (!text || state.sending) return;
+    state.sending = true;
+    els.chatSendButton.disabled = true;
+    els.chatInput.value = '';
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sid: state.sid, message: text, tenant_slug: state.orgSlug, meta: { organization_slug: state.orgSlug } })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.sid && data.sid !== state.sid) {
+        state.sid = data.sid;
+        history.replaceState({}, '', `/${state.orgSlug}?sid=${encodeURIComponent(data.sid)}`);
+      }
+      await loadThread();
+    } finally {
+      state.sending = false;
+      els.chatSendButton.disabled = false;
+    }
+  }
+
+  async function poll() {
+    if (state.polling) return;
+    state.polling = true;
+    try {
+      const res = await fetch(`/chat-events/poll?sid=${encodeURIComponent(state.sid)}&tenantSlug=${encodeURIComponent(state.orgSlug)}&since=${state.since}&timeout=20`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+      (data.events || []).forEach(evt => {
+        state.since = Math.max(state.since, evt._seq || 0);
+        if (evt.type === 'message.created') {
+          appendMessage(evt.payload?.role || 'assistant', evt.payload?.text || '', evt.payload?.timestamp || evt.ts);
+        }
+      });
+      state.since = Math.max(state.since, data.next || state.since);
+    } finally {
+      state.polling = false;
+      setTimeout(poll, 250);
+    }
+  }
+
+  els.chatSendButton.addEventListener('click', sendMessage);
+  els.chatInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  });
+
+  loadThread().finally(poll);
+})();
+</script>
+</body>
+</html>

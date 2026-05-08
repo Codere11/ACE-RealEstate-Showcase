@@ -224,6 +224,58 @@
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
         }
+        .builder-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .builder-rows {
+            display: grid;
+            gap: 10px;
+        }
+        .builder-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #E6E2D6;
+            border-radius: 12px;
+            background: #F8F7F3;
+        }
+        .builder-row label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #6B7280;
+            display: grid;
+            gap: 4px;
+        }
+        .builder-row input, .builder-row select {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #D7D0C0;
+            background: #FFF;
+            padding: 10px 12px;
+        }
+        .helper-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .note-card {
+            border: 1px solid #E6E2D6;
+            border-radius: 14px;
+            background: #F8F7F3;
+            padding: 14px;
+            color: #4B5563;
+        }
+        .note-card strong {
+            display: block;
+            color: #121417;
+            margin-bottom: 8px;
+        }
         .thread-panel {
             margin-top: 18px;
             border: 1px solid #E6E2D6;
@@ -307,7 +359,7 @@
 
 <div class="dashboard-background">
     <div class="dashboard-container" id="dashboard-app"
-         th:attr="data-org-id=${organizationId},data-org-slug=${organization.slug},data-selected-sid=${selectedLeadSid},data-selected-survey-id=${selectedSurveyId},data-active-tab=${activeTab}">
+         th:attr="data-org-id=${organizationId},data-org-slug=${organization.slug},data-selected-sid=${selectedLeadSid},data-selected-survey-id=${selectedSurveyId},data-selected-qualifier-id=${selectedQualifierId},data-active-tab=${activeTab}">
         <h1 class="title">ACE e-Counter Intelligence</h1>
         <p class="subtitle"><span th:text="${organization.name}">Organization</span> · route <strong th:text="'/' + ${organization.slug}">/demo</strong></p>
 
@@ -534,10 +586,6 @@
                                 <input id="newQuestionTitle" type="text" placeholder="What kind of property are you interested in?">
                             </div>
                             <div class="field">
-                                <label for="newQuestionDescription">Description</label>
-                                <textarea id="newQuestionDescription" rows="3" placeholder="Optional helper text for the visitor."></textarea>
-                            </div>
-                            <div class="field">
                                 <label for="newQuestionPlaceholder">Placeholder</label>
                                 <input id="newQuestionPlaceholder" type="text" placeholder="Shown for short-text questions only.">
                             </div>
@@ -558,7 +606,146 @@
                 </main>
             </div>
         </section>
-        <section th:if="${activeTab == 'qualifier'}" class="stack"><div class="card"><h3>AI Qualifier</h3><p class="muted">Qualifier shell is ready for the next pass.</p></div></section>
+        <section th:if="${activeTab == 'qualifier'}" class="stack">
+            <div class="leads-grid">
+                <aside class="sidebar">
+                    <div class="card stack">
+                        <div>
+                            <h3>ACE e-Counter qualifier</h3>
+                            <p class="muted">Create, tune, publish, and archive the active AI qualifier for this organization.</p>
+                        </div>
+                        <div class="actions">
+                            <button id="qualifierCreateButton" type="button" class="btn primary">New qualifier</button>
+                        </div>
+                        <div class="note-card">
+                            <strong>How this is used</strong>
+                            Java owns the dashboard configuration and active qualifier resolution. The runtime bridge can consume the published qualifier as the internal AI policy.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Qualifiers</h3>
+                        <p class="muted">Open a qualifier to edit policy, captured fields, and publish state.</p>
+                        <div id="qualifierList" class="lead-list"><div class="empty-card">Loading qualifiers…</div></div>
+                    </div>
+                </aside>
+
+                <main class="stack">
+                    <div id="qualifierEditorEmpty" class="empty-card">Create or select a qualifier to configure the ACE e-Counter policy.</div>
+                    <div id="qualifierEditor" class="stack" style="display:none;">
+                        <div class="card stack">
+                            <div class="lead-head">
+                                <div>
+                                    <h2 id="qualifierEditorTitle" style="margin:0 0 8px;">ACE e-Counter qualifier</h2>
+                                    <div id="qualifierEditorMeta" class="status-row"></div>
+                                </div>
+                                <div class="actions">
+                                    <button id="qualifierPublishButton" type="button" class="btn">Publish</button>
+                                    <button id="qualifierArchiveButton" type="button" class="btn danger">Archive</button>
+                                </div>
+                            </div>
+
+                            <div class="helper-grid">
+                                <div class="field">
+                                    <label for="qualifierName">Name</label>
+                                    <input id="qualifierName" type="text" placeholder="ACE e-Counter">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierSlug">Slug</label>
+                                    <input id="qualifierSlug" type="text" placeholder="ace-e-counter">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierAssistantStyle">Assistant style</label>
+                                    <input id="qualifierAssistantStyle" type="text" placeholder="friendly, concise, consultative">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierContactCapturePolicy">Contact capture policy</label>
+                                    <input id="qualifierContactCapturePolicy" type="text" placeholder="when_high_intent_or_explicit">
+                                </div>
+                            </div>
+
+                            <div class="helper-grid">
+                                <div class="field">
+                                    <label for="qualifierHotMin">Hot threshold</label>
+                                    <input id="qualifierHotMin" type="number" min="0" max="100">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierWarmMin">Warm threshold</label>
+                                    <input id="qualifierWarmMin" type="number" min="0" max="100">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierMaxClarifyingQuestions">Max clarifying questions</label>
+                                    <input id="qualifierMaxClarifyingQuestions" type="number" min="0" max="20">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierVersionNotes">Version notes</label>
+                                    <input id="qualifierVersionNotes" type="text" placeholder="Updated from Java dashboard">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label for="qualifierGoalDefinition">Goal definition</label>
+                                <textarea id="qualifierGoalDefinition" rows="4" placeholder="Understand whether ACE can help this business, learn how they currently get customers, surface pain points, and move strong leads toward the next step."></textarea>
+                            </div>
+
+                            <div class="field">
+                                <label for="qualifierSystemPrompt">Core business-fit instructions</label>
+                                <textarea id="qualifierSystemPrompt" rows="10" placeholder="Explain ACE e-Counter accurately. Treat real businesses as valid prospects even if they are small, informal, or offline-first. Ask one useful follow-up question when needed."></textarea>
+                            </div>
+
+                            <div class="checkbox-row">
+                                <label class="checkbox-pill"><input id="qualifierRagEnabled" type="checkbox"> Retrieval enabled</label>
+                                <label class="checkbox-pill"><input id="qualifierOfferOnHumanRequest" type="checkbox"> Offer takeover on explicit human request</label>
+                                <label class="checkbox-pill"><input id="qualifierOfferOnHotBand" type="checkbox"> Offer takeover for hot leads</label>
+                                <label class="checkbox-pill"><input id="qualifierOfferOnVideoEligible" type="checkbox"> Allow video path in takeover policy</label>
+                                <label class="checkbox-pill"><input id="qualifierVideoEnabled" type="checkbox"> Enable video offer</label>
+                                <label class="checkbox-pill"><input id="qualifierVideoRequiresTakeover" type="checkbox"> Video requires takeover eligibility</label>
+                                <label class="checkbox-pill"><input id="qualifierOperatorCanOfferVideoManually" type="checkbox"> Operator can offer video manually</label>
+                            </div>
+
+                            <div class="actions">
+                                <button id="qualifierSaveButton" type="button" class="btn primary">Save qualifier</button>
+                            </div>
+                        </div>
+
+                        <div class="card stack">
+                            <div class="builder-header">
+                                <div>
+                                    <h3 style="margin:0 0 4px;">Captured fields</h3>
+                                    <p class="muted" style="margin:0;">Define what the qualifier should learn and which fields are required.</p>
+                                </div>
+                                <button id="qualifierAddFieldButton" type="button" class="btn ghost">Add field</button>
+                            </div>
+                            <div id="qualifierFieldRows" class="builder-rows"></div>
+                        </div>
+
+                        <div class="card stack">
+                            <div class="helper-grid">
+                                <div class="field">
+                                    <label for="qualifierOverallMinForTakeover">Overall confidence for takeover</label>
+                                    <input id="qualifierOverallMinForTakeover" type="number" min="0" max="1" step="0.05">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierFieldMinForFactPersistence">Field confidence for fact persistence</label>
+                                    <input id="qualifierFieldMinForFactPersistence" type="number" min="0" max="1" step="0.05">
+                                </div>
+                                <div class="field">
+                                    <label for="qualifierKnowledgeSourceIds">Knowledge source ids</label>
+                                    <input id="qualifierKnowledgeSourceIds" type="text" placeholder="pricing-faq, demo-notes">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label for="qualifierScoringRules">Scoring rules JSON</label>
+                                <textarea id="qualifierScoringRules" rows="8" placeholder="{ &quot;notes&quot;: &quot;Runtime metadata only&quot; }"></textarea>
+                            </div>
+                        </div>
+
+                        <div id="qualifierMessage" class="empty-card" style="display:none;"></div>
+                    </div>
+                </main>
+            </div>
+        </section>
         <section th:if="${activeTab == 'payments'}" class="stack"><div class="card"><h3>Payments</h3><p class="muted">Payments shell remains ready for the next pass.</p></div></section>
     </div>
 </div>
@@ -862,6 +1049,421 @@
     loadLeads().finally(poll);
   }
 
+  function initQualifiers() {
+    const state = {
+      qualifiers: [],
+      selectedQualifierId: root.dataset.selectedQualifierId || '',
+      qualifierDetail: null,
+      trackedFields: []
+    };
+
+    const els = {
+      qualifierCreateButton: document.getElementById('qualifierCreateButton'),
+      qualifierList: document.getElementById('qualifierList'),
+      qualifierEditorEmpty: document.getElementById('qualifierEditorEmpty'),
+      qualifierEditor: document.getElementById('qualifierEditor'),
+      qualifierEditorTitle: document.getElementById('qualifierEditorTitle'),
+      qualifierEditorMeta: document.getElementById('qualifierEditorMeta'),
+      qualifierName: document.getElementById('qualifierName'),
+      qualifierSlug: document.getElementById('qualifierSlug'),
+      qualifierAssistantStyle: document.getElementById('qualifierAssistantStyle'),
+      qualifierContactCapturePolicy: document.getElementById('qualifierContactCapturePolicy'),
+      qualifierHotMin: document.getElementById('qualifierHotMin'),
+      qualifierWarmMin: document.getElementById('qualifierWarmMin'),
+      qualifierMaxClarifyingQuestions: document.getElementById('qualifierMaxClarifyingQuestions'),
+      qualifierVersionNotes: document.getElementById('qualifierVersionNotes'),
+      qualifierGoalDefinition: document.getElementById('qualifierGoalDefinition'),
+      qualifierSystemPrompt: document.getElementById('qualifierSystemPrompt'),
+      qualifierRagEnabled: document.getElementById('qualifierRagEnabled'),
+      qualifierOfferOnHumanRequest: document.getElementById('qualifierOfferOnHumanRequest'),
+      qualifierOfferOnHotBand: document.getElementById('qualifierOfferOnHotBand'),
+      qualifierOfferOnVideoEligible: document.getElementById('qualifierOfferOnVideoEligible'),
+      qualifierVideoEnabled: document.getElementById('qualifierVideoEnabled'),
+      qualifierVideoRequiresTakeover: document.getElementById('qualifierVideoRequiresTakeover'),
+      qualifierOperatorCanOfferVideoManually: document.getElementById('qualifierOperatorCanOfferVideoManually'),
+      qualifierSaveButton: document.getElementById('qualifierSaveButton'),
+      qualifierPublishButton: document.getElementById('qualifierPublishButton'),
+      qualifierArchiveButton: document.getElementById('qualifierArchiveButton'),
+      qualifierAddFieldButton: document.getElementById('qualifierAddFieldButton'),
+      qualifierFieldRows: document.getElementById('qualifierFieldRows'),
+      qualifierOverallMinForTakeover: document.getElementById('qualifierOverallMinForTakeover'),
+      qualifierFieldMinForFactPersistence: document.getElementById('qualifierFieldMinForFactPersistence'),
+      qualifierKnowledgeSourceIds: document.getElementById('qualifierKnowledgeSourceIds'),
+      qualifierScoringRules: document.getElementById('qualifierScoringRules'),
+      qualifierMessage: document.getElementById('qualifierMessage')
+    };
+
+    function defaultTrackedFields() {
+      return [
+        { name: 'business_type', type: 'string', required: true },
+        { name: 'customer_acquisition', type: 'string', required: true },
+        { name: 'pain_points', type: 'array', required: false },
+        { name: 'urgency', type: 'string', required: false }
+      ];
+    }
+
+    function showMessage(text, error = false) {
+      if (!text) {
+        els.qualifierMessage.style.display = 'none';
+        els.qualifierMessage.textContent = '';
+        return;
+      }
+      els.qualifierMessage.style.display = 'block';
+      els.qualifierMessage.textContent = text;
+      els.qualifierMessage.style.color = error ? '#8B1E1E' : '#166534';
+      els.qualifierMessage.style.fontWeight = '700';
+    }
+
+    function selectedQualifier() {
+      return state.qualifiers.find(item => String(item.id) === String(state.selectedQualifierId)) || null;
+    }
+
+    function nextDefaultSlug() {
+      const baseSlug = 'ace-e-counter';
+      const used = new Set(state.qualifiers.map(item => String(item.slug || '').toLowerCase()));
+      if (!used.has(baseSlug)) return baseSlug;
+      let i = 2;
+      while (used.has(`${baseSlug}-${i}`)) i += 1;
+      return `${baseSlug}-${i}`;
+    }
+
+    function parseTrackedFieldsFromQualifier(qualifier) {
+      const schema = qualifier?.fieldSchema || {};
+      const properties = schema.properties || {};
+      const required = new Set(qualifier?.requiredFields || []);
+      const names = [...new Set([...Object.keys(properties), ...Array.from(required)])];
+      const fields = names.map(name => ({
+        name,
+        type: properties[name]?.type || 'string',
+        required: required.has(name)
+      })).filter(field => field.name);
+      return fields.length ? fields : defaultTrackedFields();
+    }
+
+    function trackedFieldsFromDom() {
+      const rows = Array.from(els.qualifierFieldRows.querySelectorAll('[data-field-row]'));
+      if (!rows.length) return state.trackedFields.length ? state.trackedFields : defaultTrackedFields();
+      return rows.map(row => ({
+        name: row.querySelector('[data-field-name]').value.trim(),
+        type: row.querySelector('[data-field-type]').value,
+        required: !!row.querySelector('[data-field-required]').checked
+      }));
+    }
+
+    function renderTrackedFields() {
+      if (!state.trackedFields.length) {
+        els.qualifierFieldRows.innerHTML = '<div class="empty-card">No captured fields yet. Add the first business fact the qualifier should learn.</div>';
+        return;
+      }
+      els.qualifierFieldRows.innerHTML = '';
+      state.trackedFields.forEach((field, index) => {
+        const row = document.createElement('div');
+        row.className = 'builder-row';
+        row.dataset.fieldRow = index;
+        row.innerHTML = `
+          <label>Field
+            <input data-field-name type="text" value="${escapeHtml(field.name || '')}" placeholder="business_type">
+          </label>
+          <label>Type
+            <select data-field-type>
+              <option value="string" ${field.type === 'string' ? 'selected' : ''}>Text</option>
+              <option value="boolean" ${field.type === 'boolean' ? 'selected' : ''}>Yes / No</option>
+              <option value="array" ${field.type === 'array' ? 'selected' : ''}>List</option>
+              <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
+            </select>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding-top:18px;">
+            <input data-field-required type="checkbox" ${field.required ? 'checked' : ''}> Required
+          </label>
+          <button type="button" class="btn danger" data-field-remove="${index}">Remove</button>`;
+        els.qualifierFieldRows.appendChild(row);
+      });
+    }
+
+    function renderQualifierList() {
+      if (!state.qualifiers.length) {
+        els.qualifierList.innerHTML = '<div class="empty-card">No qualifiers yet. Create one to begin configuring the ACE e-Counter policy.</div>';
+        return;
+      }
+      els.qualifierList.innerHTML = '';
+      state.qualifiers.forEach(qualifier => {
+        const card = document.createElement('div');
+        card.className = 'lead-entry' + (String(qualifier.id) === String(state.selectedQualifierId) ? ' active' : '');
+        card.dataset.qualifierId = qualifier.id;
+        card.innerHTML = `
+          <div class="lead-head">
+            <div>
+              <div class="lead-title">${escapeHtml(qualifier.name)}</div>
+              <div class="lead-subtitle">${escapeHtml(qualifier.slug)} · v${Number(qualifier.version || 1)}</div>
+            </div>
+            <div class="lead-meta">
+              <span class="pill ${qualifier.status === 'live' ? 'success' : qualifier.status === 'archived' ? '' : 'warn'}">${escapeHtml(qualifier.status)}</span>
+            </div>
+          </div>
+          <div class="lead-message">${escapeHtml(qualifier.goalDefinition || qualifier.assistantStyle || 'No goal definition yet.')}</div>`;
+        els.qualifierList.appendChild(card);
+      });
+    }
+
+    function renderQualifierEditor() {
+      const qualifier = state.qualifierDetail;
+      if (!qualifier) {
+        els.qualifierEditor.style.display = 'none';
+        els.qualifierEditorEmpty.style.display = 'block';
+        return;
+      }
+      els.qualifierEditor.style.display = 'grid';
+      els.qualifierEditorEmpty.style.display = 'none';
+      els.qualifierEditorTitle.textContent = qualifier.name || 'ACE e-Counter qualifier';
+      els.qualifierEditorMeta.innerHTML = `<span class="pill ${qualifier.status === 'live' ? 'success' : qualifier.status === 'archived' ? '' : 'warn'}">${escapeHtml(qualifier.status)}</span><span class="pill dark">v${Number(qualifier.version || 1)}</span>${qualifier.publishedAt ? `<span class="pill">Published ${new Date(qualifier.publishedAt).toLocaleString()}</span>` : ''}`;
+      els.qualifierName.value = qualifier.name || '';
+      els.qualifierSlug.value = qualifier.slug || '';
+      els.qualifierAssistantStyle.value = qualifier.assistantStyle || '';
+      els.qualifierContactCapturePolicy.value = qualifier.contactCapturePolicy || 'when_high_intent_or_explicit';
+      els.qualifierHotMin.value = qualifier.bandThresholds?.hot_min ?? 80;
+      els.qualifierWarmMin.value = qualifier.bandThresholds?.warm_min ?? 50;
+      els.qualifierMaxClarifyingQuestions.value = qualifier.maxClarifyingQuestions ?? 3;
+      els.qualifierVersionNotes.value = qualifier.versionNotes || '';
+      els.qualifierGoalDefinition.value = qualifier.goalDefinition || '';
+      els.qualifierSystemPrompt.value = qualifier.systemPrompt || '';
+      els.qualifierRagEnabled.checked = !!qualifier.ragEnabled;
+      els.qualifierOfferOnHumanRequest.checked = qualifier.takeoverRules?.offer_on_explicit_human_request ?? true;
+      els.qualifierOfferOnHotBand.checked = qualifier.takeoverRules?.offer_on_hot_band ?? true;
+      els.qualifierOfferOnVideoEligible.checked = qualifier.takeoverRules?.offer_on_video_eligible ?? true;
+      els.qualifierVideoEnabled.checked = qualifier.videoOfferRules?.enabled ?? true;
+      els.qualifierVideoRequiresTakeover.checked = qualifier.videoOfferRules?.requires_takeover_eligible ?? true;
+      els.qualifierOperatorCanOfferVideoManually.checked = qualifier.videoOfferRules?.operator_can_offer_manually ?? true;
+      els.qualifierOverallMinForTakeover.value = qualifier.confidenceThresholds?.overall_min_for_takeover ?? 0.7;
+      els.qualifierFieldMinForFactPersistence.value = qualifier.confidenceThresholds?.field_min_for_fact_persistence ?? 0.6;
+      els.qualifierKnowledgeSourceIds.value = (qualifier.knowledgeSourceIds || []).join(', ');
+      els.qualifierScoringRules.value = JSON.stringify(qualifier.scoringRules || { notes: 'Runtime metadata only' }, null, 2);
+      state.trackedFields = parseTrackedFieldsFromQualifier(qualifier);
+      renderTrackedFields();
+      els.qualifierPublishButton.textContent = qualifier.status === 'live' ? 'Live now' : 'Publish';
+      els.qualifierPublishButton.disabled = qualifier.status === 'live';
+      els.qualifierArchiveButton.disabled = qualifier.status !== 'live';
+    }
+
+    function listFromCsv(value) {
+      return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+    }
+
+    function buildFieldSchema(fields) {
+      if (!fields.length) return null;
+      const properties = {};
+      fields.forEach(field => {
+        properties[field.name] = { type: field.type || 'string' };
+      });
+      return { type: 'object', properties };
+    }
+
+    function parseJsonTextarea(value, fallback) {
+      const trimmed = String(value || '').trim();
+      if (!trimmed) return fallback;
+      return JSON.parse(trimmed);
+    }
+
+    function collectPayload() {
+      const trackedFields = trackedFieldsFromDom().filter(field => field.name);
+      if (!trackedFields.length) {
+        showMessage('Add at least one captured field before saving the qualifier.', true);
+        return null;
+      }
+      let scoringRules;
+      try {
+        scoringRules = parseJsonTextarea(els.qualifierScoringRules.value, { notes: 'Runtime metadata only' });
+      } catch {
+        showMessage('Scoring rules must be valid JSON.', true);
+        return null;
+      }
+      return {
+        name: els.qualifierName.value,
+        slug: els.qualifierSlug.value,
+        status: state.qualifierDetail?.status || 'draft',
+        systemPrompt: els.qualifierSystemPrompt.value,
+        assistantStyle: els.qualifierAssistantStyle.value,
+        goalDefinition: els.qualifierGoalDefinition.value,
+        fieldSchema: buildFieldSchema(trackedFields),
+        requiredFields: trackedFields.filter(field => field.required).map(field => field.name),
+        scoringRules,
+        bandThresholds: {
+          hot_min: Number(els.qualifierHotMin.value || 80),
+          warm_min: Number(els.qualifierWarmMin.value || 50)
+        },
+        confidenceThresholds: {
+          overall_min_for_takeover: Number(els.qualifierOverallMinForTakeover.value || 0.7),
+          field_min_for_fact_persistence: Number(els.qualifierFieldMinForFactPersistence.value || 0.6)
+        },
+        takeoverRules: {
+          offer_on_explicit_human_request: !!els.qualifierOfferOnHumanRequest.checked,
+          offer_on_hot_band: !!els.qualifierOfferOnHotBand.checked,
+          offer_on_video_eligible: !!els.qualifierOfferOnVideoEligible.checked
+        },
+        videoOfferRules: {
+          enabled: !!els.qualifierVideoEnabled.checked,
+          requires_takeover_eligible: !!els.qualifierVideoRequiresTakeover.checked,
+          operator_can_offer_manually: !!els.qualifierOperatorCanOfferVideoManually.checked
+        },
+        ragEnabled: !!els.qualifierRagEnabled.checked,
+        knowledgeSourceIds: listFromCsv(els.qualifierKnowledgeSourceIds.value),
+        maxClarifyingQuestions: Number(els.qualifierMaxClarifyingQuestions.value || 3),
+        contactCapturePolicy: els.qualifierContactCapturePolicy.value,
+        version: state.qualifierDetail?.version || 1,
+        versionNotes: els.qualifierVersionNotes.value
+      };
+    }
+
+    async function loadQualifiers() {
+      const res = await fetch(`/api/organizations/${base.orgId}/qualifiers`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      state.qualifiers = await res.json();
+      if (state.selectedQualifierId && !state.qualifiers.some(item => String(item.id) === String(state.selectedQualifierId))) {
+        state.selectedQualifierId = '';
+        state.qualifierDetail = null;
+      }
+      renderQualifierList();
+      if (state.selectedQualifierId) await loadQualifierDetail(state.selectedQualifierId); else renderQualifierEditor();
+    }
+
+    async function loadQualifierDetail(qualifierId) {
+      const res = await fetch(`/api/organizations/${base.orgId}/qualifiers/${encodeURIComponent(qualifierId)}`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      state.qualifierDetail = await res.json();
+      renderQualifierEditor();
+    }
+
+    async function selectQualifier(qualifierId) {
+      if (String(state.selectedQualifierId) === String(qualifierId)) {
+        state.selectedQualifierId = '';
+        state.qualifierDetail = null;
+        updateHistory('qualifier');
+        renderQualifierList();
+        renderQualifierEditor();
+        return;
+      }
+      state.selectedQualifierId = qualifierId;
+      updateHistory('qualifier', { qualifierId });
+      renderQualifierList();
+      await loadQualifierDetail(qualifierId);
+    }
+
+    async function createQualifier() {
+      showMessage('');
+      const payload = {
+        name: 'ACE e-Counter',
+        slug: nextDefaultSlug(),
+        status: 'draft',
+        systemPrompt: 'Explain ACE e-Counter accurately. Treat real businesses as valid prospects even if they are small, informal, or offline-first. Ask one useful follow-up question when needed.',
+        assistantStyle: 'friendly, concise, consultative',
+        goalDefinition: 'Understand whether ACE can help this business, learn how they currently get customers, surface pain points, and move strong leads toward the next step.',
+        fieldSchema: buildFieldSchema(defaultTrackedFields()),
+        requiredFields: defaultTrackedFields().filter(field => field.required).map(field => field.name),
+        scoringRules: { notes: 'Runtime metadata only' },
+        bandThresholds: { hot_min: 80, warm_min: 50 },
+        confidenceThresholds: { overall_min_for_takeover: 0.7, field_min_for_fact_persistence: 0.6 },
+        takeoverRules: {
+          offer_on_explicit_human_request: true,
+          offer_on_hot_band: true,
+          offer_on_video_eligible: true
+        },
+        videoOfferRules: {
+          enabled: true,
+          requires_takeover_eligible: true,
+          operator_can_offer_manually: true
+        },
+        ragEnabled: false,
+        knowledgeSourceIds: [],
+        maxClarifyingQuestions: 3,
+        contactCapturePolicy: 'when_high_intent_or_explicit',
+        version: 1,
+        versionNotes: 'Created from Java dashboard'
+      };
+      const res = await fetch(`/api/organizations/${base.orgId}/qualifiers`, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        showMessage(await extractErrorMessage(res, 'Failed to create qualifier.'), true);
+        return;
+      }
+      const qualifier = await res.json();
+      state.selectedQualifierId = qualifier.id;
+      updateHistory('qualifier', { qualifierId: qualifier.id });
+      showMessage('Qualifier created.');
+      await loadQualifiers();
+    }
+
+    async function saveQualifier() {
+      if (!state.selectedQualifierId) return;
+      showMessage('');
+      const payload = collectPayload();
+      if (!payload) return;
+      const res = await fetch(`/api/organizations/${base.orgId}/qualifiers/${encodeURIComponent(state.selectedQualifierId)}`, {
+        method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        showMessage(await extractErrorMessage(res, 'Failed to save qualifier.'), true);
+        return;
+      }
+      state.qualifierDetail = await res.json();
+      showMessage('Qualifier saved.');
+      await loadQualifiers();
+    }
+
+    async function publishQualifier() {
+      if (!state.selectedQualifierId) return;
+      showMessage('');
+      const res = await fetch(`/api/organizations/${base.orgId}/qualifiers/${encodeURIComponent(state.selectedQualifierId)}/publish`, {
+        method: 'POST', credentials: 'same-origin'
+      });
+      if (!res.ok) {
+        showMessage(await extractErrorMessage(res, 'Failed to publish qualifier.'), true);
+        return;
+      }
+      state.qualifierDetail = await res.json();
+      showMessage('Qualifier published.');
+      await loadQualifiers();
+    }
+
+    async function archiveQualifier() {
+      if (!state.selectedQualifierId) return;
+      showMessage('');
+      const res = await fetch(`/api/organizations/${base.orgId}/qualifiers/${encodeURIComponent(state.selectedQualifierId)}/archive`, {
+        method: 'POST', credentials: 'same-origin'
+      });
+      if (!res.ok) {
+        showMessage(await extractErrorMessage(res, 'Failed to archive qualifier.'), true);
+        return;
+      }
+      state.qualifierDetail = await res.json();
+      showMessage('Qualifier archived.');
+      await loadQualifiers();
+    }
+
+    els.qualifierCreateButton.addEventListener('click', createQualifier);
+    els.qualifierSaveButton.addEventListener('click', saveQualifier);
+    els.qualifierPublishButton.addEventListener('click', publishQualifier);
+    els.qualifierArchiveButton.addEventListener('click', archiveQualifier);
+    els.qualifierAddFieldButton.addEventListener('click', () => {
+      state.trackedFields = trackedFieldsFromDom();
+      state.trackedFields.push({ name: '', type: 'string', required: false });
+      renderTrackedFields();
+    });
+    els.qualifierFieldRows.addEventListener('click', event => {
+      const button = event.target.closest('[data-field-remove]');
+      if (!button) return;
+      state.trackedFields = trackedFieldsFromDom();
+      state.trackedFields.splice(Number(button.dataset.fieldRemove), 1);
+      renderTrackedFields();
+    });
+    els.qualifierList.addEventListener('click', event => {
+      const card = event.target.closest('[data-qualifier-id]');
+      if (!card) return;
+      selectQualifier(card.dataset.qualifierId);
+    });
+
+    loadQualifiers();
+  }
+
   function initSurveys() {
     const state = {
       surveys: [],
@@ -891,7 +1493,6 @@
       questionList: document.getElementById('questionList'),
       newQuestionType: document.getElementById('newQuestionType'),
       newQuestionTitle: document.getElementById('newQuestionTitle'),
-      newQuestionDescription: document.getElementById('newQuestionDescription'),
       newQuestionPlaceholder: document.getElementById('newQuestionPlaceholder'),
       newQuestionOptions: document.getElementById('newQuestionOptions'),
       newQuestionRequired: document.getElementById('newQuestionRequired'),
@@ -1003,10 +1604,6 @@
               <label>Placeholder</label>
               <input data-question-field="placeholder" type="text" value="${escapeHtml(question.placeholder || '')}">
             </div>
-          </div>
-          <div class="field">
-            <label>Description</label>
-            <textarea data-question-field="description" rows="3">${escapeHtml(question.description || '')}</textarea>
           </div>
           <div class="field">
             <label>Options</label>
@@ -1139,7 +1736,6 @@
       const payload = {
         questionType: els.newQuestionType.value,
         title: els.newQuestionTitle.value,
-        description: els.newQuestionDescription.value,
         placeholder: els.newQuestionPlaceholder.value,
         required: !!els.newQuestionRequired.checked,
         options: optionsFromTextarea(els.newQuestionOptions.value)
@@ -1152,7 +1748,6 @@
         return;
       }
       els.newQuestionTitle.value = '';
-      els.newQuestionDescription.value = '';
       els.newQuestionPlaceholder.value = '';
       els.newQuestionOptions.value = '';
       els.newQuestionRequired.checked = true;
@@ -1166,7 +1761,7 @@
       return {
         questionType: card.querySelector('[data-question-field="type"]').value,
         title: card.querySelector('[data-question-field="title"]').value,
-        description: card.querySelector('[data-question-field="description"]').value,
+        description: '',
         placeholder: card.querySelector('[data-question-field="placeholder"]').value,
         required: !!card.querySelector('[data-question-field="required"]').checked,
         orderIndex: orderIndexOverride,
@@ -1232,6 +1827,7 @@
 
   if (base.activeTab === 'leads') initLeads();
   if (base.activeTab === 'surveys') initSurveys();
+  if (base.activeTab === 'qualifier') initQualifiers();
 })();
 </script>
 </body>
