@@ -22,10 +22,9 @@ COPY app/ ./app/
 COPY data/ ./data/
 COPY scripts/ ./scripts/
 COPY static/ ./static/
-COPY instances/ ./instances/
 
 # Create directories for runtime data
-RUN mkdir -p /app/static/avatars /app/static/org_avatars
+RUN mkdir -p /app/static/avatars /app/static/org_avatars /app/instances
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
