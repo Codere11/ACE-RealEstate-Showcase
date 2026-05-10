@@ -39,7 +39,12 @@ app = FastAPI(title="ACE e-Counter Backend")
 app.add_middleware(RequestLoggerMiddleware)
 
 # Startup initialization
-create_all()
+bootstrap_db = os.getenv("ACE_BOOTSTRAP_DB", "").strip().lower() in {"1", "true", "yes", "on"}
+if bootstrap_db:
+    create_all()
+    logger.info("Automatic DB bootstrap enabled.")
+else:
+    logger.info("Automatic DB bootstrap disabled.")
 mount_instance_chatbots(app)
 logger.info("Startup initialization completed.")
 
