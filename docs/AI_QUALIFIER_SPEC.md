@@ -250,16 +250,13 @@ Routes should mirror surveys:
 ### Must modify
 - `app/api/chat.py`
 - `app/main.py`
-- `frontend/manager-dashboard/src/app/app.component.ts`
-- `frontend/manager-dashboard/src/app/app.component.html`
-- `frontend/manager-dashboard/src/app/services/dashboard.service.ts`
+- `java-platform/src/main/resources/templates/organization/dashboard.html`
+- `java-platform/src/main/java/com/ace/platform/chat/LegacyDashboardApiController.java`
 
-### Add dashboard qualifier management
-Create:
-- `frontend/manager-dashboard/src/app/models/qualifier.model.ts`
-- `frontend/manager-dashboard/src/app/services/qualifiers.service.ts`
-- `frontend/manager-dashboard/src/app/qualifiers/qualifier-list.component.ts`
-- `frontend/manager-dashboard/src/app/qualifiers/qualifier-editor.component.ts`
+### Dashboard qualifier management surface
+Primary implementation surfaces:
+- `java-platform/src/main/resources/templates/organization/dashboard.html`
+- `java-platform/src/main/java/com/ace/platform/chat/LegacyDashboardApiController.java`
 
 ## Editor Design Recommendation
 Do **not** copy the survey node-builder literally.

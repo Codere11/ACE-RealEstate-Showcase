@@ -1,45 +1,28 @@
-<!-- Created: 2026-04-18T12:20:22Z -->
 # GitHub Launch Pack
-Use this to present ACE e-Counter as your flagship repository.
 
-## 1) Suggested GitHub Bio
-`Junior Python/Backend developer building production-style SaaS systems with FastAPI, PostgreSQL, Docker, and Angular.`
+Use this when presenting ACE e-Counter as a flagship repository.
 
-## 2) Suggested Pinned Repositories (order)
-1. `ACE-RealEstate` (flagship, this project)
-2. A second backend/data project with clear scope
-3. A smaller utility/tooling repo showing clean code and tests
+## Suggested GitHub Bio
+`Software engineer building product-focused SaaS systems with Java, Spring Boot, Python, PostgreSQL, and AI-assisted workflows.`
 
-If you have mostly old/noisy repos, make them private or archive them and pin only the strongest ones.
+## Suggested Repo Description
+`Multi-tenant visitor-intake and conversion platform built with Spring Boot, a Python AI service, PostgreSQL, and Stripe-hosted checkout.`
 
-## 3) Repo Description (copy-ready)
-`Multi-tenant lead qualification platform (FastAPI + Angular + PostgreSQL) with real-time operator handoff and Dockerized local stack.`
+## Short Project Summary
+`Built a multi-tenant lead-intake and conversion product with a Java Spring Boot application and a Python AI/runtime service. Implemented manager-side operations, live handoff, and payment-request workflow on top of a shared PostgreSQL data model.`
 
-## 4) Short Project Summary for Applications
-`Built a multi-tenant lead qualification platform with FastAPI, PostgreSQL, and Angular. Implemented conversation-driven lead intake, backend scoring workflows, and real-time handoff to a manager dashboard. Containerized full local deployment with Docker Compose.`
+## Suggested Pinned Repositories
+1. `ACE-RealEstate` (flagship)
+2. strongest second backend/product repo
+3. smaller utility or data/tooling repo
 
-## 5) README Media Checklist
-Add these files before sharing publicly:
-- `docs/media/chatbot-intake.png`
-- `docs/media/manager-dashboard.png`
-- `docs/media/admin-portal.png`
-- `docs/media/ace-demo.gif`
+## README Media Checklist
+- dashboard screenshot
+- public flow screenshot
+- short demo video or GIF
 
-## 6) One-Command Publish (new repo)
-After committing your local changes, run:
-
-```bash
-./scripts/publish_new_repo.sh ACE-RealEstate-Showcase --public
-```
-
-This script will:
-- create a new GitHub repo via `gh`
-- set/update `origin`
-- push your current branch
-
-## 7) Final Quality Gate Before Sending Applications
-- README opens with clear problem/solution and stack
-- Quickstart works from a clean machine
-- API docs are reachable at `:8000/docs`
-- Screenshots/GIF added
-- No secrets committed
+## Quality Gate Before Sharing
+- README opens with clear product and architecture
+- local runbook is accurate
+- no stale frontend references in primary docs
+- no secrets committed

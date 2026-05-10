@@ -32,7 +32,7 @@ Video takeover may be offered when:
 Existing pieces:
 - `app/services/takeover.py`
 - `/skip_to_human` path in `app/api/chat.py`
-- dashboard takeover UI in `frontend/manager-dashboard/src/app/app.component.*`
+- dashboard takeover UI in `java-platform/src/main/resources/templates/organization/dashboard.html`
 - live events via `app/services/event_bus.py` and `app/api/chat_events.py`
 
 ## Source of Truth
@@ -155,24 +155,15 @@ Create:
 - `POST /video/end`
 - `POST /video/webhook` (provider callbacks)
 
-## Frontend Changes
-### Chatbot
+## UI Changes
+### Public visitor pages
 Modify:
-- `frontend/ACE-Chatbot/src/app/app.component.ts`
-- `frontend/ACE-Chatbot/src/app/app.component.html`
-
-Optional new components:
-- `video-offer.component.ts`
-- `video-preview-modal.component.ts`
+- `java-platform/src/main/resources/templates/public/qualifier.html`
+- `java-platform/src/main/resources/templates/public/survey.html`
 
 ### Dashboard
 Modify:
-- `frontend/manager-dashboard/src/app/app.component.ts`
-- `frontend/manager-dashboard/src/app/app.component.html`
-
-Optional new components:
-- `video-join-panel.component.ts`
-- `video-status-badge.component.ts`
+- `java-platform/src/main/resources/templates/organization/dashboard.html`
 
 ## Event Requirements
 Video takeover must use live events.

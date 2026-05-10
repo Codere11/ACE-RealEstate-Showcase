@@ -314,7 +314,7 @@ Use cases:
 
 ## Dashboard Handling Notes
 Primary file likely to update first:
-- `frontend/manager-dashboard/src/app/app.component.ts`
+- `java-platform/src/main/resources/templates/organization/dashboard.html`
 
 New event handling should update:
 - lead score/band
@@ -322,11 +322,12 @@ New event handling should update:
 - takeover availability
 - video status badges/buttons
 
-## Chatbot Handling Notes
-Primary file likely to update first:
-- `frontend/ACE-Chatbot/src/app/app.component.ts`
+## Public Visitor Handling Notes
+Primary files likely to update first:
+- `java-platform/src/main/resources/templates/public/qualifier.html`
+- `java-platform/src/main/resources/templates/public/survey.html`
 
-Chatbot should react to:
+Visitor flow should react to:
 - `takeover.offered`
 - `video.offer.created`
 - `video.room.ready`

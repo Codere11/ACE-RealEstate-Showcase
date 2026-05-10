@@ -337,20 +337,12 @@ Canonical room/session state for video escalation.
 
 ---
 
-## 8. Frontend TypeScript Models To Add
-Manager dashboard:
-- `Qualifier`
-- `LeadProfile`
-- `QualifierRun`
-- `OrganizationPaymentSettings`
-- `PaymentRequest`
-- `VideoSession`
+## 8. Dashboard Contract Surfaces
+Manager dashboard contract handling now lives in the Java app.
 
-Files to create/update:
-- `frontend/manager-dashboard/src/app/models/qualifier.model.ts`
-- `frontend/manager-dashboard/src/app/models/lead-profile.model.ts`
-- `frontend/manager-dashboard/src/app/models/video-session.model.ts`
-- `frontend/manager-dashboard/src/app/services/dashboard.service.ts`
+Primary files to update when these contracts change:
+- `java-platform/src/main/resources/templates/organization/dashboard.html`
+- `java-platform/src/main/java/com/ace/platform/chat/LegacyDashboardApiController.java`
 
 ---
 

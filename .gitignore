@@ -23,14 +23,14 @@ nginx/ssl/
 .vscode/
 .idea/
 
-# Frontend
+# JS / build outputs
 node_modules/
 dist/
 .angular/
+java-platform/target/
 
-# Backups
+# Local-only extras
 *.sql
 *.tar.gz
 ace-mobile/
-frontend/manager-dashboard-BACKUP-*/
 .deploy-config
