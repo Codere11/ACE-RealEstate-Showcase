@@ -1,41 +1,52 @@
-# Backend Dockerfile for ACE e-Counter FastAPI
-FROM python:3.11-slim
+FROM eclipse-temurin:21-jdk AS java-build
+WORKDIR /workspace/java-platform
 
-# Set working directory
+COPY java-platform/.mvn/ .mvn/
+COPY java-platform/mvnw java-platform/pom.xml ./
+RUN chmod +x mvnw && ./mvnw -q -DskipTests dependency:go-offline
+
+COPY java-platform/src ./src
+RUN ./mvnw -q -DskipTests package
+
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    ACE_BOOTSTRAP_DB=0
+
 WORKDIR /app
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
     gcc \
-    postgresql-client \
     libpq-dev \
+    openjdk-21-jre-headless \
+    postgresql-client \
+    python3 \
+    python3-pip \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy application code
 COPY app/ ./app/
 COPY data/ ./data/
 COPY scripts/ ./scripts/
 COPY static/ ./static/
+COPY docker/unified-entrypoint.sh /app/unified-entrypoint.sh
+COPY --from=java-build /workspace/java-platform/target/*.jar /app/java/app.jar
 
-# Create directories for runtime data
-RUN mkdir -p /app/static/avatars /app/static/org_avatars /app/instances
+RUN mkdir -p /app/static/avatars /app/static/org_avatars /app/instances /app/java \
+    && chmod +x /app/unified-entrypoint.sh
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV ACE_LOG_LEVEL=INFO
+EXPOSE 8080
 
-# Expose port
-EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD ["sh", "-c", "curl -fsS http://127.0.0.1:${PORT:-8080}/actuator/health >/dev/null || exit 1"]
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health/status')"
-
-# Run the application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/unified-entrypoint.sh"]
