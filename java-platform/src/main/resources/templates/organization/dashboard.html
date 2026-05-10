@@ -73,7 +73,7 @@
         }
         .hero-card strong, .card h3, .card h2 { color: #121417; margin-top: 0; }
         .hero-card small, .muted, .card p { color: #6B7280; }
-        .stack { display: grid; gap: 16px; }
+        .stack { display: grid; gap: 16px; min-width: 0; }
         .pill {
             display: inline-block;
             padding: 5px 10px;
@@ -224,9 +224,12 @@
         }
         .leads-grid {
             display: grid;
-            grid-template-columns: minmax(280px, 320px) 1fr;
+            grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
             gap: 16px;
             align-items: start;
+        }
+        .leads-grid > * {
+            min-width: 0;
         }
         .sidebar { display: grid; gap: 16px; }
         .filter-grid { display: grid; gap: 12px; }
@@ -260,6 +263,7 @@
             padding: 16px;
             display: grid;
             gap: 12px;
+            min-width: 0;
             transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
         }
         .lead-entry.active { border-color: #C1A46C; box-shadow: 0 12px 28px rgba(193,164,108,.14); }
@@ -271,8 +275,8 @@
             gap: 12px;
             flex-wrap: wrap;
         }
-        .lead-title { font-size: 18px; font-weight: 800; color: #121417; }
-        .lead-subtitle, .lead-message { color: #6B7280; }
+        .lead-title { font-size: 18px; font-weight: 800; color: #121417; overflow-wrap: anywhere; }
+        .lead-subtitle, .lead-message { color: #6B7280; overflow-wrap: anywhere; }
         .lead-meta { display: flex; flex-wrap: wrap; gap: 8px; }
         .lead-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .question-card {
@@ -359,6 +363,7 @@
             top: 16px;
             height: calc(100vh - 150px);
             min-height: 520px;
+            min-width: 0;
             overflow: hidden;
         }
         #leadDetail {
@@ -370,12 +375,13 @@
             display: grid;
             gap: 10px;
             min-height: 0;
+            min-width: 0;
             height: 100%;
             overflow-y: auto;
             align-content: start;
             padding-right: 4px;
         }
-        .bubble { max-width: 86%; border-radius: 14px; padding: 12px 14px; border: 1px solid #E6E2D6; background: #FFF; }
+        .bubble { max-width: 86%; border-radius: 14px; padding: 12px 14px; border: 1px solid #E6E2D6; background: #FFF; overflow-wrap: anywhere; word-break: break-word; }
         .bubble.user { margin-left: auto; background: #F4F8FF; border-color: #C8D9FF; }
         .bubble.assistant { margin-right: auto; }
         .bubble.staff { margin-right: auto; background: #FBF5E7; border-color: #E6D4A7; }
@@ -397,6 +403,7 @@
             grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
             gap: 16px;
             align-items: start;
+            min-width: 0;
         }
         .payment-panel__form,
         .payment-panel__history {
@@ -416,6 +423,7 @@
             padding: 14px;
             display: grid;
             gap: 10px;
+            min-width: 0;
         }
         .payment-request-card__top {
             display: flex;
@@ -428,6 +436,7 @@
             font-size: 16px;
             font-weight: 800;
             color: #121417;
+            overflow-wrap: anywhere;
         }
         .payment-request-card__amount {
             color: #374151;
