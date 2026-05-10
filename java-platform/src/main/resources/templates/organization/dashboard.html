@@ -968,10 +968,11 @@
         return;
       }
 
+      const hasActiveLiveStage = state.livePreviewState === 'preview' || state.livePreviewState === 'live';
       els.selectedLeadLabel.textContent = `Target: ${lead.name} · SID ${lead.sid}`;
       els.startPreviewBtn.disabled = state.liveSessionLoading;
       els.goLiveBtn.disabled = state.liveSessionLoading || state.livePreviewState === 'live';
-      els.endLiveBtn.disabled = state.liveSessionLoading || !state.liveSession?.id;
+      els.endLiveBtn.disabled = state.liveSessionLoading || (!state.liveSession?.id && !hasActiveLiveStage);
 
       if (state.livePreviewState === 'live') {
         els.stageTitle.textContent = state.livePreviewHasVideo ? 'Broadcast ready' : 'Going live';
@@ -1311,12 +1312,25 @@
 
     async function endLive() {
       const lead = selectedLead();
-      if (!lead || !state.liveSession?.id) return;
+      if (!lead) return;
       showLiveError('');
       state.liveSessionLoading = true;
       renderLiveStage();
       try {
-        const res = await fetch(`/api/organizations/${base.orgId}/live-sessions/${encodeURIComponent(state.liveSession.id)}/end`, {
+        let sessionId = state.liveSession?.id;
+        if (!sessionId) {
+          const currentRes = await fetch(`/api/organizations/${base.orgId}/live-sessions/current?sid=${encodeURIComponent(lead.sid)}`, { credentials: 'same-origin' });
+          if (currentRes.ok) {
+            const currentSession = await currentRes.json();
+            if (currentSession?.id) {
+              state.liveSession = currentSession;
+              sessionId = currentSession.id;
+            }
+          }
+        }
+        if (!sessionId) throw new Error('Live session id missing while stage is active.');
+
+        const res = await fetch(`/api/organizations/${base.orgId}/live-sessions/${encodeURIComponent(sessionId)}/end`, {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
