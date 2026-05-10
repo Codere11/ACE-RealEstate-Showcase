@@ -390,6 +390,7 @@
             background: #FFF;
         }
         .error-text { color: #8B1E1E; font-weight: 700; }
+        .success-text { color: #166534; font-weight: 700; }
         .info-note { color: #6B7280; font-size: 14px; }
         .stats-grid .hero-card { padding: 16px; }
         @media (max-width: 980px) {
@@ -566,6 +567,40 @@
                                 <div class="actions">
                                     <button id="takeoverSend" type="button" class="btn primary">Start takeover + send message</button>
                                     <button id="takeoverEnd" type="button" class="btn danger" style="display:none;">End takeover</button>
+                                </div>
+                            </div>
+                            <div id="paymentPanel" class="card stack" style="margin-top:16px;">
+                                <div>
+                                    <h3 style="margin:0 0 6px;">Payment request</h3>
+                                    <p class="muted" style="margin:0;">Mirror the Angular flow: send a Stripe payment request into this lead thread.</p>
+                                </div>
+                                <div class="filter-grid">
+                                    <div class="field">
+                                        <label for="paymentAmount">Amount</label>
+                                        <input id="paymentAmount" type="number" min="1" step="0.01" value="150">
+                                    </div>
+                                    <div class="field">
+                                        <label for="paymentCurrency">Currency</label>
+                                        <input id="paymentCurrency" type="text" value="EUR">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label for="paymentPurpose">Purpose</label>
+                                    <input id="paymentPurpose" type="text" value="Reservation deposit">
+                                </div>
+                                <div class="field">
+                                    <label for="paymentNote">Note</label>
+                                    <textarea id="paymentNote" rows="3" placeholder="For example: appointment reservation or non-refundable deposit"></textarea>
+                                </div>
+                                <div id="paymentError" class="error-text" style="display:none;"></div>
+                                <div id="paymentSuccess" class="success-text" style="display:none;"></div>
+                                <div id="paymentInfo" class="info-note"></div>
+                                <div class="actions">
+                                    <button id="paymentSend" type="button" class="btn primary">Send into chat</button>
+                                </div>
+                                <div>
+                                    <h4 style="margin:0 0 8px;">Recent requests</h4>
+                                    <div id="paymentRequests" class="lead-list"><div class="empty-card">No payment requests yet.</div></div>
                                 </div>
                             </div>
                         </div>
@@ -829,7 +864,25 @@
                 </main>
             </div>
         </section>
-        <section th:if="${activeTab == 'payments'}" class="stack"><div class="card"><h3>Payments</h3><p class="muted">Payments shell remains ready for the next pass.</p></div></section>
+        <section th:if="${activeTab == 'payments'}" class="stack">
+            <div class="card stack">
+                <div>
+                    <h3>Stripe Connect</h3>
+                    <p class="muted">Connect the organization's Stripe account and enable payment requests directly from the Java dashboard.</p>
+                </div>
+                <div id="paymentsMessage" class="empty-card" style="display:none;"></div>
+                <div id="paymentsStatusGrid" class="stats-grid">
+                    <div class="hero-card"><strong id="paymentsConnectStatus">—</strong><br><small>Connect status</small></div>
+                    <div class="hero-card"><strong id="paymentsChargesEnabled">—</strong><br><small>Charges enabled</small></div>
+                    <div class="hero-card"><strong id="paymentsPayoutsEnabled">—</strong><br><small>Payouts enabled</small></div>
+                </div>
+                <div id="paymentsDetails" class="stack muted"></div>
+                <div class="actions">
+                    <button id="paymentsConnectButton" type="button" class="btn primary">Connect Stripe</button>
+                    <button id="paymentsRefreshButton" type="button" class="btn ghost">Refresh status</button>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 
@@ -864,7 +917,7 @@
 
   async function extractErrorMessage(res, fallback) {
     const data = await parseJson(res);
-    return data?.message || data?.error || fallback;
+    return data?.detail || data?.message || data?.error || fallback;
   }
 
   function updateHistory(tab, params = {}) {
@@ -886,6 +939,9 @@
       livePreviewHasVideo: false,
       liveSession: null,
       liveSessionLoading: false,
+      paymentSettings: null,
+      paymentRequests: [],
+      paymentSending: false,
       filters: { search: '', status: 'all', minProgress: 0, takeoverOnly: false }
     };
 
@@ -916,6 +972,16 @@
       takeoverSend: document.getElementById('takeoverSend'),
       takeoverEnd: document.getElementById('takeoverEnd'),
       takeoverError: document.getElementById('takeoverError'),
+      paymentPanel: document.getElementById('paymentPanel'),
+      paymentAmount: document.getElementById('paymentAmount'),
+      paymentCurrency: document.getElementById('paymentCurrency'),
+      paymentPurpose: document.getElementById('paymentPurpose'),
+      paymentNote: document.getElementById('paymentNote'),
+      paymentError: document.getElementById('paymentError'),
+      paymentSuccess: document.getElementById('paymentSuccess'),
+      paymentInfo: document.getElementById('paymentInfo'),
+      paymentSend: document.getElementById('paymentSend'),
+      paymentRequests: document.getElementById('paymentRequests'),
       searchInput: document.getElementById('searchInput'),
       statusFilter: document.getElementById('statusFilter'),
       progressFilter: document.getElementById('progressFilter'),
@@ -1169,11 +1235,54 @@
       });
     }
 
+    function renderPaymentRequests() {
+      if (!els.paymentRequests) return;
+      if (!state.paymentRequests.length) {
+        els.paymentRequests.innerHTML = '<div class="empty-card">No payment requests yet.</div>';
+        return;
+      }
+      els.paymentRequests.innerHTML = state.paymentRequests.map(item => `
+        <div class="lead-entry">
+          <div class="lead-head">
+            <div>
+              <div class="lead-title">${escapeHtml(item.purpose)}</div>
+              <div class="lead-subtitle">${Number(item.amount_cents || 0) / 100} ${escapeHtml(item.currency || 'EUR')}</div>
+            </div>
+            <div class="lead-meta">
+              <span class="pill ${item.status === 'paid' ? 'success' : ''}">${escapeHtml(item.status)}</span>
+              <span class="pill ${item.provider === 'stripe_connect' ? 'success' : ''}">${escapeHtml(item.provider)}</span>
+            </div>
+          </div>
+          ${item.note ? `<div class="lead-message">${escapeHtml(item.note)}</div>` : ''}
+          <div class="lead-actions">
+            <a class="btn ghost" href="${escapeHtml(item.payment_url)}" target="_blank" rel="noopener">Open</a>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderPaymentPanel() {
+      if (!els.paymentPanel) return;
+      const lead = selectedLead();
+      els.paymentPanel.style.display = lead ? 'grid' : 'none';
+      if (!lead) return;
+      const settings = state.paymentSettings;
+      if (!settings) {
+        els.paymentInfo.textContent = 'Loading payment settings…';
+      } else if (!settings.payments_enabled) {
+        els.paymentInfo.textContent = 'Stripe account is not fully payment-ready yet. Requests will fall back to Stripe-hosted demo checkout until charges are enabled.';
+      } else {
+        els.paymentInfo.textContent = 'Payment requests will open real Stripe Checkout on the connected account.';
+      }
+      els.paymentSend.disabled = state.paymentSending;
+      renderPaymentRequests();
+    }
+
     function renderThread() {
       const lead = selectedLead();
       if (!lead) {
         els.leadDetail.style.display = 'none';
         els.leadDetailEmpty.style.display = 'block';
+        renderPaymentPanel();
         return;
       }
       els.leadDetail.style.display = 'grid';
@@ -1190,6 +1299,7 @@
       els.thread.innerHTML = '';
       if (!state.messages.length) {
         els.thread.innerHTML = '<div class="empty-card">No conversation messages yet.</div>';
+        renderPaymentPanel();
         return;
       }
       state.messages.forEach(m => {
@@ -1199,6 +1309,7 @@
         els.thread.appendChild(bubble);
       });
       els.thread.scrollTop = els.thread.scrollHeight;
+      renderPaymentPanel();
     }
 
     async function loadLeads() {
@@ -1228,11 +1339,34 @@
       renderThread();
     }
 
+    async function loadPaymentSettings() {
+      const res = await fetch(`/api/organizations/${base.orgId}/payment-settings`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      state.paymentSettings = await res.json();
+      if (els.paymentCurrency && !els.paymentCurrency.value) {
+        els.paymentCurrency.value = state.paymentSettings?.default_currency || 'EUR';
+      }
+      renderPaymentPanel();
+    }
+
+    async function loadPaymentRequests(sid) {
+      if (!sid) {
+        state.paymentRequests = [];
+        renderPaymentPanel();
+        return;
+      }
+      const res = await fetch(`/api/organizations/${base.orgId}/payment-requests?sid=${encodeURIComponent(sid)}`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      state.paymentRequests = await res.json();
+      renderPaymentPanel();
+    }
+
     async function selectLead(sid) {
       showLiveError('');
       if (state.selectedSid === sid) {
         state.selectedSid = '';
         state.messages = [];
+        state.paymentRequests = [];
         state.liveSession = null;
         state.livePreviewState = 'idle';
         disconnectLiveRoom();
@@ -1248,6 +1382,7 @@
       renderLeadList();
       await loadMessages(sid);
       await loadCurrentLiveSession(sid);
+      await loadPaymentRequests(sid);
       state.since = 0;
     }
 
@@ -1384,6 +1519,50 @@
       await loadMessages(lead.sid);
     }
 
+    async function sendPaymentRequest() {
+      const lead = selectedLead();
+      if (!lead) return;
+      els.paymentError.style.display = 'none';
+      els.paymentSuccess.style.display = 'none';
+      const amount = Number(els.paymentAmount.value || 0);
+      const currency = (els.paymentCurrency.value || 'EUR').trim().toUpperCase();
+      const purpose = (els.paymentPurpose.value || '').trim();
+      const note = (els.paymentNote.value || '').trim();
+      if (!(amount > 0)) {
+        els.paymentError.textContent = 'Amount must be greater than 0.';
+        els.paymentError.style.display = 'block';
+        return;
+      }
+      if (!purpose) {
+        els.paymentError.textContent = 'Payment purpose is required.';
+        els.paymentError.style.display = 'block';
+        return;
+      }
+      state.paymentSending = true;
+      renderPaymentPanel();
+      const res = await fetch(`/api/organizations/${base.orgId}/payment-requests`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sid: lead.sid, amount, currency, purpose, note, expires_in_hours: 24 })
+      });
+      state.paymentSending = false;
+      if (!res.ok) {
+        els.paymentError.textContent = await extractErrorMessage(res, 'Failed to send payment request.');
+        els.paymentError.style.display = 'block';
+        renderPaymentPanel();
+        return;
+      }
+      const item = await res.json();
+      state.paymentRequests = [item, ...state.paymentRequests.filter(existing => String(existing.id) !== String(item.id))];
+      els.paymentSuccess.textContent = item.provider === 'stripe_connect'
+        ? 'Stripe payment link was sent into the chat.'
+        : 'Stripe-hosted demo payment link was sent into the chat.';
+      els.paymentSuccess.style.display = 'block';
+      await loadMessages(lead.sid);
+      renderPaymentPanel();
+    }
+
     async function deleteLead(sid) {
       const lead = state.leads.find(item => item.sid === sid);
       if (!lead || !confirm(`Delete lead ${lead.name} (${lead.sid})?`)) return;
@@ -1397,6 +1576,7 @@
       if (state.selectedSid === sid) {
         state.selectedSid = '';
         state.messages = [];
+        state.paymentRequests = [];
         state.liveSession = null;
         state.livePreviewState = 'idle';
         disconnectLiveRoom();
@@ -1420,6 +1600,9 @@
             }
             if (selectedEvents.some(evt => evt.type === 'live_session.live' || evt.type === 'live_session.ended')) {
               await loadCurrentLiveSession(state.selectedSid);
+            }
+            if (selectedEvents.some(evt => evt.type === 'payment.request.sent' || evt.type === 'payment.request.paid')) {
+              await loadPaymentRequests(state.selectedSid);
             }
           }
         }
@@ -1449,6 +1632,7 @@
     els.endLiveBtn.addEventListener('click', endLive);
     els.takeoverSend.addEventListener('click', sendTakeoverMessage);
     els.takeoverEnd.addEventListener('click', endTakeover);
+    els.paymentSend.addEventListener('click', sendPaymentRequest);
     els.leadDeleteTop.addEventListener('click', () => state.selectedSid && deleteLead(state.selectedSid));
     els.takeoverInput.addEventListener('keydown', event => {
       if (event.key === 'Enter' && !event.shiftKey) {
@@ -1458,9 +1642,14 @@
     });
 
     renderLiveStage();
-    loadLeads().then(async () => {
-      if (state.selectedSid) await loadCurrentLiveSession(state.selectedSid);
-    }).finally(poll);
+    loadPaymentSettings().finally(() => {
+      loadLeads().then(async () => {
+        if (state.selectedSid) {
+          await loadCurrentLiveSession(state.selectedSid);
+          await loadPaymentRequests(state.selectedSid);
+        }
+      }).finally(poll);
+    });
   }
 
   function initQualifiers() {
@@ -2239,9 +2428,90 @@
     loadSurveys();
   }
 
+  function initPayments() {
+    const els = {
+      message: document.getElementById('paymentsMessage'),
+      connectStatus: document.getElementById('paymentsConnectStatus'),
+      chargesEnabled: document.getElementById('paymentsChargesEnabled'),
+      payoutsEnabled: document.getElementById('paymentsPayoutsEnabled'),
+      details: document.getElementById('paymentsDetails'),
+      connectButton: document.getElementById('paymentsConnectButton'),
+      refreshButton: document.getElementById('paymentsRefreshButton')
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const stripeStatus = params.get('stripe');
+    const stripeMessage = params.get('message');
+    if (stripeStatus) {
+      els.message.style.display = 'block';
+      els.message.classList.toggle('error-text', stripeStatus === 'error');
+      els.message.textContent = stripeStatus === 'connected'
+        ? 'Stripe Connect completed successfully.'
+        : stripeMessage || 'Stripe Connect returned an error.';
+    }
+
+    async function loadSettings() {
+      const res = await fetch(`/api/organizations/${base.orgId}/payment-settings`, { credentials: 'same-origin' });
+      if (!res.ok) {
+        els.message.style.display = 'block';
+        els.message.classList.add('error-text');
+        els.message.textContent = await extractErrorMessage(res, 'Failed to load payment settings.');
+        return;
+      }
+      const settings = await res.json();
+      els.connectStatus.textContent = settings.stripe_connect_status || 'unknown';
+      els.chargesEnabled.textContent = settings.stripe_charges_enabled ? 'YES' : 'NO';
+      els.payoutsEnabled.textContent = settings.stripe_payouts_enabled ? 'YES' : 'NO';
+      els.details.innerHTML = `
+        <div><strong>Provider:</strong> ${escapeHtml(settings.provider)}</div>
+        <div><strong>Mode:</strong> ${escapeHtml(settings.mode)}</div>
+        <div><strong>Default currency:</strong> ${escapeHtml(settings.default_currency || 'EUR')}</div>
+        <div><strong>Stripe account:</strong> ${escapeHtml(settings.stripe_account_id || 'not connected')}</div>
+        <div><strong>Ready to accept payments:</strong> ${settings.payments_enabled ? 'YES' : 'NO'}</div>
+        <div><strong>Current flow mode:</strong> ${settings.payments_enabled ? 'Real Stripe Checkout' : 'Stripe-hosted demo checkout'}</div>
+        ${settings.stripe_last_error ? `<div><strong>Last error:</strong> ${escapeHtml(settings.stripe_last_error)}</div>` : ''}`;
+    }
+
+    async function connectStripe() {
+      const res = await fetch(`/api/organizations/${base.orgId}/payment-settings/stripe/connect`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        els.message.style.display = 'block';
+        els.message.classList.add('error-text');
+        els.message.textContent = await extractErrorMessage(res, 'Failed to start Stripe Connect.');
+        return;
+      }
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    }
+
+    async function refreshStripe() {
+      const res = await fetch(`/api/organizations/${base.orgId}/payment-settings/stripe/refresh`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        els.message.style.display = 'block';
+        els.message.classList.add('error-text');
+        els.message.textContent = await extractErrorMessage(res, 'Failed to refresh Stripe status.');
+        return;
+      }
+      await loadSettings();
+    }
+
+    els.connectButton.addEventListener('click', connectStripe);
+    els.refreshButton.addEventListener('click', refreshStripe);
+    loadSettings();
+  }
+
   if (base.activeTab === 'leads') initLeads();
   if (base.activeTab === 'surveys') initSurveys();
   if (base.activeTab === 'qualifier') initQualifiers();
+  if (base.activeTab === 'payments') initPayments();
 })();
 </script>
 </body>

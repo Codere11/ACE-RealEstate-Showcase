@@ -1,6 +1,10 @@
 spring:
   application:
     name: java-platform
+  config:
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
   profiles:
     default: dev
 

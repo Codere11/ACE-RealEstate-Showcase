@@ -543,6 +543,16 @@
     els.progressText.textContent = pct + '% complete';
   }
 
+  function linkifyText(text) {
+    const safe = String(text || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+    return safe.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
   function appendMessage(role, text, timestamp, options = {}) {
     const id = role + '|' + text + '|' + timestamp;
     const pending = !!options.pending;
@@ -567,7 +577,7 @@
     if (options.tempId) bubble.dataset.tempId = options.tempId;
     if (!pending) bubble.dataset.messageId = id;
     bubble.innerHTML = `<div class="bubble__body"></div>`;
-    bubble.querySelector('.bubble__body').textContent = text || '';
+    bubble.querySelector('.bubble__body').innerHTML = linkifyText(text || '');
     els.thread.appendChild(bubble);
     els.thread.scrollTop = els.thread.scrollHeight;
   }

@@ -1,11 +1,16 @@
 package com.ace.platform.chat;
 
 import com.ace.platform.conversation.ConversationMessage;
+import com.ace.platform.conversation.ConversationRole;
 import com.ace.platform.conversation.ConversationService;
+import com.ace.platform.events.LeadEventService;
 import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.payment.OrganizationPaymentSettings;
+import com.ace.platform.payment.PaymentRequest;
+import com.ace.platform.payment.PaymentService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
 import com.ace.platform.user.UserRole;
@@ -28,7 +33,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class LegacyDashboardApiController {
@@ -37,18 +41,23 @@ public class LegacyDashboardApiController {
     private final OrganizationRepository organizationRepository;
     private final LeadService leadService;
     private final ConversationService conversationService;
-    private final Map<Long, List<Map<String, Object>>> paymentRequests = new ConcurrentHashMap<>();
+    private final LeadEventService leadEventService;
+    private final PaymentService paymentService;
 
     public LegacyDashboardApiController(
         UserRepository userRepository,
         OrganizationRepository organizationRepository,
         LeadService leadService,
-        ConversationService conversationService
+        ConversationService conversationService,
+        LeadEventService leadEventService,
+        org.springframework.beans.factory.ObjectProvider<PaymentService> paymentServiceProvider
     ) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.leadService = leadService;
         this.conversationService = conversationService;
+        this.leadEventService = leadEventService;
+        this.paymentService = paymentServiceProvider.getIfAvailable();
     }
 
     @GetMapping("/leads/")
@@ -128,83 +137,78 @@ public class LegacyDashboardApiController {
     public Map<String, Object> paymentSettings(@PathVariable Long orgId, Authentication authentication) {
         User user = requireUser(authentication);
         requireOrgAccess(user, orgId);
-        return paymentSettingsPayload(orgId);
+        PaymentService payments = requirePaymentService();
+        OrganizationPaymentSettings settings = payments.getOrCreateSettings(orgId);
+        return payments.toSettingsPayload(settings);
     }
 
     @PostMapping("/api/organizations/{orgId}/payment-settings/stripe/connect")
     public Map<String, Object> startStripeConnect(@PathVariable Long orgId, Authentication authentication) {
         User user = requireUser(authentication);
         requireOrgAccess(user, orgId);
-        return Map.of("url", "#");
+        try {
+            return Map.of("url", requirePaymentService().createConnectLink(orgId));
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
     }
 
     @PostMapping("/api/organizations/{orgId}/payment-settings/stripe/refresh")
     public Map<String, Object> refreshStripeConnect(@PathVariable Long orgId, Authentication authentication) {
         User user = requireUser(authentication);
         requireOrgAccess(user, orgId);
-        return paymentSettingsPayload(orgId);
+        try {
+            PaymentService payments = requirePaymentService();
+            OrganizationPaymentSettings settings = payments.refreshConnectStatus(payments.getOrCreateSettings(orgId));
+            return payments.toSettingsPayload(settings);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
     }
 
     @GetMapping("/api/organizations/{orgId}/payment-requests")
     public List<Map<String, Object>> paymentRequests(@PathVariable Long orgId, @RequestParam(required = false) String sid, Authentication authentication) {
         User user = requireUser(authentication);
         requireOrgAccess(user, orgId);
-        List<Map<String, Object>> items = paymentRequests.getOrDefault(orgId, List.of());
-        if (sid == null || sid.isBlank()) return items;
-        return items.stream().filter(item -> sid.equals(item.get("sid"))).toList();
+        PaymentService payments = requirePaymentService();
+        return payments.listRequests(orgId, sid, 100).stream().map(payments::toPaymentRequestPayload).toList();
     }
 
     @PostMapping("/api/organizations/{orgId}/payment-requests")
     public Map<String, Object> createPaymentRequest(@PathVariable Long orgId, @RequestBody PaymentRequestCreate request, Authentication authentication) {
         User user = requireUser(authentication);
         requireOrgAccess(user, orgId);
-        Map<String, Object> item = new LinkedHashMap<>();
-        item.put("id", System.currentTimeMillis());
-        item.put("organization_id", orgId);
-        item.put("sid", request.sid());
-        item.put("created_by_user_id", user.getId());
-        item.put("provider", "mock");
-        item.put("provider_payment_id", null);
-        item.put("provider_session_id", null);
-        item.put("public_token", "mock-" + System.nanoTime());
-        item.put("amount_cents", Math.round((request.amount() != null ? request.amount() : 0.0) * 100));
-        item.put("currency", request.currency() != null ? request.currency().toUpperCase() : "EUR");
-        item.put("purpose", request.purpose() != null ? request.purpose() : "Payment request");
-        item.put("note", request.note() != null ? request.note() : "");
-        item.put("status", "sent");
-        item.put("payment_url", "#");
-        item.put("expires_at", null);
-        item.put("paid_at", null);
-        item.put("provider_payload", Map.of());
-        item.put("created_at", Instant.now().toString());
-        item.put("updated_at", Instant.now().toString());
-        paymentRequests.computeIfAbsent(orgId, ignored -> new ArrayList<>()).add(0, item);
-        return item;
-    }
+        Lead lead = leadService.findByOrganizationAndSid(orgId, request.sid())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lead not found"));
+        PaymentRequest item;
+        try {
+            item = requirePaymentService().createPaymentRequest(
+                orgId,
+                request.sid(),
+                user,
+                request.amount(),
+                request.currency(),
+                request.purpose(),
+                request.note(),
+                request.expiresInHours()
+            );
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
 
-    private Map<String, Object> paymentSettingsPayload(Long orgId) {
-        Instant now = Instant.now();
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("id", orgId);
-        out.put("organization_id", orgId);
-        out.put("provider", "stripe");
-        out.put("mode", "stripe_connect_standard");
-        out.put("payments_enabled", false);
-        out.put("default_currency", "EUR");
-        out.put("stripe_account_id", null);
-        out.put("stripe_connect_status", "not_connected");
-        out.put("stripe_onboarding_complete", false);
-        out.put("stripe_details_submitted", false);
-        out.put("stripe_charges_enabled", false);
-        out.put("stripe_payouts_enabled", false);
-        out.put("stripe_publishable_key", null);
-        out.put("stripe_scope", null);
-        out.put("stripe_livemode", false);
-        out.put("stripe_last_error", null);
-        out.put("last_synced_at", now.toString());
-        out.put("created_at", now.toString());
-        out.put("updated_at", now.toString());
-        return out;
+        Map<String, Object> eventPayload = new LinkedHashMap<>();
+        eventPayload.put("id", item.getId());
+        eventPayload.put("status", item.getStatus());
+        eventPayload.put("amountCents", item.getAmountCents());
+        eventPayload.put("currency", item.getCurrency());
+        eventPayload.put("purpose", item.getPurpose());
+        eventPayload.put("note", item.getNote());
+        eventPayload.put("paymentUrl", item.getPaymentUrl());
+        eventPayload.put("expiresAt", item.getExpiresAt() != null ? item.getExpiresAt().toString() : null);
+        eventPayload.put("paidAt", item.getPaidAt() != null ? item.getPaidAt().toString() : null);
+        leadEventService.publish(lead.getOrganization(), lead.getSid(), "payment.request.sent", eventPayload);
+        conversationService.appendMessage(lead, ConversationRole.ASSISTANT, "Prejeli ste zahtevek za plačilo: " + item.getPurpose() + ". Povezava: " + item.getPaymentUrl());
+        return requirePaymentService().toPaymentRequestPayload(item);
     }
 
     private LeadRow toLeadRow(Lead lead) {
@@ -292,6 +296,13 @@ public class LegacyDashboardApiController {
         if (!platformAdmin && !sameOrg) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This user cannot access the requested organization");
         }
+    }
+
+    private PaymentService requirePaymentService() {
+        if (paymentService == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Payments are not available");
+        }
+        return paymentService;
     }
 
     private boolean hasText(String value) {
