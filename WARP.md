@@ -2,7 +2,7 @@
 
 This repository is centered on:
 - `java-platform/` — main Spring Boot application
-- `app/` — Python AI/runtime service
+- `app/` — Python FastAPI + LangGraph AI/runtime service
 
 ## Common commands
 
@@ -29,4 +29,4 @@ docker compose -f docker-compose-simple.yml up -d
 
 ## Architecture note
 Treat the Java app as the main product surface.
-Treat the Python service as the AI/runtime support layer.
+Treat the Python service as the FastAPI + LangGraph AI/runtime support layer.

@@ -11,7 +11,7 @@ It is designed to show a complete product story:
 
 ## Stack
 - **Java 21 + Spring Boot + Thymeleaf** — main product application
-- **Python + FastAPI** — AI/runtime service
+- **Python + FastAPI + LangGraph** — AI/runtime service and qualification orchestration
 - **PostgreSQL** — persistence
 - **LiveKit** — live-help transport for demo/testing
 - **Stripe / Stripe Connect** — payment requests and hosted checkout
@@ -55,6 +55,7 @@ It currently owns:
 ### Python service
 The Python service supports AI/runtime behavior, including:
 - qualifier/runtime logic
+- LangGraph-based qualification orchestration
 - event and runtime support paths
 - integration points used by the Java app when AI behavior is needed
 

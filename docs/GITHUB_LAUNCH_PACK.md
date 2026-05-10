@@ -3,13 +3,13 @@
 Use this when presenting ACE e-Counter as a flagship repository.
 
 ## Suggested GitHub Bio
-`Software engineer building product-focused SaaS systems with Java, Spring Boot, Python, PostgreSQL, and AI-assisted workflows.`
+`Software engineer building product-focused SaaS systems with Java, Spring Boot, FastAPI, LangGraph, PostgreSQL, and AI-assisted workflows.`
 
 ## Suggested Repo Description
 `Multi-tenant visitor-intake and conversion platform built with Spring Boot, a Python AI service, PostgreSQL, and Stripe-hosted checkout.`
 
 ## Short Project Summary
-`Built a multi-tenant lead-intake and conversion product with a Java Spring Boot application and a Python AI/runtime service. Implemented manager-side operations, live handoff, and payment-request workflow on top of a shared PostgreSQL data model.`
+`Built a multi-tenant lead-intake and conversion product with a Java Spring Boot application and a Python FastAPI + LangGraph AI/runtime service. Implemented manager-side operations, live handoff, and payment-request workflow on top of a shared PostgreSQL data model.`
 
 ## Suggested Pinned Repositories
 1. `ACE-RealEstate` (flagship)

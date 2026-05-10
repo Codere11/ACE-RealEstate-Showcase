@@ -1,6 +1,6 @@
 # Architecture — ACE e-Counter
 
-ACE e-Counter is built as a **Java-first product application** with a separate **Python AI/runtime service**.
+ACE e-Counter is built as a **Java-first product application** with a separate **Python AI/runtime service powered by FastAPI and LangGraph**.
 
 ## High-level view
 
@@ -9,7 +9,7 @@ graph TD
     Visitor[Visitor] --> Java[Java Spring Boot app\njava-platform]
     Manager[Manager] --> Java
     Java --> Postgres[(PostgreSQL)]
-    Java --> Python[Python FastAPI AI/runtime service\napp]
+    Java --> Python[Python FastAPI + LangGraph\nAI/runtime service\napp]
     Java --> Stripe[Stripe / Stripe Connect]
     Java --> LiveKit[LiveKit]
     Python --> Postgres
@@ -34,6 +34,7 @@ Python AI/runtime service.
 
 Owns:
 - AI-assisted qualification/runtime logic
+- LangGraph-based runtime orchestration
 - event/runtime support paths
 - service behavior that the Java app can call when AI/runtime processing is needed
 

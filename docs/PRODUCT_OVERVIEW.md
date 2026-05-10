@@ -20,7 +20,7 @@ Visitors can start in survey mode or open chat, depending on the organization se
 The experience stays simple while still collecting useful business signal.
 
 ### 2. AI qualification
-The Python AI/runtime service supports qualification behavior, lead-profile updates, and next-step logic.
+The Python AI/runtime service uses FastAPI and LangGraph to support qualification behavior, lead-profile updates, and next-step logic.
 Managers get more than “the bot had a chat” — they get structure, reasoning, and actionable context.
 
 ### 3. Manager operations
@@ -47,7 +47,7 @@ A strong demo of ACE e-Counter looks like this:
 
 ## Current implementation shape
 - **Java Spring Boot** — main application
-- **Python FastAPI** — AI/runtime service
+- **Python FastAPI + LangGraph** — AI/runtime service
 - **PostgreSQL** — persistence
 - **LiveKit** — live-help transport for demo/testing
 - **Stripe** — hosted payment flow

@@ -1,7 +1,7 @@
 # Project Presentation Guide
 
 ## 30-Second Pitch
-ACE e-Counter is a multi-tenant visitor-intake and conversion platform built around a Java Spring Boot application with a Python AI/runtime service. It supports public intake, manager-side operations, live handoff, and payment requests in one product flow.
+ACE e-Counter is a multi-tenant visitor-intake and conversion platform built around a Java Spring Boot application with a Python FastAPI + LangGraph AI/runtime service. It supports public intake, manager-side operations, live handoff, and payment requests in one product flow.
 
 ## What to Emphasize
 - product engineering, not isolated scripts
@@ -11,7 +11,7 @@ ACE e-Counter is a multi-tenant visitor-intake and conversion platform built aro
 - path from visitor intake to conversion
 
 ## Suggested Resume Bullets
-- Built a multi-tenant visitor-intake and conversion platform with Spring Boot, Python, PostgreSQL, and Stripe-hosted checkout.
+- Built a multi-tenant visitor-intake and conversion platform with Spring Boot, FastAPI, LangGraph, PostgreSQL, and Stripe-hosted checkout.
 - Implemented manager-side dashboard workflows for lead review, takeover, live help, and payment requests.
 - Designed a Java application integrated with a separate Python AI/runtime service.
 - Delivered a coherent product demo with shared persistence and production-style architecture boundaries.
