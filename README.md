@@ -1,234 +1,130 @@
-<!-- Created: 2026-03-14T20:44:39Z -->
 # ACE e-Counter
-A configurable digital front desk for visitor intake, AI qualification, live human handoff, and next-step actions.
 
-This project is meant to show **product engineering**, not just isolated AI or frontend experiments:
-- manager-configured AI qualification
-- real-time dashboard visibility
-- event-driven handoff between chat and operators
-- one-way live help stage with manager preview and visitor-side live rectangle
-- payment request workflow with a Stripe Connect path
-- Dockerized full-stack local setup
+ACE e-Counter is now primarily a **Java Spring Boot application** with a **Python AI/runtime service**.
 
-![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
-![Angular](https://img.shields.io/badge/Angular-Frontend-DD0031?logo=angular&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Local%20Stack-2496ED?logo=docker&logoColor=white)
+This repo still contains legacy Angular and older Python-first pieces, but the current product truth is:
 
-## The Problem
-Businesses lose time and revenue when inbound visitors are:
-- qualified manually
-- followed up too late
-- handled in disconnected tools
-- escalated without clear quality or next-step context
+- `java-platform/` is the main app users see
+- `app/` is the Python AI/runtime service and some legacy APIs
+- legacy Angular frontends remain in the repo as transitional/reference code, not as the main product surface
 
-A normal website form or rigid survey also creates friction too early.
+## Current truth
 
-## The Solution
-ACE e-Counter combines a conversational intake layer with manager-side control.
+### Main product surface
+The main product now lives in **Spring Boot + Thymeleaf** inside `java-platform/`.
 
-### Visitor side
-- start with either a survey or open chat, depending on tenant configuration
-- ask questions naturally
-- get qualified in the background without being forced through a long form
-- receive live human help in the top-stage rectangle when staff steps in
-- receive a payment request when the manager decides the lead is ready
+It currently owns most of the user-visible product:
+- login and auth
+- organization dashboard
+- lead thread / takeover UI
+- surveys and qualifier management UI
+- live-help preview / go-live controls
+- payment request flow
+- public visitor pages
 
-### Manager side
-- configure the AI qualifier per organization
-- see evolving lead quality, confidence, reasoning, and takeover eligibility
-- preview a live-help session and go live to the visitor stage
-- send a payment request directly from the dashboard
+### Python service role
+The Python app in `app/` still matters, but its role is narrower now.
 
-## Why each major piece exists
-### 1. Customer e-counter
-Exists to reduce friction at the top of the funnel.
+It is mainly used for:
+- AI/runtime logic
+- event and runtime support paths
+- some legacy APIs that have not been moved yet
+- transitional support for features still bridged from Java
 
-It supports:
-- survey mode when structured intake is appropriate
-- open AI qualification mode when a live qualifier exists
-- a live-help stage above the conversation
-- payment request cards inside the chat flow
+## Architecture summary
 
-### 2. AI qualifier
-Exists to make qualification configurable and useful instead of hardcoded.
+### What owns what now
+- **Java (`java-platform/`)**: main web app, dashboard, public site, auth, surveys, current payment flow, current live-session UI flow
+- **Python (`app/`)**: AI qualifier/runtime behavior, supporting runtime services, some legacy endpoints
+- **PostgreSQL**: shared persistence
+- **LiveKit**: local live-help transport during demo/testing
+- **Stripe**: payment requests and Connect/onboarding path
 
-It gives the manager:
-- structured lead profile updates
-- confidence, reasoning, and supporting business context
-- takeover/video eligibility signals
-- a fixed, product-owned qualification runtime with a safer policy editor in the dashboard
+### What this project demonstrates
+- multi-tenant product design
+- Java app migration/re-platforming work
+- Python AI runtime integration instead of hard-coding AI into the main app
+- manager-side operations + visitor-side flow in one product
+- live help + payment request + qualification in one system
 
-### 3. Manager dashboard
-Exists to make the system operational, not just conversational.
+## Current demoable story
+1. visitor opens the Java public experience
+2. survey or open qualification flow starts
+3. manager opens the Java dashboard
+4. manager inspects lead thread and qualifier output
+5. manager can take over chat or go live
+6. manager can send a payment request
+7. visitor receives a clean payment button and opens hosted checkout
 
-It lets the team:
-- review leads in real time
-- inspect lead profile quality
-- manage qualifier behavior
-- preview and trigger live help
-- send payment requests
-- take over the conversation when needed
+## Repo status
+This repo is in a **transition state**, but the direction is clear.
 
-### 4. Event-driven backend
-Exists so the product behaves like a live system, not a static form app.
+### Primary code now
+- `java-platform/` → primary application
+- `app/` → AI/runtime service used by the Java app
 
-It is used for:
-- chat updates
-- lead qualification updates
-- payment request state updates
-- manager/dashboard synchronization
+### Legacy / transitional code still present
+- `frontend/ACE-Chatbot/` → legacy Angular visitor UI
+- `frontend/manager-dashboard/` → legacy Angular manager dashboard
+- `portal/portal/` → older admin UI
+- `docker-compose-simple.yml` → still reflects the older Angular/Python-first local stack
 
-### 5. Live help stage
-Exists to bridge the gap between AI qualification and real human presence.
+These are not the main truth anymore.
+They remain because cleanup/splitting is still in progress.
 
-The current first slice supports:
-- manager-side preview stage
-- visitor-side live rectangle
-- session state and live events
-- local LiveKit wiring for one-way live help
+## Recommended local development path
+If you want to work on the current product shape, use the **Java-first** path.
 
-### 6. Payment request flow
-Exists because qualification should lead to a real business action.
-
-The manager can:
-- create a payment request for a lead
-- send it directly into chat
-- open a hosted checkout flow
-- track paid/sent status
-
-## Current demoable flow
-The project is currently coherent enough to demo this end-to-end story:
-
-1. visitor opens ACE e-Counter
-2. tenant-specific qualifier runs in free-text mode
-3. manager sees lead quality in dashboard
-4. manager can preview/go-live into the live-help stage
-5. manager can send a payment request
-6. visitor opens a Stripe-hosted checkout
-7. payment state updates back into the system
-
-## Product Demo
-### 1) Survey Intake
-![Survey intake screen](docs/media/chatbot-survey-screen.png)
-User can still start with a short intake questionnaire when no active AI qualifier is configured.
-
-### 2) Open AI Qualification Chat
-![Chat follow-up screen](docs/media/chatbot-chat-screen.png)
-When an organization has a live qualifier, the chatbot starts directly in free-text mode and qualifies the lead conversationally.
-
-### 3) Manager Dashboard
-![Manager dashboard screen](docs/media/dashboard-leads-screen.png)
-Managers can configure ACE e-Counter qualification policy, inspect lead quality, and send payment requests.
-
-### 4) Screencast
-- [Watch product walkthrough video (WebM)](docs/media/ace-demo-1min.webm)
-
-## Current implementation status
-### Implemented now
-- multi-tenant organizations, users, surveys, qualifiers, and lead profiles
-- manager-driven AI qualifier resource with CRUD + publish/archive flow
-- redesigned dashboard qualifier editor organized around Offer / Learn / Next step policy / Graph view
-- fixed minimal LangGraph runtime with `interpret_turn -> decide_next_step -> persist`
-- live qualifier-aware chatbot entry mode
-- dashboard lead visibility for score, confidence, reasoning, takeover/video flags
-- live-help session shell with manager preview/live controls and visitor-side live stage
-- local LiveKit integration for one-way live-help transport
-- payment request flow in dashboard + chatbot
-- Stripe Connect architecture path at organization level
-- Stripe-hosted checkout path
-- local Stripe demo fallback when connected account is not fully payment-ready yet
-- Dockerized local stack
-
-### Intentionally not finished yet
-- grounded retrieval answers
-- polished production-grade live-help audio/two-way escalation flow
-- polished production-ready Stripe Connect onboarding for real clients
-- deeper analytics/reporting
-
-## Architecture at a glance
-### Backend
-- **FastAPI** for APIs and orchestration
-- **SQLAlchemy + PostgreSQL** for tenant-scoped persistence
-- event bus + long-poll/SSE-style updates for live UI synchronization
-
-### Frontend
-- **Angular chatbot** for visitor intake, conversational UI, and visitor-side live-help stage
-- **Angular manager dashboard** for lead operations, qualifier management, payments, and manager-side preview/live stage
-- **Portal/admin app** for additional management concerns
-
-### Runtime patterns
-- multi-tenancy
-- role-based access
-- DB-backed configuration
-- event-driven updates
-- hosted third-party checkout instead of hand-rolled payment UI
-
-## Why this project is technically interesting
-This is not just “a chatbot project.”
-It demonstrates:
-- multi-app product architecture
-- tenant-scoped configuration and runtime behavior
-- AI-assisted but controlled orchestration
-- structured data persistence behind chat interactions
-- dashboard/operator workflows
-- payment workflow integration
-- full-stack local reproducibility with Docker
-
-## Quick Start
-Use the simplified compose setup for local development:
-
+### 1. Start infra
 ```bash
-cp .env.example .env
-docker compose -f docker-compose-simple.yml up -d --build
+docker compose -f docker-compose-simple.yml up -d postgres livekit
 ```
 
-Open:
-- Chatbot UI: `http://localhost:4200`
-- Manager dashboard: `http://localhost:4400`
-- Admin portal: `http://localhost:4500`
-- API docs: `http://localhost:8000/docs`
+### 2. Create the Java app database once
+The legacy compose file creates `ace_production`, but the Java app expects `ace_platform` by default.
 
-Useful demo routes:
-- Demo chatbot org route: `http://localhost:4200/demo-agency/nepremicnine`
-- Manager login: `http://localhost:4400/login`
-- Demo manager credentials: `admin / test123`
+```bash
+docker exec -it ace-postgres psql -U ace_user -c "CREATE DATABASE ace_platform;"
+```
+
+### 3. Run the Java app
+```bash
+cd java-platform
+./mvnw spring-boot:run
+```
+
+### 4. Optionally run the Python AI/runtime service
+```bash
+cd /home/maksich/Documents/ACE-RealEstate
+./run_backend.sh
+```
+
+### Main local URLs
+- Java app: `http://127.0.0.1:8080`
+- Demo org dashboard: `http://127.0.0.1:8080/demo/dashboard`
+- Login: `http://127.0.0.1:8080/login`
+- Demo credentials: `admin / test123`
+- Python service docs: `http://127.0.0.1:8000/docs`
 
 ## Documentation
-### Start here
+- Current architecture: `ARCHITECTURE.md`
+- Current local dev path: `docs/LOCAL_DEVELOPMENT.md`
 - Product overview: `docs/PRODUCT_OVERVIEW.md`
-- Local setup: `docs/LOCAL_DEVELOPMENT.md`
-- API route overview: `docs/API_OVERVIEW.md`
+- API overview: `docs/API_OVERVIEW.md`
 
-### Core feature docs
-- AI qualifier implementation/runtime spec: `docs/AI_QUALIFIER_SPEC.md`
-- ACE e-Counter qualification funnel/product spec: `docs/ACE_ECOUNTER_QUALIFICATION_SPEC.md`
-- Live help spec: `docs/LIVE_HELP_SPEC.md`
-- Data contracts: `docs/DATA_CONTRACTS.md`
-- Live events: `docs/EVENTS.md`
-- Stripe Connect local setup: `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
-- Video takeover spec: `docs/VIDEO_TAKEOVER_SPEC.md`
-
-### Additional docs
-- Architecture diagrams: `ARCHITECTURE.md`
-- Recruiter/product presentation guide: `docs/PROJECT_PRESENTATION.md`
-- GitHub launch pack: `docs/GITHUB_LAUNCH_PACK.md`
-- Archived legacy docs: `docs/archive/README.md`
-
-## Repository Map
-- `app/` — FastAPI routers, services, auth, middleware, orchestration
-- `frontend/ACE-Chatbot/` — visitor-facing intake/chat UI
-- `frontend/manager-dashboard/` — manager/operator dashboard
-- `portal/portal/` — admin UI
-- `scripts/` — helper/seed scripts
-- `docs/` — focused architecture/product documentation
+## Repository map
+- `java-platform/` — primary Spring Boot application
+- `app/` — Python AI/runtime service
+- `docs/` — documentation
+- `scripts/` — seed/helper scripts
+- `frontend/ACE-Chatbot/` — legacy Angular visitor app
+- `frontend/manager-dashboard/` — legacy Angular manager dashboard
+- `portal/portal/` — legacy/older admin UI
 
 ## Notes
-- Keep secrets out of git (`.env` is local-only)
-- Use `.env.example` as the template
-- Prefer `docker-compose-simple.yml` for onboarding and demos
-- For local Stripe Connect testing, expose the backend publicly and keep dashboard/chatbot local
+- The repo still needs structural cleanup
+- The docs now describe the current truth, not the old marketing story
+- Next cleanup step should be moving legacy Angular/old-stack code into clearly marked legacy boundaries or a separate repo
 
 ## Author
 Maks Ponikvar

@@ -1,184 +1,133 @@
-<!-- Created: 2026-04-18T12:20:22Z -->
 # Local Development Runbook
-This runbook is the fastest path to running ACE e-Counter locally.
 
-If you want the big-picture product explanation first, read:
-- `docs/PRODUCT_OVERVIEW.md`
+This document now describes the **current recommended Java-first local path**.
+
+If you want the old Angular/Python-first stack, it still exists in the repo, but it is no longer the main development truth.
+
+## Current recommended stack
+- Java app: `java-platform/`
+- Python AI/runtime service: `app/`
+- PostgreSQL via Docker
+- LiveKit via Docker when testing live-help flow
 
 ## Prerequisites
-- Docker
-- Docker Compose (v2+)
+- Java 21
+- Maven wrapper works from repo (`./mvnw`)
+- Python 3
+- Docker + Docker Compose v2
 
-## 1) Environment Setup
-Create your local environment file:
+## 1. Environment file
+The Java app imports `.env`.
+The Python service also uses it.
 
+If needed:
 ```bash
 cp .env.example .env
 ```
 
-Minimum fields to review in `.env`:
-- `DATABASE_URL`
+Important vars commonly used now:
+- `ACE_DB_URL`
+- `ACE_DB_USERNAME`
+- `ACE_DB_PASSWORD`
 - `OPENAI_API_KEY`
 - `ACE_LLM_PROVIDER`
 - `ACE_LLM_MODEL`
-- `ACE_SECRET`
-- `ACE_LOG_LEVEL`
-- `ACE_ENFORCE_DUAL_CONTACT`
-- `ACE_LIVEKIT_WS_URL`
-- `ACE_LIVEKIT_API_KEY`
-- `ACE_LIVEKIT_API_SECRET`
-
-If you want to test Stripe Connect locally, also review:
 - `ACE_PUBLIC_BASE_URL`
-- `ACE_MANAGER_DASHBOARD_URL`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_CONNECT_CLIENT_ID`
 - `STRIPE_WEBHOOK_SECRET`
 
-## 2) Boot
-This is the default boot command after a reboot, fresh terminal session, or first local run:
+## 2. Start infra
+Use Docker only for infra first:
 
 ```bash
-docker compose -f docker-compose-simple.yml up -d --build
+docker compose -f docker-compose-simple.yml up -d postgres livekit
 ```
 
-If you already built the images and just want to start the stack again, this is usually enough:
+## 3. Create Java database once
+Legacy compose still creates `ace_production` by default.
+The Java app expects `ace_platform` locally.
+
+Create it once:
 
 ```bash
-docker compose -f docker-compose-simple.yml up -d
+docker exec -it ace-postgres psql -U ace_user -c "CREATE DATABASE ace_platform;"
 ```
 
-## 3) Service Endpoints
-- Backend API: `http://localhost:8000`
-- Swagger UI: `http://localhost:8000/docs`
-- Chatbot frontend: `http://localhost:4200`
-- Manager dashboard: `http://localhost:4400`
-- Admin portal: `http://localhost:4500`
-- LiveKit signaling: `ws://127.0.0.1:7880`
+If it already exists, PostgreSQL will tell you.
+That is fine.
 
-Useful demo routes:
-- Demo chatbot org route: `http://localhost:4200/demo-agency/nepremicnine`
-- Manager login: `http://localhost:4400/login`
-- Demo manager credentials: `admin / test123`
+## 4. Run the Java app
+```bash
+cd java-platform
+./mvnw spring-boot:run
+```
 
-## 4) Health Checks
-Quick checks:
+Expected local URL:
+- `http://127.0.0.1:8080`
+
+Health check:
+```bash
+curl -sf http://127.0.0.1:8080/actuator/health
+```
+
+## 5. Optional: run Python AI/runtime service
+Run this when working on qualifier/runtime behavior or Java-to-Python integration paths.
 
 ```bash
-curl -sf http://localhost:8000/docs
-curl -sf http://localhost:4200
-curl -sf http://localhost:4400
-curl -sf http://localhost:4500
+cd /home/maksich/Documents/ACE-RealEstate
+./run_backend.sh
 ```
 
-## 5) Stripe Connect Local Notes
-For local Stripe Connect testing:
-- keep dashboard/chatbot local
-- expose **only the backend** publicly (recommended: `ngrok http 8000`)
-- point `ACE_PUBLIC_BASE_URL` to that public backend URL
-- keep `ACE_MANAGER_DASHBOARD_URL=http://localhost:4400`
-- use Stripe CLI for webhooks:
+Expected local URL:
+- `http://127.0.0.1:8000`
 
+Docs:
+- `http://127.0.0.1:8000/docs`
+
+## 6. Useful local routes
+### Java app
+- Home: `http://127.0.0.1:8080/`
+- Demo public route: `http://127.0.0.1:8080/demo`
+- Demo dashboard: `http://127.0.0.1:8080/demo/dashboard`
+- Login: `http://127.0.0.1:8080/login`
+- Demo credentials: `admin / test123`
+
+### Python runtime service
+- OpenAPI docs: `http://127.0.0.1:8000/docs`
+
+## 7. Tests
+### Java
 ```bash
-stripe listen --forward-to localhost:8000/api/payments/webhooks/stripe
+cd java-platform
+./mvnw test -q
 ```
 
-After changing Stripe-related env vars, rebuild/restart backend:
+### Python
+Run only when working in the Python service area.
+The repo still contains older Python-first tests and flows.
 
-```bash
-docker compose -f docker-compose-simple.yml up -d --build backend dashboard
-```
+## 8. Notes on current ownership
+### Java owns most visible product behavior
+Use Java app for:
+- dashboard work
+- auth
+- public pages
+- survey UI
+- payment flow
+- live-help UI flow
 
-Full walkthrough:
-- `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
+### Python owns AI/runtime behavior
+Use Python service for:
+- AI qualifier logic
+- runtime bridge behavior
+- transitional support paths still called by Java
 
-Important distinction:
-- `.env` / ngrok / Stripe CLI setup is **platform/developer setup**
-- the intended business-owner UX is still just **Connect Stripe** inside the dashboard
+## 9. Legacy stack note
+The following still exist but are not the main local path anymore:
+- `frontend/ACE-Chatbot/`
+- `frontend/manager-dashboard/`
+- `portal/portal/`
+- full compose flows that assume Angular is the main frontend
 
-### Boot with Stripe demo enabled
-If you want the full local Stripe demo after a reboot, the boot sequence is:
-
-1. start the stack
-   ```bash
-   docker compose -f docker-compose-simple.yml up -d --build
-   ```
-2. start a public backend tunnel
-   ```bash
-   ngrok http 8000
-   ```
-3. if ngrok gives you a new URL, update `ACE_PUBLIC_BASE_URL` in `.env`
-4. start Stripe webhook forwarding
-   ```bash
-   stripe listen --forward-to localhost:8000/api/payments/webhooks/stripe
-   ```
-5. if you changed `.env`, restart backend/dashboard
-   ```bash
-   docker compose -f docker-compose-simple.yml up -d --build backend dashboard
-   ```
-
-This keeps the product boot process simple:
-- plain local app boot for normal development
-- extra tunnel/webhook boot only when you want the Stripe demo flow
-
-## 6) Live Help Local Notes
-The current live-help slice uses a local LiveKit container from `docker-compose-simple.yml`.
-
-Current local behavior:
-- manager preview/live stage is in the dashboard above filter/overview
-- visitor live stage is the top rectangle in the chatbot
-- manager publishes camera video through local LiveKit
-- visitor subscribes through a public live-session route + live events
-- visitor remote audio is intentionally disabled for now to avoid local same-device feedback during demo/testing
-
-If live help is not connecting, check:
-
-```bash
-docker logs ace-livekit
-docker compose -f docker-compose-simple.yml logs -f backend
-```
-
-## 7) Logs and Troubleshooting
-View all logs:
-
-```bash
-docker compose -f docker-compose-simple.yml logs -f
-```
-
-View backend logs only:
-
-```bash
-docker compose -f docker-compose-simple.yml logs -f backend
-```
-
-Restart stack:
-
-```bash
-docker compose -f docker-compose-simple.yml restart
-```
-
-Stop stack:
-
-```bash
-docker compose -f docker-compose-simple.yml down
-```
-
-## 8) Data Notes
-- Local PostgreSQL is mapped in Docker volume `postgres_data`
-- Keep secrets out of git
-- Use `.env.example` as baseline for sharing config
-- The AI qualifier is DB-backed and can be seeded for local demo/testing
-
-Seed the default demo qualifier:
-
-```bash
-docker compose -f docker-compose-simple.yml exec backend python scripts/seed_default_qualifier.py
-```
-
-The chatbot will switch to open qualifier mode automatically when a live qualifier exists for the organization.
-
-## 9) Alternative Compose Files
-- `docker-compose-simple.yml`: easiest full-stack local run
-- `docker-compose.yml`: full/default compose
-- `docker-compose.dev.yml`: development variant
-- `docker-compose.hotreload.yml`: hot-reload focused variant
+Keep them only for legacy/reference work until repo cleanup is complete.

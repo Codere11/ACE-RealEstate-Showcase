@@ -1,160 +1,128 @@
 # Product Overview
 
-## What ACE e-Counter is
-ACE e-Counter is a multi-tenant visitor-intake, qualification, and conversion system for teams that need better inbound lead handling.
-
-It combines:
-- a visitor-facing chatbot/survey UI
-- a manager dashboard
+## What ACE e-Counter is now
+ACE e-Counter is a multi-tenant inbound lead handling product with:
+- visitor-facing intake pages
+- manager dashboard operations
 - AI-assisted qualification
-- live lead updates
+- live human handoff
 - payment request flow
 
-The project is designed to demonstrate a coherent product, not a collection of disconnected features.
+Current implementation truth:
+- the main app is **Java Spring Boot**
+- the AI/runtime side is **Python FastAPI**
+
+This repo still contains legacy Angular/front-end-first code, but that is no longer the best description of the product.
 
 ---
 
 ## Core product problem
-Teams handling inbound leads often have to juggle:
+Teams handling inbound leads often suffer from:
 - slow manual qualification
-- low-context contact forms
-- fragmented follow-up tools
-- weak visibility into which leads are actually worth pursuing
+- weak context from forms
+- disconnected follow-up tools
+- poor visibility into who is actually worth pursuing
 
 That creates two failures:
-1. **the visitor experience is clumsy**
-2. **the manager side lacks decision-quality data**
+1. visitor experience is clumsy
+2. manager decision-making is weak
 
 ---
 
 ## Product thesis
-The product thesis is simple:
+The product thesis is still simple:
 
-> Let visitors talk naturally, qualify them in the background, give managers clear lead-quality visibility, and make the next business step actionable.
-
-That is why the product is built around four connected layers.
+> Let visitors engage naturally, qualify them in the background, give managers decision-quality visibility, and make the next business step actionable.
 
 ---
 
 ## 1. Visitor intake layer
-### Why it exists
-Visitors should not be forced into a rigid process too early.
+### What it is now
+The visitor-facing experience is currently delivered from the **Java app**.
 
 ### What it does
-Depending on tenant configuration, the chatbot can start in:
-- **survey mode** for structured intake
-- **open AI qualifier mode** for natural free-text conversation
+Depending on organization state, the visitor can:
+- start in survey mode
+- start in open qualification chat mode
+- receive live human help
+- receive a payment request button in chat
 
-### Why this matters
-This lets the system adapt to different org preferences without changing code for each tenant.
+### Why it matters
+The product keeps the visitor flow simple while still collecting structured business signal.
 
 ---
 
 ## 2. AI qualification layer
-### Why it exists
-A chat experience alone is not enough; the business side needs structured signal.
+### What it is now
+The AI/runtime layer is primarily in the **Python service**.
 
 ### What it does
-The qualifier:
-- interprets each turn in context
-- updates a structured lead profile
-- chooses the next qualification step and reply
-- stores operator-facing score/band/confidence metadata
-- explains why the current decision was made
+It supports:
+- qualification behavior
+- lead profile updates
+- reasoning/confidence signals
+- next-step logic used by the product
 
-### Why this matters
-Managers need something more useful than “the bot had a chat.”
-They need:
-- quality
-- confidence
-- reasoning
-- next-step guidance
-- a safe editor for qualification policy, not prompt spaghetti
+### Why it matters
+The Java app owns the main product shell, but AI/runtime logic still belongs in the Python service where iteration is faster and the logic is easier to evolve.
 
 ---
 
 ## 3. Manager operations layer
-### Why it exists
-If the system does not help the operator act, it is just an intake toy.
+### What it is now
+The manager dashboard is currently a **Java dashboard**, not the old Angular dashboard.
 
 ### What it does
-The dashboard lets managers:
+Managers can:
 - inspect leads
-- review qualification output
-- configure ACE e-Counter qualification policy
-- take over chat
+- read chat threads
+- take over conversation
+- manage surveys and qualifier config
+- preview/go-live for live help
 - send payment requests
 
-### Why this matters
-This turns the system into an operational tool instead of a passive form/chat frontend.
+### Why it matters
+This is what turns ACE e-Counter from a chat demo into an operational product.
 
 ---
 
 ## 4. Conversion layer
-### Why it exists
-Qualification should lead to a real business action.
+### What it is now
+Managers can send payment requests from the Java dashboard.
+Visitors receive a clean payment button in chat and open hosted checkout.
 
-### What it does
-The payment request flow allows the manager to:
-- create a payment request
-- send it directly into chat
-- open a hosted checkout flow for the visitor
-- track sent/paid state
-
-### Why this matters
-This closes the loop from:
-- visitor interest
-- to qualification
-- to manager action
-- to conversion
-
----
-
-## Why payments are currently designed this way
-For the current stage of the project:
-- the UX should stay simple
-- the payment path should stay trustworthy
-- the code should stay easy to evolve into a real SaaS integration later
-
-So the project uses:
-- **hosted Stripe Checkout**, not a custom card form
-- **organization-level Stripe Connect settings**, not tenant key-pasting UX
-- a **demoable Stripe-hosted fallback** when a connected account is not fully ready yet
-
-That keeps the current flow usable while preserving the right long-term architecture.
+### Why it matters
+The system does not stop at “interesting conversation.”
+It drives toward a real business action.
 
 ---
 
 ## Current coherent demo story
-A coherent demo of the product should look like this:
-
-1. visitor opens chatbot
-2. qualifier runs in open chat mode
-3. manager sees lead quality in dashboard
-4. manager sends payment request
-5. visitor opens hosted checkout
-6. payment status comes back into the system
-
-That is the clearest current business story the product supports.
+Today the clearest demo story is:
+1. visitor opens Java public route
+2. survey/chat qualification begins
+3. manager opens Java dashboard
+4. manager reviews lead and thread
+5. manager can take over or go live
+6. manager sends payment request
+7. visitor opens hosted checkout
+8. system reflects payment state back into the flow
 
 ---
 
 ## What is intentionally unfinished
-Some things are intentionally not claimed as finished yet:
-- grounded listing retrieval
-- full video takeover workflow
-- polished production-grade Stripe Connect onboarding for live clients
+Still not claimed as finished:
+- production-grade live-help polish
+- fully hardened deployment setup
+- full cleanup of legacy Angular / older Python-first surfaces
 - deeper analytics/reporting
 
-That is deliberate.
-The goal is to keep the current feature set coherent rather than pretending everything is done.
+That is intentional.
+The goal is to anchor the project to the real state it is in.
 
 ---
 
 ## Where to read next
+- Current architecture: `ARCHITECTURE.md`
 - Local setup: `docs/LOCAL_DEVELOPMENT.md`
 - API overview: `docs/API_OVERVIEW.md`
-- AI qualifier design: `docs/AI_QUALIFIER_SPEC.md`
-- Data contracts: `docs/DATA_CONTRACTS.md`
-- Events: `docs/EVENTS.md`
-- Stripe Connect local setup: `docs/STRIPE_CONNECT_LOCAL_SETUP.md`
