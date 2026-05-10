@@ -165,6 +165,39 @@
             word-break: break-word;
             line-height: 1.45;
         }
+        .payment-card {
+            display: grid;
+            gap: 10px;
+        }
+        .payment-card__eyebrow {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #7E663B;
+        }
+        .payment-card__title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #111827;
+        }
+        .payment-card__cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid #C1A46C;
+            background: #C1A46C;
+            color: #1E2126;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .payment-card__cta:hover {
+            background: #B39150;
+            border-color: #B39150;
+        }
         .composer { display: grid; gap: 10px; }
         .composer textarea {
             width: 100%;
@@ -290,14 +323,32 @@
     }
   }
 
-  function linkifyText(text) {
-    const safe = String(text || '')
+  function escapeHtml(text) {
+    return String(text || '')
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
+  }
+
+  function linkifyText(text) {
+    const safe = escapeHtml(text);
     return safe.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
+  function paymentMessageCard(text) {
+    const match = String(text || '').match(/^Prejeli ste zahtevek za plačilo:\s*(.+?)\.\s*Povezava:\s*(https?:\/\/\S+)$/);
+    if (!match) return null;
+    const purpose = match[1] || 'Plačilo';
+    const url = match[2] || '#';
+    return `
+      <div class="payment-card">
+        <div class="payment-card__eyebrow">Zahtevek za plačilo</div>
+        <div class="payment-card__title">${escapeHtml(purpose)}</div>
+        <a class="payment-card__cta" href="${escapeHtml(url)}" target="_blank" rel="noopener">Odpri plačilo</a>
+      </div>
+    `;
   }
 
   function appendMessage(role, text, timestamp, options = {}) {
@@ -324,7 +375,7 @@
     if (options.tempId) bubble.dataset.tempId = options.tempId;
     if (!pending) bubble.dataset.messageId = id;
     bubble.innerHTML = `<div class="bubble__body"></div>`;
-    bubble.querySelector('.bubble__body').innerHTML = linkifyText(text || '');
+    bubble.querySelector('.bubble__body').innerHTML = paymentMessageCard(text) || linkifyText(text || '');
     els.thread.appendChild(bubble);
     els.thread.scrollTop = els.thread.scrollHeight;
   }
