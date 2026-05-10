@@ -9,6 +9,7 @@ spring:
     default: dev
 
 server:
+  port: ${PORT:8080}
   forward-headers-strategy: framework
 
 management:
