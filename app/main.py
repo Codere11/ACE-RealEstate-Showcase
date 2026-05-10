@@ -1,8 +1,9 @@
+import logging
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import logging
-import os
 
 from app.api import chat, chats, leads, kpis, funnel, objections
 from app.middleware.request_logger import RequestLoggerMiddleware
@@ -36,6 +37,11 @@ logger.info("Starting ACE e-Counter Backend with LOG_LEVEL=%s", LOG_LEVEL)
 # ---- FastAPI app ------------------------------------------------------------
 app = FastAPI(title="ACE e-Counter Backend")
 app.add_middleware(RequestLoggerMiddleware)
+
+# Startup initialization
+create_all()
+mount_instance_chatbots(app)
+logger.info("Startup initialization completed.")
 
 # ---- CORS -------------------------------------------------------------------
 app.add_middleware(
@@ -111,11 +117,3 @@ logger.info("Routers registered.")
 # Mount static directory for avatars and other files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ---- Startup ----------------------------------------------------------------
-@app.on_event("startup")
-def _startup() -> None:
-    # Auto-create tables (safe to run repeatedly) – existing behavior
-    create_all()
-    # Mount static per-instance chat UIs at /instances/<slug>/chatbot – NEW
-    mount_instance_chatbots(app)
-    logger.info("Startup completed.")
