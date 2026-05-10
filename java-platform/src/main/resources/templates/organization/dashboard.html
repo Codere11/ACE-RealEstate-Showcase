@@ -392,6 +392,63 @@
         .error-text { color: #8B1E1E; font-weight: 700; }
         .success-text { color: #166534; font-weight: 700; }
         .info-note { color: #6B7280; font-size: 14px; }
+        .payment-panel {
+            display: none;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .payment-panel__form,
+        .payment-panel__history {
+            min-width: 0;
+        }
+        .payment-request-list {
+            display: grid;
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .payment-request-card {
+            border: 1px solid #E6E2D6;
+            border-radius: 14px;
+            background: #F8F7F3;
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+        .payment-request-card__top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .payment-request-card__title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #121417;
+        }
+        .payment-request-card__amount {
+            color: #374151;
+            font-weight: 700;
+        }
+        .payment-request-card__meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .payment-request-card__foot {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .payment-request-card__time {
+            color: #6B7280;
+            font-size: 13px;
+        }
         .stats-grid .hero-card { padding: 16px; }
         @media (max-width: 980px) {
             .leads-grid { grid-template-columns: 1fr; }
@@ -407,6 +464,12 @@
             }
             .thread {
                 max-height: 420px;
+            }
+            .payment-panel {
+                grid-template-columns: 1fr;
+            }
+            .payment-request-list {
+                max-height: none;
             }
         }
         @media (max-width: 900px) {
@@ -569,40 +632,46 @@
                                     <button id="takeoverEnd" type="button" class="btn danger" style="display:none;">End takeover</button>
                                 </div>
                             </div>
-                            <div id="paymentPanel" class="card stack" style="margin-top:16px;">
-                                <div>
-                                    <h3 style="margin:0 0 6px;">Payment request</h3>
-                                    <p class="muted" style="margin:0;">Mirror the Angular flow: send a Stripe payment request into this lead thread.</p>
-                                </div>
-                                <div class="filter-grid">
-                                    <div class="field">
-                                        <label for="paymentAmount">Amount</label>
-                                        <input id="paymentAmount" type="number" min="1" step="0.01" value="150">
-                                    </div>
-                                    <div class="field">
-                                        <label for="paymentCurrency">Currency</label>
-                                        <input id="paymentCurrency" type="text" value="EUR">
-                                    </div>
+                        </div>
+                    </div>
+
+                    <div id="paymentPanel" class="card payment-panel">
+                        <div class="payment-panel__form stack">
+                            <div>
+                                <h3 style="margin:0 0 6px;">Payment request <span id="paymentLeadLabel" class="muted"></span></h3>
+                                <p class="muted" style="margin:0;">Send a clean payment button into this lead's chat without breaking the thread view.</p>
+                            </div>
+                            <div class="helper-grid">
+                                <div class="field">
+                                    <label for="paymentAmount">Amount</label>
+                                    <input id="paymentAmount" type="number" min="1" step="0.01" value="150">
                                 </div>
                                 <div class="field">
-                                    <label for="paymentPurpose">Purpose</label>
-                                    <input id="paymentPurpose" type="text" value="Reservation deposit">
-                                </div>
-                                <div class="field">
-                                    <label for="paymentNote">Note</label>
-                                    <textarea id="paymentNote" rows="3" placeholder="For example: appointment reservation or non-refundable deposit"></textarea>
-                                </div>
-                                <div id="paymentError" class="error-text" style="display:none;"></div>
-                                <div id="paymentSuccess" class="success-text" style="display:none;"></div>
-                                <div id="paymentInfo" class="info-note"></div>
-                                <div class="actions">
-                                    <button id="paymentSend" type="button" class="btn primary">Send into chat</button>
-                                </div>
-                                <div>
-                                    <h4 style="margin:0 0 8px;">Recent requests</h4>
-                                    <div id="paymentRequests" class="lead-list"><div class="empty-card">No payment requests yet.</div></div>
+                                    <label for="paymentCurrency">Currency</label>
+                                    <input id="paymentCurrency" type="text" maxlength="3" value="EUR">
                                 </div>
                             </div>
+                            <div class="field">
+                                <label for="paymentPurpose">Purpose</label>
+                                <input id="paymentPurpose" type="text" value="Reservation deposit">
+                            </div>
+                            <div class="field">
+                                <label for="paymentNote">Note</label>
+                                <textarea id="paymentNote" rows="3" placeholder="For example: appointment reservation or non-refundable deposit"></textarea>
+                            </div>
+                            <div id="paymentError" class="error-text" style="display:none;"></div>
+                            <div id="paymentSuccess" class="success-text" style="display:none;"></div>
+                            <div id="paymentInfo" class="info-note"></div>
+                            <div class="actions">
+                                <button id="paymentSend" type="button" class="btn primary">Send payment request</button>
+                            </div>
+                        </div>
+                        <div class="payment-panel__history stack">
+                            <div>
+                                <h4 style="margin:0 0 8px;">Recent requests</h4>
+                                <p class="muted" style="margin:0;">Latest payment requests for the selected lead.</p>
+                            </div>
+                            <div id="paymentRequests" class="payment-request-list"><div class="empty-card">No payment requests yet.</div></div>
                         </div>
                     </div>
                 </main>
@@ -973,6 +1042,7 @@
       takeoverEnd: document.getElementById('takeoverEnd'),
       takeoverError: document.getElementById('takeoverError'),
       paymentPanel: document.getElementById('paymentPanel'),
+      paymentLeadLabel: document.getElementById('paymentLeadLabel'),
       paymentAmount: document.getElementById('paymentAmount'),
       paymentCurrency: document.getElementById('paymentCurrency'),
       paymentPurpose: document.getElementById('paymentPurpose'),
@@ -1241,23 +1311,28 @@
         els.paymentRequests.innerHTML = '<div class="empty-card">No payment requests yet.</div>';
         return;
       }
-      els.paymentRequests.innerHTML = state.paymentRequests.map(item => `
-        <div class="lead-entry">
-          <div class="lead-head">
+      els.paymentRequests.innerHTML = state.paymentRequests.map(item => {
+        const createdAt = item.created_at ? new Date(item.created_at).toLocaleString() : 'Just now';
+        const amount = (Number(item.amount_cents || 0) / 100).toFixed(2);
+        return `
+        <div class="payment-request-card">
+          <div class="payment-request-card__top">
             <div>
-              <div class="lead-title">${escapeHtml(item.purpose)}</div>
-              <div class="lead-subtitle">${Number(item.amount_cents || 0) / 100} ${escapeHtml(item.currency || 'EUR')}</div>
+              <div class="payment-request-card__title">${escapeHtml(item.purpose)}</div>
+              <div class="payment-request-card__amount">${amount} ${escapeHtml(item.currency || 'EUR')}</div>
             </div>
-            <div class="lead-meta">
+            <div class="payment-request-card__meta">
               <span class="pill ${item.status === 'paid' ? 'success' : ''}">${escapeHtml(item.status)}</span>
               <span class="pill ${item.provider === 'stripe_connect' ? 'success' : ''}">${escapeHtml(item.provider)}</span>
             </div>
           </div>
           ${item.note ? `<div class="lead-message">${escapeHtml(item.note)}</div>` : ''}
-          <div class="lead-actions">
-            <a class="btn ghost" href="${escapeHtml(item.payment_url)}" target="_blank" rel="noopener">Open</a>
+          <div class="payment-request-card__foot">
+            <div class="payment-request-card__time">Created ${escapeHtml(createdAt)}</div>
+            ${item.payment_url ? `<a class="btn ghost" href="${escapeHtml(item.payment_url)}" target="_blank" rel="noopener">Open payment</a>` : ''}
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     function renderPaymentPanel() {
@@ -1266,12 +1341,15 @@
       els.paymentPanel.style.display = lead ? 'grid' : 'none';
       if (!lead) return;
       const settings = state.paymentSettings;
+      if (els.paymentLeadLabel) {
+        els.paymentLeadLabel.textContent = lead?.name ? `for ${lead.name}` : '';
+      }
       if (!settings) {
         els.paymentInfo.textContent = 'Loading payment settings…';
       } else if (!settings.payments_enabled) {
-        els.paymentInfo.textContent = 'Stripe account is not fully payment-ready yet. Requests will fall back to Stripe-hosted demo checkout until charges are enabled.';
+        els.paymentInfo.textContent = 'Stripe is not fully ready yet. This will still send a safe demo checkout so you can test the flow.';
       } else {
-        els.paymentInfo.textContent = 'Payment requests will open real Stripe Checkout on the connected account.';
+        els.paymentInfo.textContent = 'This lead will receive a real Stripe Checkout button in chat.';
       }
       els.paymentSend.disabled = state.paymentSending;
       renderPaymentRequests();
@@ -1378,6 +1456,8 @@
         return;
       }
       state.selectedSid = sid;
+      els.paymentError.style.display = 'none';
+      els.paymentSuccess.style.display = 'none';
       updateHistory('leads', { sid });
       renderLeadList();
       await loadMessages(sid);
