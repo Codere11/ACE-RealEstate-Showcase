@@ -2,27 +2,40 @@
 
 This is the recommended production/demo deployment shape for ACE e-Counter.
 
+## Current live demo
+- Public app: `https://ace-realestate-showcase-production.up.railway.app/`
+- Demo org route: `https://ace-realestate-showcase-production.up.railway.app/demo`
+- Login: `https://ace-realestate-showcase-production.up.railway.app/login`
+
 ## Recommended platform choice
 ### Railway + LiveKit Cloud
 Best current option because it gives:
 - fast public launch
 - low ops work
-- clean multi-service setup
 - managed PostgreSQL
 - easy env var management
 - easy custom domain setup
 
-## Service layout
-### Public service
-- **Java app** (`java-platform/`)
-- public domain
+## Current deployed shape
+### Public application service
+- built from the repo-root `Dockerfile`
+- starts the Java web app publicly
+- starts the Python runtime inside the same container on `127.0.0.1:8000`
+
+### Database
+- managed Railway PostgreSQL
+
+### Media
+- LiveKit Cloud
+
+## Source layout
+### Java application source
+- `java-platform/`
 - serves public visitor routes, login, dashboard, Stripe callback, and Stripe webhook
 
-### Private service
-- **Python runtime** (`app/`)
-- internal/private Railway service
-- not exposed publicly unless absolutely necessary
-- Java app calls it over internal networking
+### Python runtime source
+- `app/`
+- supports AI/runtime behavior and qualification orchestration
 
 ### Database
 - managed PostgreSQL
@@ -106,9 +119,11 @@ Recommended:
 Use:
 - `java-platform/Dockerfile`
 
-### Python runtime
-Current repo already has a Python Dockerfile at repo root.
-That can be used for the runtime service.
+### Unified live deploy target
+Use:
+- repo-root `Dockerfile`
+
+That image builds the Java app, installs the Python runtime, starts Python on loopback, and exposes the Java app publicly.
 
 ## Readiness notes
 ### Good to go
@@ -126,11 +141,11 @@ That can be used for the runtime service.
 - final env injection
 
 ## Recommended rollout order
-1. deploy PostgreSQL
-2. deploy Python runtime privately
-3. deploy Java app publicly
-4. attach `demo.yourdomain.com`
-5. verify login + dashboard + public route
+1. create PostgreSQL
+2. create one public Railway app service from the repo-root `Dockerfile`
+3. inject app env vars
+4. verify `/actuator/health`
+5. verify `/demo`, `/login`, and `/demo/dashboard`
 6. wire Stripe callback/webhook
 7. wire LiveKit Cloud
 8. run full smoke test

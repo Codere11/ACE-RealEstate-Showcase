@@ -11,6 +11,11 @@ Use this when presenting ACE e-Counter as a flagship repository.
 ## Short Project Summary
 `Built a multi-tenant lead-intake and conversion product with a Java Spring Boot application and a Python FastAPI + LangGraph AI/runtime service. Implemented manager-side operations, live handoff, and payment-request workflow on top of a shared PostgreSQL data model.`
 
+## Live Demo Link
+- `https://ace-realestate-showcase-production.up.railway.app/`
+- public demo org: `https://ace-realestate-showcase-production.up.railway.app/demo`
+- login: `https://ace-realestate-showcase-production.up.railway.app/login`
+
 ## Suggested Pinned Repositories
 1. `ACE-RealEstate` (flagship)
 2. strongest second backend/product repo
@@ -23,6 +28,7 @@ Use this when presenting ACE e-Counter as a flagship repository.
 
 ## Quality Gate Before Sharing
 - README opens with clear product and architecture
+- live demo link is current and working
 - local runbook is accurate
 - no stale frontend references in primary docs
 - no secrets committed

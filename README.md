@@ -2,6 +2,11 @@
 
 ACE e-Counter is a multi-tenant visitor-intake and conversion platform built around a **Java Spring Boot application** with a supporting **Python AI/runtime service**.
 
+## Live demo
+- Public app: `https://ace-realestate-showcase-production.up.railway.app/`
+- Demo organization: `https://ace-realestate-showcase-production.up.railway.app/demo`
+- Login: `https://ace-realestate-showcase-production.up.railway.app/login`
+
 It is designed to show a complete product story:
 - visitor intake through survey or open chat
 - AI-assisted qualification
@@ -58,6 +63,14 @@ The Python service supports AI/runtime behavior, including:
 - LangGraph-based qualification orchestration
 - event and runtime support paths
 - integration points used by the Java app when AI behavior is needed
+
+## Live deployment shape
+The live Railway deployment currently runs as a **single public container** built from the repo-root `Dockerfile`:
+- Java serves the public app on the external port
+- Python runtime runs inside the same container on `127.0.0.1:8000`
+- PostgreSQL remains a separate managed Railway service
+
+This keeps the source architecture split between Java and Python while making the hosted demo much more robust to deploy.
 
 ## Local development
 ### 1. Start infrastructure

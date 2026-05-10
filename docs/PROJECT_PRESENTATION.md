@@ -3,6 +3,11 @@
 ## 30-Second Pitch
 ACE e-Counter is a multi-tenant visitor-intake and conversion platform built around a Java Spring Boot application with a Python FastAPI + LangGraph AI/runtime service. It supports public intake, manager-side operations, live handoff, and payment requests in one product flow.
 
+## Live Demo
+- Public app: `https://ace-realestate-showcase-production.up.railway.app/`
+- Demo org route: `https://ace-realestate-showcase-production.up.railway.app/demo`
+- Login: `https://ace-realestate-showcase-production.up.railway.app/login`
+
 ## What to Emphasize
 - product engineering, not isolated scripts
 - clear Java/Python responsibility split
@@ -18,10 +23,11 @@ ACE e-Counter is a multi-tenant visitor-intake and conversion platform built aro
 
 ## Demo Walkthrough
 1. Show `README.md`
-2. Open public route in Java app
-3. Open manager dashboard
-4. Show lead thread, takeover, live help, and payment request flow
-5. Explain Java app vs Python runtime split
+2. Open `https://ace-realestate-showcase-production.up.railway.app/demo`
+3. Open `https://ace-realestate-showcase-production.up.railway.app/login`
+4. Open manager dashboard
+5. Show lead thread, takeover, live help, and payment request flow
+6. Explain Java app vs Python runtime split and the single-container Railway deploy target
 
 ## Interview Talking Points
 - why Java owns the main product shell

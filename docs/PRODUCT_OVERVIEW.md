@@ -2,6 +2,10 @@
 
 ACE e-Counter is a multi-tenant visitor-intake, qualification, and conversion platform.
 
+## Live deployment
+- Public app: `https://ace-realestate-showcase-production.up.railway.app/`
+- Demo organization: `https://ace-realestate-showcase-production.up.railway.app/demo`
+
 It combines:
 - a visitor-facing experience
 - a manager dashboard
@@ -51,6 +55,9 @@ A strong demo of ACE e-Counter looks like this:
 - **PostgreSQL** — persistence
 - **LiveKit** — live-help transport for demo/testing
 - **Stripe** — hosted payment flow
+
+## Current live hosting shape
+The current public Railway deployment packages the Java app and Python runtime into one container built from the repo-root `Dockerfile`, with PostgreSQL kept as a separate managed service. This keeps the source split clear while making the live demo simpler and more robust to operate.
 
 ## Where to read next
 - `ARCHITECTURE.md`
