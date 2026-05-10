@@ -398,23 +398,53 @@
         .error-text { color: #8B1E1E; font-weight: 700; }
         .success-text { color: #166534; font-weight: 700; }
         .info-note { color: #6B7280; font-size: 14px; }
-        .payment-panel {
-            display: none;
-            grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
-            gap: 16px;
-            align-items: start;
-            min-width: 0;
-        }
-        .payment-panel__form,
-        .payment-panel__history {
-            min-width: 0;
+        .btn.push-right {
+            margin-left: auto;
         }
         .payment-request-list {
             display: grid;
             gap: 12px;
-            max-height: 420px;
+            max-height: 260px;
             overflow-y: auto;
             padding-right: 4px;
+        }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .58);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+        .modal-backdrop.open {
+            display: flex;
+        }
+        .modal-card {
+            width: min(100%, 760px);
+            max-height: calc(100vh - 40px);
+            overflow: auto;
+            background: #FFF;
+            border: 1px solid #E6E2D6;
+            border-radius: 18px;
+            box-shadow: 0 28px 60px rgba(0,0,0,.28);
+            padding: 22px;
+            display: grid;
+            gap: 16px;
+        }
+        .modal-card__header,
+        .modal-card__footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .modal-card__body {
+            display: grid;
+            gap: 16px;
+            min-width: 0;
         }
         .payment-request-card {
             border: 1px solid #E6E2D6;
@@ -474,11 +504,19 @@
             .thread {
                 max-height: 420px;
             }
-            .payment-panel {
-                grid-template-columns: 1fr;
-            }
             .payment-request-list {
                 max-height: none;
+            }
+            .btn.push-right {
+                margin-left: 0;
+            }
+            .modal-backdrop {
+                padding: 10px;
+            }
+            .modal-card {
+                width: 100%;
+                max-height: calc(100vh - 20px);
+                padding: 16px;
             }
         }
         @media (max-width: 900px) {
@@ -639,51 +677,60 @@
                                 <div class="actions">
                                     <button id="takeoverSend" type="button" class="btn primary">Start takeover + send message</button>
                                     <button id="takeoverEnd" type="button" class="btn danger" style="display:none;">End takeover</button>
+                                    <button id="paymentOpenButton" type="button" class="btn ghost push-right" style="display:none;">Send payment request</button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </main>
+            </div>
 
-                    <div id="paymentPanel" class="card payment-panel">
-                        <div class="payment-panel__form stack">
-                            <div>
-                                <h3 style="margin:0 0 6px;">Payment request <span id="paymentLeadLabel" class="muted"></span></h3>
-                                <p class="muted" style="margin:0;">Send a clean payment button into this lead's chat without breaking the thread view.</p>
-                            </div>
-                            <div class="helper-grid">
-                                <div class="field">
-                                    <label for="paymentAmount">Amount</label>
-                                    <input id="paymentAmount" type="number" min="1" step="0.01" value="150">
-                                </div>
-                                <div class="field">
-                                    <label for="paymentCurrency">Currency</label>
-                                    <input id="paymentCurrency" type="text" maxlength="3" value="EUR">
-                                </div>
+            <div id="paymentModal" class="modal-backdrop" style="display:none;">
+                <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+                    <div class="modal-card__header">
+                        <div>
+                            <h3 id="paymentModalTitle" style="margin:0 0 6px;">Payment request <span id="paymentLeadLabel" class="muted"></span></h3>
+                            <p class="muted" style="margin:0;">Set up the payment request, then send it into the chat as a clean payment button.</p>
+                        </div>
+                        <button id="paymentCloseButton" type="button" class="btn ghost">Close</button>
+                    </div>
+                    <div class="modal-card__body">
+                        <div class="helper-grid">
+                            <div class="field">
+                                <label for="paymentAmount">Amount</label>
+                                <input id="paymentAmount" type="number" min="1" step="0.01" value="150">
                             </div>
                             <div class="field">
-                                <label for="paymentPurpose">Purpose</label>
-                                <input id="paymentPurpose" type="text" value="Reservation deposit">
-                            </div>
-                            <div class="field">
-                                <label for="paymentNote">Note</label>
-                                <textarea id="paymentNote" rows="3" placeholder="For example: appointment reservation or non-refundable deposit"></textarea>
-                            </div>
-                            <div id="paymentError" class="error-text" style="display:none;"></div>
-                            <div id="paymentSuccess" class="success-text" style="display:none;"></div>
-                            <div id="paymentInfo" class="info-note"></div>
-                            <div class="actions">
-                                <button id="paymentSend" type="button" class="btn primary">Send payment request</button>
+                                <label for="paymentCurrency">Currency</label>
+                                <input id="paymentCurrency" type="text" maxlength="3" value="EUR">
                             </div>
                         </div>
-                        <div class="payment-panel__history stack">
+                        <div class="field">
+                            <label for="paymentPurpose">Purpose</label>
+                            <input id="paymentPurpose" type="text" value="Reservation deposit">
+                        </div>
+                        <div class="field">
+                            <label for="paymentNote">Note</label>
+                            <textarea id="paymentNote" rows="3" placeholder="For example: appointment reservation or non-refundable deposit"></textarea>
+                        </div>
+                        <div id="paymentError" class="error-text" style="display:none;"></div>
+                        <div id="paymentSuccess" class="success-text" style="display:none;"></div>
+                        <div id="paymentInfo" class="info-note"></div>
+                        <div class="stack">
                             <div>
                                 <h4 style="margin:0 0 8px;">Recent requests</h4>
-                                <p class="muted" style="margin:0;">Latest payment requests for the selected lead.</p>
+                                <p class="muted" style="margin:0;">Latest payment requests for this lead.</p>
                             </div>
                             <div id="paymentRequests" class="payment-request-list"><div class="empty-card">No payment requests yet.</div></div>
                         </div>
                     </div>
-                </main>
+                    <div class="modal-card__footer">
+                        <button id="paymentCancelButton" type="button" class="btn ghost">Cancel</button>
+                        <button id="paymentSend" type="button" class="btn primary">Send</button>
+                    </div>
+                </div>
+            </div>
+        </section>
             </div>
         </section>
 
@@ -1020,6 +1067,7 @@
       paymentSettings: null,
       paymentRequests: [],
       paymentSending: false,
+      paymentModalOpen: false,
       filters: { search: '', status: 'all', minProgress: 0, takeoverOnly: false }
     };
 
@@ -1050,7 +1098,10 @@
       takeoverSend: document.getElementById('takeoverSend'),
       takeoverEnd: document.getElementById('takeoverEnd'),
       takeoverError: document.getElementById('takeoverError'),
-      paymentPanel: document.getElementById('paymentPanel'),
+      paymentOpenButton: document.getElementById('paymentOpenButton'),
+      paymentModal: document.getElementById('paymentModal'),
+      paymentCloseButton: document.getElementById('paymentCloseButton'),
+      paymentCancelButton: document.getElementById('paymentCancelButton'),
       paymentLeadLabel: document.getElementById('paymentLeadLabel'),
       paymentAmount: document.getElementById('paymentAmount'),
       paymentCurrency: document.getElementById('paymentCurrency'),
@@ -1344,15 +1395,28 @@
       }).join('');
     }
 
-    function renderPaymentPanel() {
-      if (!els.paymentPanel) return;
+    function closePaymentModal() {
+      state.paymentModalOpen = false;
+      if (els.paymentModal) {
+        els.paymentModal.classList.remove('open');
+        els.paymentModal.style.display = 'none';
+      }
+    }
+
+    function renderPaymentModal() {
       const lead = selectedLead();
-      els.paymentPanel.style.display = lead ? 'grid' : 'none';
-      if (!lead) return;
-      const settings = state.paymentSettings;
+      if (els.paymentOpenButton) {
+        els.paymentOpenButton.style.display = lead ? 'inline-flex' : 'none';
+        els.paymentOpenButton.disabled = !lead;
+      }
       if (els.paymentLeadLabel) {
         els.paymentLeadLabel.textContent = lead?.name ? `for ${lead.name}` : '';
       }
+      if (!lead) {
+        closePaymentModal();
+        return;
+      }
+      const settings = state.paymentSettings;
       if (!settings) {
         els.paymentInfo.textContent = 'Loading payment settings…';
       } else if (!settings.payments_enabled) {
@@ -1362,6 +1426,20 @@
       }
       els.paymentSend.disabled = state.paymentSending;
       renderPaymentRequests();
+      if (els.paymentModal) {
+        els.paymentModal.style.display = state.paymentModalOpen ? 'flex' : 'none';
+        els.paymentModal.classList.toggle('open', state.paymentModalOpen);
+      }
+    }
+
+    async function openPaymentModal() {
+      const lead = selectedLead();
+      if (!lead) return;
+      els.paymentError.style.display = 'none';
+      els.paymentSuccess.style.display = 'none';
+      state.paymentModalOpen = true;
+      renderPaymentModal();
+      await loadPaymentRequests(lead.sid);
     }
 
     function renderThread() {
@@ -1369,7 +1447,7 @@
       if (!lead) {
         els.leadDetail.style.display = 'none';
         els.leadDetailEmpty.style.display = 'block';
-        renderPaymentPanel();
+        renderPaymentModal();
         return;
       }
       els.leadDetail.style.display = 'grid';
@@ -1386,7 +1464,7 @@
       els.thread.innerHTML = '';
       if (!state.messages.length) {
         els.thread.innerHTML = '<div class="empty-card">No conversation messages yet.</div>';
-        renderPaymentPanel();
+        renderPaymentModal();
         return;
       }
       state.messages.forEach(m => {
@@ -1396,7 +1474,7 @@
         els.thread.appendChild(bubble);
       });
       els.thread.scrollTop = els.thread.scrollHeight;
-      renderPaymentPanel();
+      renderPaymentModal();
     }
 
     async function loadLeads() {
@@ -1433,19 +1511,19 @@
       if (els.paymentCurrency && !els.paymentCurrency.value) {
         els.paymentCurrency.value = state.paymentSettings?.default_currency || 'EUR';
       }
-      renderPaymentPanel();
+      renderPaymentModal();
     }
 
     async function loadPaymentRequests(sid) {
       if (!sid) {
         state.paymentRequests = [];
-        renderPaymentPanel();
+        renderPaymentModal();
         return;
       }
       const res = await fetch(`/api/organizations/${base.orgId}/payment-requests?sid=${encodeURIComponent(sid)}`, { credentials: 'same-origin' });
       if (!res.ok) return;
       state.paymentRequests = await res.json();
-      renderPaymentPanel();
+      renderPaymentModal();
     }
 
     async function selectLead(sid) {
@@ -1456,6 +1534,7 @@
         state.paymentRequests = [];
         state.liveSession = null;
         state.livePreviewState = 'idle';
+        closePaymentModal();
         disconnectLiveRoom();
         releasePreviewMedia();
         updateHistory('leads');
@@ -1465,6 +1544,7 @@
         return;
       }
       state.selectedSid = sid;
+      closePaymentModal();
       els.paymentError.style.display = 'none';
       els.paymentSuccess.style.display = 'none';
       updateHistory('leads', { sid });
@@ -1628,7 +1708,7 @@
         return;
       }
       state.paymentSending = true;
-      renderPaymentPanel();
+      renderPaymentModal();
       const res = await fetch(`/api/organizations/${base.orgId}/payment-requests`, {
         method: 'POST',
         credentials: 'same-origin',
@@ -1639,17 +1719,14 @@
       if (!res.ok) {
         els.paymentError.textContent = await extractErrorMessage(res, 'Failed to send payment request.');
         els.paymentError.style.display = 'block';
-        renderPaymentPanel();
+        renderPaymentModal();
         return;
       }
       const item = await res.json();
       state.paymentRequests = [item, ...state.paymentRequests.filter(existing => String(existing.id) !== String(item.id))];
-      els.paymentSuccess.textContent = item.provider === 'stripe_connect'
-        ? 'Stripe payment link was sent into the chat.'
-        : 'Stripe-hosted demo payment link was sent into the chat.';
-      els.paymentSuccess.style.display = 'block';
       await loadMessages(lead.sid);
-      renderPaymentPanel();
+      closePaymentModal();
+      renderPaymentModal();
     }
 
     async function deleteLead(sid) {
@@ -1668,6 +1745,7 @@
         state.paymentRequests = [];
         state.liveSession = null;
         state.livePreviewState = 'idle';
+        closePaymentModal();
         disconnectLiveRoom();
         releasePreviewMedia();
       }
@@ -1721,6 +1799,15 @@
     els.endLiveBtn.addEventListener('click', endLive);
     els.takeoverSend.addEventListener('click', sendTakeoverMessage);
     els.takeoverEnd.addEventListener('click', endTakeover);
+    els.paymentOpenButton?.addEventListener('click', openPaymentModal);
+    els.paymentCloseButton?.addEventListener('click', closePaymentModal);
+    els.paymentCancelButton?.addEventListener('click', closePaymentModal);
+    els.paymentModal?.addEventListener('click', event => {
+      if (event.target === els.paymentModal) closePaymentModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && state.paymentModalOpen) closePaymentModal();
+    });
     els.paymentSend.addEventListener('click', sendPaymentRequest);
     els.leadDeleteTop.addEventListener('click', () => state.selectedSid && deleteLead(state.selectedSid));
     els.takeoverInput.addEventListener('keydown', event => {
@@ -1731,6 +1818,7 @@
     });
 
     renderLiveStage();
+    renderPaymentModal();
     loadPaymentSettings().finally(() => {
       loadLeads().then(async () => {
         if (state.selectedSid) {
