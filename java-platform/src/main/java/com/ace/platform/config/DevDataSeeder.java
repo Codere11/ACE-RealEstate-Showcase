@@ -8,6 +8,7 @@ import com.ace.platform.user.UserRepository;
 import com.ace.platform.user.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +16,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@Profile("!test")
+@Profile({"dev", "demo"})
 public class DevDataSeeder {
 
     private static final Logger log = LoggerFactory.getLogger(DevDataSeeder.class);
@@ -25,33 +26,38 @@ public class DevDataSeeder {
         OrganizationRepository organizationRepository,
         UserRepository userRepository,
         PasswordEncoder passwordEncoder,
-        SurveyService surveyService
+        SurveyService surveyService,
+        @Value("${ace.demo.org-name:Demo Agency}") String demoOrgName,
+        @Value("${ace.demo.org-slug:demo}") String demoOrgSlug,
+        @Value("${ace.demo.admin-username:admin}") String demoAdminUsername,
+        @Value("${ace.demo.admin-email:admin@ace.local}") String demoAdminEmail,
+        @Value("${ace.demo.admin-password:test123}") String demoAdminPassword
     ) {
         return args -> {
-            Organization demoOrg = organizationRepository.findBySlug("demo")
-                .orElseGet(() -> organizationRepository.save(new Organization("Demo Agency", "demo", true)));
+            Organization demoOrg = organizationRepository.findBySlug(demoOrgSlug)
+                .orElseGet(() -> organizationRepository.save(new Organization(demoOrgName, demoOrgSlug, true)));
 
-            userRepository.findByUsername("admin").ifPresentOrElse(existingAdmin -> {
-                existingAdmin.setEmail("admin@ace.local");
+            userRepository.findByUsername(demoAdminUsername).ifPresentOrElse(existingAdmin -> {
+                existingAdmin.setEmail(demoAdminEmail);
                 existingAdmin.setRole(UserRole.PLATFORM_ADMIN);
                 existingAdmin.setActive(true);
                 if (existingAdmin.getVisiblePassword() == null || existingAdmin.getVisiblePassword().isBlank()) {
-                    existingAdmin.setPasswordHash(passwordEncoder.encode("test123"));
-                    existingAdmin.setVisiblePassword("test123");
+                    existingAdmin.setPasswordHash(passwordEncoder.encode(demoAdminPassword));
+                    existingAdmin.setVisiblePassword(demoAdminPassword);
                 }
                 userRepository.save(existingAdmin);
             }, () -> {
                 User admin = new User(
                     null,
-                    "admin",
-                    "admin@ace.local",
-                    passwordEncoder.encode("test123"),
-                    "test123",
+                    demoAdminUsername,
+                    demoAdminEmail,
+                    passwordEncoder.encode(demoAdminPassword),
+                    demoAdminPassword,
                     UserRole.PLATFORM_ADMIN,
                     true
                 );
                 userRepository.save(admin);
-                log.info("Seeded platform admin user: username=admin password=test123");
+                log.info("Seeded platform admin user: username={} password={} (demo/dev profile only)", demoAdminUsername, demoAdminPassword);
             });
 
             surveyService.ensureDefaultSurvey(demoOrg);

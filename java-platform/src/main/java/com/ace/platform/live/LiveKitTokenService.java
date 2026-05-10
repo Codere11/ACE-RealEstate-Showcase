@@ -24,7 +24,7 @@ public class LiveKitTokenService {
 
     public LiveKitTokenService(
         ObjectMapper objectMapper,
-        @Value("${ace.livekit.ws-url:}") String explicitWsUrl,
+        @Value("${ACE_LIVEKIT_WS_URL:${ace.livekit.ws-url:}}") String explicitWsUrl,
         @Value("${ACE_LIVEKIT_API_KEY:${ace.livekit.api-key:devkey}}") String apiKey,
         @Value("${ACE_LIVEKIT_API_SECRET:${ace.livekit.api-secret:devsecretkey_for_local_livekit_32chars}}") String apiSecret
     ) {
