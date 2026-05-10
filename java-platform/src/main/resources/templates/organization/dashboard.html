@@ -386,6 +386,45 @@
         .bubble.assistant { margin-right: auto; }
         .bubble.staff { margin-right: auto; background: #FBF5E7; border-color: #E6D4A7; }
         .bubble .meta { font-size: 12px; color: #6B7280; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+        .bubble__body {
+            display: grid;
+            gap: 10px;
+            white-space: pre-wrap;
+            line-height: 1.45;
+        }
+        .payment-chat-card {
+            display: grid;
+            gap: 10px;
+        }
+        .payment-chat-card__eyebrow {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #7E663B;
+        }
+        .payment-chat-card__title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #121417;
+        }
+        .payment-chat-card__cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid #C1A46C;
+            background: #C1A46C;
+            color: #1E2126;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .payment-chat-card__cta:hover {
+            background: #B39150;
+            border-color: #B39150;
+        }
         .status-row, .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .empty-card {
             padding: 22px;
@@ -1032,6 +1071,24 @@
       .replaceAll("'", '&#39;');
   }
 
+  function linkifyText(value) {
+    return escapeHtml(value).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
+  function paymentMessageCard(value) {
+    const match = String(value || '').match(/^Prejeli ste zahtevek za plačilo:\s*(.+?)\.\s*Povezava:\s*(https?:\/\/\S+)$/);
+    if (!match) return null;
+    const purpose = match[1] || 'Plačilo';
+    const url = match[2] || '#';
+    return `
+      <div class="payment-chat-card">
+        <div class="payment-chat-card__eyebrow">Zahtevek za plačilo</div>
+        <div class="payment-chat-card__title">${escapeHtml(purpose)}</div>
+        <a class="payment-chat-card__cta" href="${escapeHtml(url)}" target="_blank" rel="noopener">Odpri plačilo</a>
+      </div>
+    `;
+  }
+
   async function parseJson(res) {
     try {
       return await res.json();
@@ -1470,7 +1527,7 @@
       state.messages.forEach(m => {
         const bubble = document.createElement('div');
         bubble.className = 'bubble ' + m.role;
-        bubble.innerHTML = `<div class="meta">${escapeHtml(m.role)}</div><div>${escapeHtml(m.text || '')}</div>`;
+        bubble.innerHTML = `<div class="meta">${escapeHtml(m.role)}</div><div class="bubble__body">${paymentMessageCard(m.text) || linkifyText(m.text || '')}</div>`;
         els.thread.appendChild(bubble);
       });
       els.thread.scrollTop = els.thread.scrollHeight;
