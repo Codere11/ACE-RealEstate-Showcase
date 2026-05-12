@@ -11,7 +11,10 @@ import com.ace.platform.qualifier.QualifierChatService;
 import com.ace.platform.qualifier.QualifierService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,43 +67,17 @@ public class ChatApiController {
 
     @PostMapping({"/chat", "/chat/", "/api/public/chat"})
     public ChatResponse chat(@RequestBody ChatRequest request) {
-        Organization organization = resolveOrganization(request.tenant_slug(), request.meta());
-        boolean explicitSurveyMode = request.meta() != null
-            && request.meta().get("survey_slug") != null
-            && !request.meta().get("survey_slug").isBlank();
-        if (!explicitSurveyMode && qualifierService.findActive(organization.getId()).isPresent()) {
-            QualifierChatService.QualifierChatResult result = qualifierChatService.handleVisitorMessage(
-                organization,
-                request.sid(),
-                request.message()
-            );
-            return new ChatResponse(
-                result.sid(),
-                result.reply(),
-                "open",
-                false,
-                100,
-                null,
-                null,
-                null
-            );
-        }
-        PublicChatService.ChatResult result = publicChatService.handleVisitorMessage(
-            organization,
-            request.sid(),
-            request.meta() != null ? request.meta().getOrDefault("survey_slug", "start") : "start",
-            request.message()
-        );
-        return new ChatResponse(
-            result.sid(),
-            result.reply(),
-            result.chatMode(),
-            result.storyComplete(),
-            result.surveyProgress(),
-            result.currentStep() != null ? SurveyStepResponse.from(result.currentStep()) : null,
-            result.completionTitle(),
-            result.completionSubtitle()
-        );
+        return handleChat(request);
+    }
+
+    @PostMapping(value = {"/chat/stream", "/chat/stream/", "/api/public/chat/stream"}, produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> chatStream(@RequestBody ChatRequest request) {
+        ChatResponse response = handleChat(request);
+        return ResponseEntity.ok()
+            .contentType(MediaType.TEXT_PLAIN)
+            .header(HttpHeaders.CACHE_CONTROL, "no-store")
+            .header("X-ACE-Sid", response.sid() != null ? response.sid() : "")
+            .body(response.reply() != null ? response.reply() : "");
     }
 
     @PostMapping({"/chat/staff", "/chat/staff/"})
@@ -180,6 +157,46 @@ public class ChatApiController {
         ));
         leadService.deleteLead(lead);
         return Map.of("ok", true, "sid", sid);
+    }
+
+    private ChatResponse handleChat(ChatRequest request) {
+        Organization organization = resolveOrganization(request.tenant_slug(), request.meta());
+        boolean explicitSurveyMode = request.meta() != null
+            && request.meta().get("survey_slug") != null
+            && !request.meta().get("survey_slug").isBlank();
+        if (!explicitSurveyMode && qualifierService.findActive(organization.getId()).isPresent()) {
+            QualifierChatService.QualifierChatResult result = qualifierChatService.handleVisitorMessage(
+                organization,
+                request.sid(),
+                request.message()
+            );
+            return new ChatResponse(
+                result.sid(),
+                result.reply(),
+                "open",
+                false,
+                100,
+                null,
+                null,
+                null
+            );
+        }
+        PublicChatService.ChatResult result = publicChatService.handleVisitorMessage(
+            organization,
+            request.sid(),
+            request.meta() != null ? request.meta().getOrDefault("survey_slug", "start") : "start",
+            request.message()
+        );
+        return new ChatResponse(
+            result.sid(),
+            result.reply(),
+            result.chatMode(),
+            result.storyComplete(),
+            result.surveyProgress(),
+            result.currentStep() != null ? SurveyStepResponse.from(result.currentStep()) : null,
+            result.completionTitle(),
+            result.completionSubtitle()
+        );
     }
 
     private Organization resolveOrganization(String tenantSlug, Map<String, String> meta) {

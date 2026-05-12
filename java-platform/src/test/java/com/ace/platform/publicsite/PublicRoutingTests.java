@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,7 +32,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -205,5 +208,27 @@ class PublicRoutingTests {
             .andExpect(status().isOk())
             .andExpect(content().string(org.hamcrest.Matchers.containsString("0% complete")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Buying a home")));
+    }
+
+    @Test
+    void publicChatStreamIsAvailableForQualifierVisitors() throws Exception {
+        Organization organization = new Organization("Acme Realty", "acme", true);
+        when(organizationRepository.findBySlugAndActiveTrue("acme"))
+            .thenReturn(Optional.of(organization));
+        when(qualifierService.findActive(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(Optional.of(new com.ace.platform.qualifier.Qualifier(organization, "AI Qualifier", "ai-qualifier")));
+        when(qualifierChatService.handleVisitorMessage(organization, "sid_acme", "Hello"))
+            .thenReturn(new QualifierChatService.QualifierChatResult("sid_acme", "Pozdravljeni.", "AI Qualifier"));
+
+        mockMvc.perform(post("/chat/stream")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"sid":"sid_acme","message":"Hello","tenant_slug":"acme","meta":{"organization_slug":"acme"}}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
+            .andExpect(header().string("Cache-Control", "no-store"))
+            .andExpect(header().string("X-ACE-Sid", "sid_acme"))
+            .andExpect(content().string("Pozdravljeni."));
     }
 }
