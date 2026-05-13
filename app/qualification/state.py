@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 @dataclass
 class TurnInterpretation:
     visitor_type: str = "unclear"
+    preferred_language: str = "en"
     profile_after: Dict[str, Any] = field(default_factory=dict)
     field_confidence: Dict[str, float] = field(default_factory=dict)
     confidence_overall: float = 0.0
@@ -20,6 +21,8 @@ class TurnInterpretation:
 class TurnDecision:
     reply: str = ""
     recommended_next_action: str = "ask_clarifying_question"
+    suggested_reply_strategy: str = "ask_single_question"
+    next_best_question: str = ""
     funnel_stage: str = "business_context"
     qualification_complete: bool = False
     missing_fields: List[str] = field(default_factory=list)
@@ -38,5 +41,7 @@ class QualificationGraphState(TypedDict, total=False):
     latest_message: str
     recent_messages: List[Dict[str, str]]
     profile_before: Dict[str, Any]
+    runtime_context: Dict[str, Any]
+    retrieved_knowledge: List[str]
     interpretation: TurnInterpretation
     decision: TurnDecision

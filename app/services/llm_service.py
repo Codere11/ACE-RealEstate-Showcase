@@ -17,7 +17,7 @@ except Exception:  # pragma: no cover
 
 
 class LLMService:
-    """Thin JSON-only LLM client for qualification graph nodes."""
+    """Thin LLM client for qualification graph nodes."""
 
     def __init__(self) -> None:
         self.provider = os.getenv("ACE_LLM_PROVIDER", "none").strip().lower()
@@ -59,3 +59,21 @@ class LLMService:
         except Exception as e:  # pragma: no cover
             logger.warning("llm json call failed provider=%s model=%s err=%s", self.provider, self.model_name, e)
             return {}
+
+    def call_text(self, system_prompt: str, user_prompt: str, *, temperature: float = 0.2) -> str:
+        client = self._client_or_none()
+        if client is None:
+            return ""
+        try:
+            resp = client.chat.completions.create(
+                model=self.model_name,
+                temperature=temperature,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            return ((resp.choices or [None])[0].message.content or "").strip()
+        except Exception as e:  # pragma: no cover
+            logger.warning("llm text call failed provider=%s model=%s err=%s", self.provider, self.model_name, e)
+            return ""
