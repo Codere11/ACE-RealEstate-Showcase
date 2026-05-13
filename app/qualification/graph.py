@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from app.qualification.prompts import build_analysis_prompt, build_writer_prompt
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
@@ -66,6 +66,12 @@ def _analyze_turn(llm: LLMService, state: QualificationGraphState) -> Qualificat
     if interpretation.supporting_quotes:
         interpretation.profile_after["supporting_quotes"] = interpretation.supporting_quotes
 
+    qualification_score, qualification_band = _normalize_score_and_band(
+        data,
+        runtime_context=state.get("runtime_context", {}) or {},
+        fit_status=str(interpretation.profile_after.get("fit_status") or "unknown"),
+        recommended_next_action=str(data.get("recommended_next_action") or "ask_clarifying_question"),
+    )
     decision = TurnDecision(
         reply="",
         recommended_next_action=str(data.get("recommended_next_action") or "ask_clarifying_question"),
@@ -74,8 +80,8 @@ def _analyze_turn(llm: LLMService, state: QualificationGraphState) -> Qualificat
         funnel_stage=str(data.get("funnel_stage") or "business_context"),
         qualification_complete=bool(data.get("qualification_complete")),
         missing_fields=[str(x) for x in (data.get("missing_fields") or []) if str(x).strip()],
-        qualification_score=_clamp_int(data.get("qualification_score"), 0),
-        qualification_band=str(data.get("qualification_band") or "cold"),
+        qualification_score=qualification_score,
+        qualification_band=qualification_band,
         takeover_eligible=bool(data.get("takeover_eligible")),
         video_offer_eligible=bool(data.get("video_offer_eligible")),
         confidence_overall=_clamp(data.get("confidence_overall"), interpretation.confidence_overall),
@@ -163,3 +169,48 @@ def _clamp_int(value: Any, default: int) -> int:
         return max(0, min(100, int(round(float(value)))))
     except Exception:
         return default
+
+
+def _normalize_score_and_band(data: Dict[str, Any], *, runtime_context: Dict[str, Any], fit_status: str, recommended_next_action: str) -> Tuple[int, str]:
+    band_thresholds = dict(runtime_context.get("band_thresholds") or {})
+    hot_min = _clamp_int(band_thresholds.get("hot_min"), 70)
+    warm_min = _clamp_int(band_thresholds.get("warm_min"), 40)
+    if hot_min < warm_min:
+        hot_min, warm_min = warm_min, hot_min
+
+    raw_score = _clamp_int(data.get("qualification_score"), -1)
+    raw_band = str(data.get("qualification_band") or "").strip().lower()
+
+    score = raw_score
+    band = raw_band if raw_band in {"cold", "warm", "hot"} else ""
+
+    if score < 0:
+        score = 0
+
+    if score == 0 and band in {"warm", "hot"}:
+        score = warm_min + 5 if band == "warm" else max(hot_min + 5, 80)
+    elif score == 0 and fit_status == "high":
+        score = max(warm_min + 5, 55)
+    elif score == 0 and fit_status == "medium":
+        score = max(warm_min, 45)
+
+    if not band:
+        if score >= hot_min:
+            band = "hot"
+        elif score >= warm_min:
+            band = "warm"
+        else:
+            band = "cold"
+
+    if band == "hot" and score < hot_min:
+        score = max(score, hot_min)
+    elif band == "warm" and score < warm_min:
+        score = max(score, warm_min)
+    elif band == "cold" and score >= warm_min and fit_status != "high":
+        band = "warm"
+
+    if recommended_next_action in {"offer_human_takeover"} and score < hot_min:
+        score = max(score, hot_min)
+        band = "hot"
+
+    return max(0, min(100, score)), band

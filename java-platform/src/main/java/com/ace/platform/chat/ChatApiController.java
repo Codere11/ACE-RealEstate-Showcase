@@ -407,7 +407,7 @@ public class ChatApiController {
                 score,
                 stageFrom(lead.getStatus()),
                 lead.isTakeoverEligible() || lead.isVideoOfferEligible(),
-                interestFrom(score),
+                interestFrom(score, lead.getQualificationBand()),
                 lead.getPhone(),
                 lead.getEmail(),
                 hasText(lead.getPhone()),
@@ -441,7 +441,11 @@ public class ChatApiController {
             };
         }
 
-        private static String interestFrom(int score) {
+        private static String interestFrom(int score, String qualificationBand) {
+            String band = qualificationBand != null ? qualificationBand.trim().toLowerCase() : "";
+            if ("hot".equals(band)) return "High";
+            if ("warm".equals(band)) return "Medium";
+            if ("cold".equals(band)) return "Low";
             if (score >= 70) return "High";
             if (score >= 40) return "Medium";
             return "Low";

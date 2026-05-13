@@ -82,7 +82,9 @@ def build_analysis_prompt(
         "- When the user already shared both current lead source and current follow-up process, do not ask another broad discovery question. Only ask a sharper operational question if a truly critical field is still missing.\n"
         "- Do not use vague catch-all questions like 'what result matters most' or 'what is the biggest challenge' if the user already gave a concrete pain point.\n"
         "- If the user correction already reveals the bottleneck, prefer answer_directly_no_question unless there is one clearly better concrete next question.\n"
-        "- qualification_score and qualification_band are operator metadata only; they must not contradict the chosen action.\n"
+        "- qualification_score and qualification_band are operator metadata only, but they must still be present and internally consistent.\n"
+        "- Use manager dashboard scoring_rules, band_thresholds, and confidence_thresholds when assigning qualification_score and qualification_band.\n"
+        "- Do not output a warm or hot band with a zero or near-zero qualification_score.\n"
         "- Return JSON only.\n"
     )
 

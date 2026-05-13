@@ -15,6 +15,9 @@ def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
     required_fields = [str(v).strip() for v in list(getattr(qualifier, "required_fields", []) or []) if str(v).strip()]
     takeover_rules = dict(getattr(qualifier, "takeover_rules", {}) or {})
     video_offer_rules = dict(getattr(qualifier, "video_offer_rules", {}) or {})
+    scoring_rules = dict(getattr(qualifier, "scoring_rules", {}) or {})
+    band_thresholds = dict(getattr(qualifier, "band_thresholds", {}) or {})
+    confidence_thresholds = dict(getattr(qualifier, "confidence_thresholds", {}) or {})
     context = {
         "name": str(getattr(qualifier, "name", "ACE e-Counter") or "ACE e-Counter").strip(),
         "slug": str(getattr(qualifier, "slug", "ace-e-counter") or "ace-e-counter").strip(),
@@ -26,6 +29,9 @@ def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
         "required_fields": required_fields,
         "field_schema": field_schema,
         "max_clarifying_questions": int(getattr(qualifier, "max_clarifying_questions", 3) or 3),
+        "scoring_rules": scoring_rules,
+        "band_thresholds": band_thresholds,
+        "confidence_thresholds": confidence_thresholds,
         "takeover_rules": takeover_rules,
         "video_offer_rules": video_offer_rules,
         "knowledge_snippets": _knowledge_snippets(
@@ -36,6 +42,9 @@ def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
             version_notes=str(getattr(qualifier, "version_notes", "") or "").strip(),
             field_schema=field_schema,
             required_fields=required_fields,
+            scoring_rules=scoring_rules,
+            band_thresholds=band_thresholds,
+            confidence_thresholds=confidence_thresholds,
             takeover_rules=takeover_rules,
             video_offer_rules=video_offer_rules,
         ),
@@ -94,6 +103,9 @@ def _knowledge_snippets(
     version_notes: str,
     field_schema: List[Dict[str, Any]],
     required_fields: List[str],
+    scoring_rules: Dict[str, Any],
+    band_thresholds: Dict[str, Any],
+    confidence_thresholds: Dict[str, Any],
     takeover_rules: Dict[str, Any],
     video_offer_rules: Dict[str, Any],
 ) -> List[str]:
@@ -118,6 +130,12 @@ def _knowledge_snippets(
         snippets.append("Manager dashboard field schema: " + " | ".join(capture_lines))
     if contact_capture_policy:
         snippets.append(f"Contact capture policy: {contact_capture_policy}")
+    if scoring_rules:
+        snippets.append("Scoring rules from manager dashboard: " + _rule_summary(scoring_rules))
+    if band_thresholds:
+        snippets.append("Qualification band thresholds: " + _rule_summary(band_thresholds))
+    if confidence_thresholds:
+        snippets.append("Confidence thresholds: " + _rule_summary(confidence_thresholds))
     if takeover_rules:
         snippets.append("Human takeover policy: " + _rule_summary(takeover_rules))
     if video_offer_rules:
