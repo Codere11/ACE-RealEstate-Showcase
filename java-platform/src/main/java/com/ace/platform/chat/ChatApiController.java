@@ -25,13 +25,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 public class ChatApiController {
+
+    private static final Pattern STREAM_TOKEN_PATTERN = Pattern.compile("\\S+\\s*|\\s+");
 
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
@@ -71,13 +78,31 @@ public class ChatApiController {
     }
 
     @PostMapping(value = {"/chat/stream", "/chat/stream/", "/api/public/chat/stream"}, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> chatStream(@RequestBody ChatRequest request) {
-        ChatResponse response = handleChat(request);
+    public ResponseEntity<StreamingResponseBody> chatStream(@RequestBody ChatRequest request) {
+        StreamingResponseBody stream = outputStream -> {
+            ChatResponse response = handleChat(request);
+            String reply = response.reply() != null ? response.reply() : "";
+            if (reply.isBlank()) {
+                outputStream.flush();
+                return;
+            }
+            for (String chunk : streamChunks(reply)) {
+                outputStream.write(chunk.getBytes(StandardCharsets.UTF_8));
+                outputStream.flush();
+                try {
+                    Thread.sleep(chunk.strip().length() <= 2 ? 12L : 20L);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        };
         return ResponseEntity.ok()
             .contentType(MediaType.TEXT_PLAIN)
-            .header(HttpHeaders.CACHE_CONTROL, "no-store")
-            .header("X-ACE-Sid", response.sid() != null ? response.sid() : "")
-            .body(response.reply() != null ? response.reply() : "");
+            .header(HttpHeaders.CACHE_CONTROL, "no-store, no-transform")
+            .header("X-Accel-Buffering", "no")
+            .header("X-ACE-Sid", request.sid() != null ? request.sid() : "")
+            .body(stream);
     }
 
     @PostMapping({"/chat/staff", "/chat/staff/"})
@@ -159,18 +184,41 @@ public class ChatApiController {
         return Map.of("ok", true, "sid", sid);
     }
 
+    private List<String> streamChunks(String text) {
+        Matcher matcher = STREAM_TOKEN_PATTERN.matcher(text != null ? text : "");
+        java.util.ArrayList<String> chunks = new java.util.ArrayList<>();
+        while (matcher.find()) {
+            String token = matcher.group();
+            if (token == null || token.isEmpty()) {
+                continue;
+            }
+            if (token.length() <= 18) {
+                chunks.add(token);
+                continue;
+            }
+            for (int i = 0; i < token.length(); i += 12) {
+                chunks.add(token.substring(i, Math.min(token.length(), i + 12)));
+            }
+        }
+        if (chunks.isEmpty() && text != null && !text.isEmpty()) {
+            chunks.add(text);
+        }
+        return chunks;
+    }
+
     private ChatResponse handleChat(ChatRequest request) {
         Organization organization = resolveOrganization(request.tenant_slug(), request.meta());
         boolean explicitSurveyMode = request.meta() != null
             && request.meta().get("survey_slug") != null
             && !request.meta().get("survey_slug").isBlank();
+        ChatResponse response;
         if (!explicitSurveyMode && qualifierService.findActive(organization.getId()).isPresent()) {
             QualifierChatService.QualifierChatResult result = qualifierChatService.handleVisitorMessage(
                 organization,
                 request.sid(),
                 request.message()
             );
-            return new ChatResponse(
+            response = new ChatResponse(
                 result.sid(),
                 result.reply(),
                 "open",
@@ -180,23 +228,62 @@ public class ChatApiController {
                 null,
                 null
             );
+        } else {
+            PublicChatService.ChatResult result = publicChatService.handleVisitorMessage(
+                organization,
+                request.sid(),
+                request.meta() != null ? request.meta().getOrDefault("survey_slug", "start") : "start",
+                request.message()
+            );
+            response = new ChatResponse(
+                result.sid(),
+                result.reply(),
+                result.chatMode(),
+                result.storyComplete(),
+                result.surveyProgress(),
+                result.currentStep() != null ? SurveyStepResponse.from(result.currentStep()) : null,
+                result.completionTitle(),
+                result.completionSubtitle()
+            );
         }
-        PublicChatService.ChatResult result = publicChatService.handleVisitorMessage(
-            organization,
-            request.sid(),
-            request.meta() != null ? request.meta().getOrDefault("survey_slug", "start") : "start",
-            request.message()
-        );
-        return new ChatResponse(
-            result.sid(),
-            result.reply(),
-            result.chatMode(),
-            result.storyComplete(),
-            result.surveyProgress(),
-            result.currentStep() != null ? SurveyStepResponse.from(result.currentStep()) : null,
-            result.completionTitle(),
-            result.completionSubtitle()
-        );
+        publishLeadRealtimeState(organization, response.sid());
+        return response;
+    }
+
+    private void publishLeadRealtimeState(Organization organization, String sid) {
+        if (organization == null || sid == null || sid.isBlank()) {
+            return;
+        }
+        leadService.findByOrganizationAndSid(organization.getId(), sid).ifPresent(lead -> {
+            Map<String, Object> touched = new LinkedHashMap<>();
+            touched.put("lastMessage", lead.getLastMessagePreview());
+            touched.put("lastSeenSec", lead.getLastMessageAt() != null ? lead.getLastMessageAt().getEpochSecond() : null);
+            touched.put("survey_progress", lead.getSurveyProgress());
+            touched.put("takeover_active", lead.isTakeoverActive());
+            touched.put("status", lead.getStatus().name());
+            touched.put("qualification_score", lead.getQualificationScore());
+            touched.put("qualification_band", lead.getQualificationBand());
+            touched.put("confidence_overall", lead.getConfidenceOverall());
+            touched.put("takeover_eligible", lead.isTakeoverEligible());
+            touched.put("video_offer_eligible", lead.isVideoOfferEligible());
+            leadEventService.publish(lead.getOrganization(), lead.getSid(), "lead.touched", touched);
+
+            if (lead.getQualifierProfile() != null && !lead.getQualifierProfile().isEmpty()) {
+                leadEventService.publish(lead.getOrganization(), lead.getSid(), "lead.profile.updated", Map.of(
+                    "profile", lead.getQualifierProfile(),
+                    "missing_fields", lead.getQualifierMissingFields() != null ? lead.getQualifierMissingFields() : List.of(),
+                    "confidence_overall", lead.getConfidenceOverall() != null ? lead.getConfidenceOverall() : 0.0
+                ));
+                leadEventService.publish(lead.getOrganization(), lead.getSid(), "lead.qualified", Map.of(
+                    "qualification_score", lead.getQualificationScore() != null ? lead.getQualificationScore() : 0,
+                    "qualification_band", lead.getQualificationBand() != null ? lead.getQualificationBand() : "cold",
+                    "reasoning", lead.getQualificationReasoning() != null ? lead.getQualificationReasoning() : "",
+                    "takeover_eligible", lead.isTakeoverEligible(),
+                    "video_offer_eligible", lead.isVideoOfferEligible(),
+                    "confidence_overall", lead.getConfidenceOverall() != null ? lead.getConfidenceOverall() : 0.0
+                ));
+            }
+        });
     }
 
     private Organization resolveOrganization(String tenantSlug, Map<String, String> meta) {

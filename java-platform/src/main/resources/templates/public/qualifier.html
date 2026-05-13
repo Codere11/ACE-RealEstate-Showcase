@@ -596,40 +596,59 @@
     const pendingId = appendPendingUserMessage(text);
     appendThinkingBubble();
     try {
-      const res = await fetch('/chat', {
+      const res = await fetch('/chat/stream', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
         body: JSON.stringify({ sid: state.sid, message: text, tenant_slug: state.orgSlug, meta: { organization_slug: state.orgSlug } })
       });
-      const contentType = (res.headers.get('content-type') || '').toLowerCase();
-      if (!res.ok || !contentType.includes('application/json')) {
+      if (!res.ok) {
         const body = await res.text().catch(() => '');
-        console.error('Qualifier chat bad response', res.status, contentType, body.slice(0, 240));
+        console.error('Qualifier chat stream bad response', res.status, body.slice(0, 240));
         removePendingMessage(pendingId);
         removeLocalAssistantBubble();
         appendMessage('assistant', '⚠️ Odgovor ni uspel. Poskusi znova.', 'error-' + Date.now());
         return;
       }
 
-      const data = await res.json();
-      if (data.sid && data.sid !== state.sid) {
-        state.sid = data.sid;
-        history.replaceState({}, '', `/${state.orgSlug}?sid=${encodeURIComponent(data.sid)}`);
+      const streamedSid = res.headers.get('X-ACE-Sid');
+      if (streamedSid && streamedSid !== state.sid) {
+        state.sid = streamedSid;
+        history.replaceState({}, '', `/${state.orgSlug}?sid=${encodeURIComponent(streamedSid)}`);
       }
 
-      const replyText = String(data.reply || '').trim();
-      state.localAssistantExpectedText = replyText;
-      state.localAssistantStreaming = false;
-      if (replyText) {
-        renderAssistantBubbleText(appendThinkingBubble(), replyText);
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let streamedText = '';
+
+      if (!reader) {
+        streamedText = await res.text().catch(() => '');
+        if (streamedText) appendAssistantChunk(streamedText);
       } else {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          if (!chunk) continue;
+          streamedText += chunk;
+          appendAssistantChunk(chunk);
+        }
+        const tail = decoder.decode();
+        if (tail) {
+          streamedText += tail;
+          appendAssistantChunk(tail);
+        }
+      }
+
+      state.localAssistantStreaming = false;
+      state.localAssistantExpectedText = streamedText;
+      if (!streamedText.trim()) {
         removeLocalAssistantBubble();
       }
 
       await Promise.all([loadThread(), loadLiveHelpState()]);
     } catch (error) {
-      console.error('Qualifier chat request failed', error);
+      console.error('Qualifier chat stream failed', error);
       removePendingMessage(pendingId);
       removeLocalAssistantBubble();
       appendMessage('assistant', '⚠️ Odgovor ni uspel. Poskusi znova.', 'error-' + Date.now());
@@ -651,7 +670,6 @@
         if (evt.type === 'message.created') {
           const role = evt.payload?.role || 'assistant';
           if (role === 'assistant' && state.localAssistantStreaming) {
-            state.localAssistantExpectedText = evt.payload?.text || state.localAssistantExpectedText;
             return;
           }
           appendMessage(role, evt.payload?.text || '', evt.payload?.timestamp || evt.ts);
