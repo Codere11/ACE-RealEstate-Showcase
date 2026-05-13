@@ -277,8 +277,24 @@
         }
         .lead-title { font-size: 18px; font-weight: 800; color: #121417; overflow-wrap: anywhere; }
         .lead-subtitle, .lead-message { color: #6B7280; overflow-wrap: anywhere; }
-        .lead-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+        .lead-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
         .lead-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pill.info { background: #EDF4FF; color: #1D4ED8; }
+        .pill.error { background: #FCE8E8; color: #991B1B; }
+        .score-pill {
+            min-width: 54px;
+            justify-content: center;
+            text-align: center;
+        }
+        .lead-row-note {
+            font-size: 13px;
+            color: #6B7280;
+        }
         .question-card {
             border: 1px solid #E6E2D6;
             border-radius: 14px;
@@ -641,6 +657,15 @@
                                 <input id="searchInput" type="text" placeholder="Type a lead name or SID…">
                             </div>
                             <div class="field">
+                                <label for="interestFilter">Interest</label>
+                                <select id="interestFilter">
+                                    <option value="all">All interest levels</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                            <div class="field">
                                 <label for="statusFilter">Status</label>
                                 <select id="statusFilter">
                                     <option value="all">All statuses</option>
@@ -674,6 +699,10 @@
                                 <small>Visible leads</small>
                             </div>
                             <div class="hero-card">
+                                <strong id="contactCount">0</strong><br>
+                                <small>Contactable</small>
+                            </div>
+                            <div class="hero-card">
                                 <strong id="surveyCount">0</strong><br>
                                 <small>Still in survey</small>
                             </div>
@@ -686,7 +715,23 @@
                                 <small>Human takeover</small>
                             </div>
                         </div>
-                        <p class="info-note" style="margin-top:12px;">Use the list on the right to monitor leads, open the thread, take over the conversation, or delete a lead directly.</p>
+                        <p class="info-note" style="margin-top:12px;">Angular/Python lead meaning now mirrors here too: score, interest, contact flags, stage, and live thread actions in one place.</p>
+                    </div>
+
+                    <div class="card stack">
+                        <div>
+                            <h3>Conversation tags</h3>
+                            <p class="muted">Exact Python tag list, but styled for the Java dashboard. Use one tag per line or comma-separated.</p>
+                        </div>
+                        <div class="field">
+                            <label for="tagsInput">Tags</label>
+                            <textarea id="tagsInput" rows="6" placeholder="seller\nbuyer\nhot-lead"></textarea>
+                        </div>
+                        <div class="actions">
+                            <button id="tagsSaveButton" type="button" class="btn primary">Save tags</button>
+                        </div>
+                        <div id="tagsMessage" class="info-note">Loading tags…</div>
+                        <div id="tagsPreview" class="tag-cloud"><span class="pill dark">No tags yet</span></div>
                     </div>
                 </aside>
 
@@ -1123,7 +1168,9 @@
       paymentRequests: [],
       paymentSending: false,
       paymentModalOpen: false,
-      filters: { search: '', status: 'all', minProgress: 0, takeoverOnly: false }
+      tags: [],
+      tagsSaving: false,
+      filters: { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false }
     };
 
     const els = {
@@ -1140,6 +1187,7 @@
       takeoverCount: document.getElementById('takeoverCount'),
       selectedLeadLabel: document.getElementById('selectedLeadLabel'),
       filteredCount: document.getElementById('filteredCount'),
+      contactCount: document.getElementById('contactCount'),
       surveyCount: document.getElementById('surveyCount'),
       openChatCount: document.getElementById('openChatCount'),
       humanCount: document.getElementById('humanCount'),
@@ -1168,10 +1216,15 @@
       paymentSend: document.getElementById('paymentSend'),
       paymentRequests: document.getElementById('paymentRequests'),
       searchInput: document.getElementById('searchInput'),
+      interestFilter: document.getElementById('interestFilter'),
       statusFilter: document.getElementById('statusFilter'),
       progressFilter: document.getElementById('progressFilter'),
       takeoverOnly: document.getElementById('takeoverOnly'),
-      leadDeleteTop: document.getElementById('leadDeleteTop')
+      leadDeleteTop: document.getElementById('leadDeleteTop'),
+      tagsInput: document.getElementById('tagsInput'),
+      tagsSaveButton: document.getElementById('tagsSaveButton'),
+      tagsMessage: document.getElementById('tagsMessage'),
+      tagsPreview: document.getElementById('tagsPreview')
     };
 
     let localVideoTrack = null;
@@ -1189,9 +1242,38 @@
       els.liveSessionError.style.display = text ? 'block' : 'none';
     }
 
+    function formatAgo(timestampSec) {
+      const value = Number(timestampSec || 0);
+      if (!value) return 'No activity yet';
+      const seconds = Math.max(0, Math.floor(Date.now() / 1000) - value);
+      if (seconds < 60) return `${seconds}s ago`;
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    }
+
+    function interestPillClass(interest) {
+      if (interest === 'High') return 'success';
+      if (interest === 'Medium') return 'warn';
+      if (interest === 'Low') return 'dark';
+      return '';
+    }
+
+    function contactPillsHtml(lead) {
+      const pills = [];
+      if (lead.phone) pills.push(`<span class="pill success">Phone${lead.phoneText ? ` · ${escapeHtml(lead.phoneText)}` : ''}</span>`);
+      if (lead.email) pills.push(`<span class="pill info">Email${lead.emailText ? ` · ${escapeHtml(lead.emailText)}` : ''}</span>`);
+      if (lead.compatibility) pills.push('<span class="pill warn">Qualified fit</span>');
+      return pills.join('');
+    }
+
     function visibleLeads() {
       const q = state.filters.search.trim().toLowerCase();
       return state.leads.filter(lead => {
+        if (state.filters.interest !== 'all' && (lead.interest || '') !== state.filters.interest) return false;
         if (state.filters.status !== 'all' && lead.status !== state.filters.status) return false;
         if (Number(lead.surveyProgress || 0) < state.filters.minProgress) return false;
         if (state.filters.takeoverOnly && !lead.takeoverActive) return false;
@@ -1377,11 +1459,66 @@
       renderLiveStage();
     }
 
+    function renderTags() {
+      if (!els.tagsPreview || !els.tagsMessage || !els.tagsInput || !els.tagsSaveButton) return;
+      els.tagsInput.value = state.tags.join('\n');
+      els.tagsSaveButton.disabled = state.tagsSaving;
+      if (!state.tags.length) {
+        els.tagsPreview.innerHTML = '<span class="pill dark">No tags yet</span>';
+      } else {
+        els.tagsPreview.innerHTML = state.tags.map(tag => `<span class="pill">${escapeHtml(tag)}</span>`).join('');
+      }
+    }
+
+    async function loadTags() {
+      if (!els.tagsMessage) return;
+      els.tagsMessage.textContent = 'Loading tags…';
+      try {
+        const res = await fetch('/api/tags', { credentials: 'same-origin' });
+        if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to load tags.'));
+        const data = await res.json();
+        state.tags = Array.isArray(data?.tags) ? data.tags : [];
+        els.tagsMessage.textContent = `${state.tags.length} tags loaded.`;
+      } catch (error) {
+        els.tagsMessage.textContent = error?.message || 'Failed to load tags.';
+      }
+      renderTags();
+    }
+
+    async function saveTags() {
+      if (!els.tagsInput || !els.tagsMessage) return;
+      const tags = (els.tagsInput.value || '')
+        .split(/[\n,]/g)
+        .map(tag => tag.trim())
+        .filter(Boolean);
+      state.tagsSaving = true;
+      els.tagsMessage.textContent = 'Saving tags…';
+      renderTags();
+      try {
+        const res = await fetch('/api/tags', {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags })
+        });
+        if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to save tags.'));
+        const data = await res.json();
+        state.tags = Array.isArray(data?.tags) ? data.tags : [];
+        els.tagsMessage.textContent = `Saved ${state.tags.length} tags.`;
+      } catch (error) {
+        els.tagsMessage.textContent = error?.message || 'Failed to save tags.';
+      } finally {
+        state.tagsSaving = false;
+        renderTags();
+      }
+    }
+
     function updateOverview() {
       const visible = visibleLeads();
       els.leadCount.textContent = String(state.leads.length);
       els.takeoverCount.textContent = String(state.leads.filter(l => l.takeoverActive).length);
       els.filteredCount.textContent = String(visible.length);
+      els.contactCount.textContent = String(state.leads.filter(l => l.phone || l.email).length);
       els.surveyCount.textContent = String(state.leads.filter(l => l.status === 'SURVEY').length);
       els.openChatCount.textContent = String(state.leads.filter(l => l.status === 'OPEN_CHAT').length);
       els.humanCount.textContent = String(state.leads.filter(l => l.status === 'HUMAN_TAKEOVER').length);
@@ -1400,20 +1537,28 @@
         const card = document.createElement('div');
         card.className = 'lead-entry' + (lead.sid === state.selectedSid ? ' active' : '');
         card.dataset.selectSid = lead.sid;
+        const industry = lead.industry && lead.industry !== 'Unknown' ? ` · ${escapeHtml(lead.industry)}` : '';
         card.innerHTML = `
           <div class="lead-head">
             <div>
-              <div class="lead-title">${escapeHtml(lead.name)}</div>
-              <div class="lead-subtitle">SID ${escapeHtml(lead.sid)} · ${escapeHtml(lead.status)} · ${Number(lead.surveyProgress || 0)}% complete</div>
+              <div class="lead-title">${escapeHtml(lead.name || 'Anonymous')}${industry}</div>
+              <div class="lead-subtitle">${formatAgo(lead.lastSeenSec)} · Stage ${escapeHtml(lead.stage || lead.status || 'Awareness')} · SID ${escapeHtml(lead.sid)}</div>
             </div>
             <div class="lead-meta">
-              <span class="pill">${escapeHtml(lead.status)}</span>
-              ${lead.takeoverActive ? '<span class="pill success">Human takeover active</span>' : ''}
+              <span class="pill ${interestPillClass(lead.interest)}">${escapeHtml(lead.interest || 'Low')}</span>
+              <span class="pill dark score-pill">${Number(lead.score || 0)}</span>
             </div>
           </div>
-          <div class="lead-message">${escapeHtml(lead.lastMessage || 'Waiting for the next visitor message.')}</div>
+          <div class="lead-message">${escapeHtml(lead.lastMessage || 'No messages yet.')}</div>
+          <div class="status-row">
+            <span class="pill">${escapeHtml(lead.status || 'SURVEY')}</span>
+            <span class="pill dark">${Number(lead.surveyProgress || 0)}% complete</span>
+            ${lead.takeoverActive ? '<span class="pill success">Human takeover active</span>' : ''}
+            ${contactPillsHtml(lead)}
+          </div>
+          ${lead.notes ? `<div class="lead-row-note">${escapeHtml(lead.notes)}</div>` : ''}
           <div class="lead-actions">
-            <button type="button" class="btn primary" data-action="open" data-sid="${escapeHtml(lead.sid)}">Take over chat</button>
+            <button type="button" class="btn primary" data-action="open" data-sid="${escapeHtml(lead.sid)}">Open lead</button>
             <button type="button" class="btn danger" data-action="delete" data-sid="${escapeHtml(lead.sid)}">Delete lead</button>
           </div>`;
         els.leadList.appendChild(card);
@@ -1507,13 +1652,17 @@
       }
       els.leadDetail.style.display = 'grid';
       els.leadDetailEmpty.style.display = 'none';
-      els.leadName.textContent = lead.name;
+      els.leadName.textContent = lead.name || 'Anonymous';
       renderLiveStage();
       els.takeoverSend.textContent = lead.takeoverActive ? 'Send manager reply' : 'Start takeover + send message';
       els.takeoverEnd.style.display = lead.takeoverActive ? 'inline-flex' : 'none';
       els.leadStatusRow.innerHTML = `
-        <span class="pill">${escapeHtml(lead.status)}</span>
+        <span class="pill">${escapeHtml(lead.stage || lead.status || 'Awareness')}</span>
+        <span class="pill ${interestPillClass(lead.interest)}">${escapeHtml(lead.interest || 'Low')} intent</span>
+        <span class="pill dark">Score ${Number(lead.score || 0)}</span>
         <span class="pill dark">${Number(lead.surveyProgress || 0)}% complete</span>
+        <span class="pill dark">${escapeHtml(formatAgo(lead.lastSeenSec))}</span>
+        ${contactPillsHtml(lead)}
         ${lead.takeoverActive ? '<span class="pill success">Human takeover active</span>' : '<span class="pill warn">Bot-guided flow</span>'}`;
 
       els.thread.innerHTML = '';
@@ -1833,9 +1982,11 @@
     }
 
     els.searchInput.addEventListener('input', e => { state.filters.search = e.target.value || ''; renderLeadList(); });
+    els.interestFilter?.addEventListener('change', e => { state.filters.interest = e.target.value || 'all'; renderLeadList(); });
     els.statusFilter.addEventListener('change', e => { state.filters.status = e.target.value || 'all'; renderLeadList(); });
     els.progressFilter.addEventListener('change', e => { state.filters.minProgress = Number(e.target.value || 0); renderLeadList(); });
     els.takeoverOnly.addEventListener('change', e => { state.filters.takeoverOnly = !!e.target.checked; renderLeadList(); });
+    els.tagsSaveButton?.addEventListener('click', saveTags);
     els.leadList.addEventListener('click', event => {
       const button = event.target.closest('[data-action]');
       if (button) {
@@ -1874,6 +2025,8 @@
 
     renderLiveStage();
     renderPaymentModal();
+    renderTags();
+    loadTags();
     loadPaymentSettings().finally(() => {
       loadLeads().then(async () => {
         if (state.selectedSid) {

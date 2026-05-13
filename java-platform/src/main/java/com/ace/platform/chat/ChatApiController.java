@@ -289,16 +289,83 @@ public class ChatApiController {
     public record StaffMessageRequest(Long orgId, String sid, String text) {
     }
 
-    public record LeadSummary(String sid, String name, String status, int surveyProgress, String lastMessage, boolean takeoverActive) {
+    public record LeadSummary(
+        String id,
+        String sid,
+        String name,
+        String industry,
+        int score,
+        String stage,
+        boolean compatibility,
+        String interest,
+        String phoneText,
+        String emailText,
+        boolean phone,
+        boolean email,
+        boolean adsExp,
+        String lastMessage,
+        long lastSeenSec,
+        String notes,
+        Integer surveyProgress,
+        boolean takeoverActive,
+        String status
+    ) {
         static LeadSummary from(Lead lead) {
+            int score = lead.getQualificationScore() != null ? lead.getQualificationScore() : lead.getSurveyProgress();
             return new LeadSummary(
                 lead.getSid(),
+                lead.getSid(),
                 lead.getDisplayName(),
-                lead.getStatus().name(),
-                lead.getSurveyProgress(),
+                industryFrom(lead),
+                score,
+                stageFrom(lead.getStatus()),
+                lead.isTakeoverEligible() || lead.isVideoOfferEligible(),
+                interestFrom(score),
+                lead.getPhone(),
+                lead.getEmail(),
+                hasText(lead.getPhone()),
+                hasText(lead.getEmail()),
+                false,
                 lead.getLastMessagePreview(),
-                lead.isTakeoverActive()
+                lead.getLastMessageAt() != null ? lead.getLastMessageAt().getEpochSecond() : (lead.getCreatedAt() != null ? lead.getCreatedAt().getEpochSecond() : 0),
+                lead.getQualificationReasoning(),
+                lead.getSurveyProgress(),
+                lead.isTakeoverActive(),
+                lead.getStatus().name()
             );
+        }
+
+        private static String industryFrom(Lead lead) {
+            Map<String, Object> profile = lead.getQualifierProfile() != null ? lead.getQualifierProfile() : Map.of();
+            String industry = text(profile.get("industry"));
+            if (!industry.isBlank()) return industry;
+            String businessType = text(profile.get("business_type"));
+            if (!businessType.isBlank()) return businessType;
+            return "Unknown";
+        }
+
+        private static String stageFrom(com.ace.platform.lead.LeadStatus status) {
+            if (status == null) return "Awareness";
+            return switch (status) {
+                case SURVEY -> "Survey";
+                case OPEN_CHAT -> "Open chat";
+                case HUMAN_TAKEOVER -> "Human takeover";
+                case CLOSED -> "Closed";
+            };
+        }
+
+        private static String interestFrom(int score) {
+            if (score >= 70) return "High";
+            if (score >= 40) return "Medium";
+            return "Low";
+        }
+
+        private static String text(Object value) {
+            return value == null ? "" : String.valueOf(value).trim();
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
         }
     }
 
