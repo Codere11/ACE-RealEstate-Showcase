@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Any, Dict, List, Tuple
 
-from app.qualification.prompts import build_analysis_prompt, build_writer_prompt
+from app.qualification.prompts import build_qualify_prompt
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
 from app.qualification.state import QualificationGraphState, TurnDecision, TurnInterpretation
 from app.services.llm_service import LLMService
@@ -15,8 +14,7 @@ except Exception:  # pragma: no cover
     END = "__end__"  # type: ignore
 
 
-_ANALYZE_SYSTEM = "You analyze ACE e-Counter qualification turns. Return only valid JSON."
-_WRITE_SYSTEM = "You write the next ACE e-Counter reply. Return plain text only."
+_QUALIFY_SYSTEM = "You analyze ACE e-Counter qualification turns and return only valid JSON."
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
@@ -28,36 +26,64 @@ def _retrieve_knowledge(state: QualificationGraphState) -> QualificationGraphSta
     state["retrieved_knowledge"] = retrieve_knowledge(
         state.get("runtime_context", {}) or {},
         state.get("recent_messages", []) or [],
-        limit=6,
+        limit=3,
     )
     return state
 
 
 def _prompt_runtime_context(state: QualificationGraphState) -> Dict[str, Any]:
     ctx = dict(state.get("runtime_context", {}) or {})
-    ctx.pop("knowledge_snippets", None)
-    return ctx
+    return {
+        "static_prompt_block": str(ctx.get("static_prompt_block") or "").strip(),
+        "max_clarifying_questions": int(ctx.get("max_clarifying_questions") or 3),
+    }
 
 
-def _analyze_turn(llm: LLMService, state: QualificationGraphState) -> QualificationGraphState:
-    prompt = build_analysis_prompt(
+def _prompt_profile(state: QualificationGraphState) -> Dict[str, Any]:
+    profile = dict(state.get("profile_before", {}) or {})
+    keep_keys = [
+        "visitor_type",
+        "preferred_language",
+        "business_type",
+        "business_model",
+        "customer_source",
+        "sales_motion",
+        "growth_constraint",
+        "pain_points",
+        "desired_outcome",
+        "use_case_fit",
+        "fit_status",
+        "supporting_quotes",
+        "funnel_stage",
+    ]
+    return {key: profile.get(key) for key in keep_keys if profile.get(key) not in (None, "", [], {})}
+
+
+def _get(data: Dict[str, Any], long_key: str, short_key: str, default=None):
+    if short_key in data:
+        return data.get(short_key)
+    return data.get(long_key, default)
+
+
+def _qualify_and_write(llm: LLMService, state: QualificationGraphState) -> QualificationGraphState:
+    prompt = build_qualify_prompt(
         runtime_context=_prompt_runtime_context(state),
         knowledge_context=state.get("retrieved_knowledge", []) or [],
-        existing_profile=state.get("profile_before", {}) or {},
-        recent_messages=state.get("recent_messages", []) or [],
+        existing_profile=_prompt_profile(state),
+        recent_messages=(state.get("recent_messages", []) or [])[-4:],
         latest_message=state.get("latest_message", ""),
     )
-    data = llm.call_json(_ANALYZE_SYSTEM, prompt)
+    data = llm.call_json(_QUALIFY_SYSTEM, prompt)
     profile_after = dict(state.get("profile_before", {}) or {})
-    profile_after.update(dict(data.get("profile_after") or {}))
+    profile_after.update(dict(_get(data, "profile_after", "p", {}) or {}))
     interpretation = TurnInterpretation(
-        visitor_type=str(data.get("visitor_type") or "unclear"),
-        preferred_language=str(data.get("preferred_language") or "en"),
+        visitor_type=str(_get(data, "visitor_type", "vt", "unclear") or "unclear"),
+        preferred_language=str(_get(data, "preferred_language", "lang", "en") or "en"),
         profile_after=profile_after,
-        field_confidence={k: float(v) for k, v in dict(data.get("field_confidence") or {}).items() if _is_number(v)},
-        confidence_overall=_clamp(data.get("confidence_overall"), 0.0),
-        supporting_quotes=[str(x) for x in (data.get("supporting_quotes") or []) if str(x).strip()][:4],
-        reasoning_hint=str(data.get("reasoning_hint") or "").strip()[:400],
+        field_confidence={k: float(v) for k, v in dict(_get(data, "field_confidence", "fc", {}) or {}).items() if _is_number(v)},
+        confidence_overall=_clamp(_get(data, "confidence_overall", "co", 0.0), 0.0),
+        supporting_quotes=[str(x) for x in (_get(data, "supporting_quotes", "sq", []) or []) if str(x).strip()][:4],
+        reasoning_hint=str(_get(data, "reasoning_hint", "why", "") or "").strip()[:400],
         used_llm=bool(data),
         model_name=llm.model_name,
     )
@@ -70,46 +96,32 @@ def _analyze_turn(llm: LLMService, state: QualificationGraphState) -> Qualificat
         data,
         runtime_context=state.get("runtime_context", {}) or {},
         fit_status=str(interpretation.profile_after.get("fit_status") or "unknown"),
-        recommended_next_action=str(data.get("recommended_next_action") or "ask_clarifying_question"),
+        recommended_next_action=str(_get(data, "recommended_next_action", "act", "ask_clarifying_question") or "ask_clarifying_question"),
     )
     decision = TurnDecision(
-        reply="",
-        recommended_next_action=str(data.get("recommended_next_action") or "ask_clarifying_question"),
-        suggested_reply_strategy=str(data.get("suggested_reply_strategy") or "ask_single_question"),
-        next_best_question=str(data.get("next_best_question") or "").strip(),
-        funnel_stage=str(data.get("funnel_stage") or "business_context"),
-        qualification_complete=bool(data.get("qualification_complete")),
-        missing_fields=[str(x) for x in (data.get("missing_fields") or []) if str(x).strip()],
+        reply=str(_get(data, "reply", "rep", "") or "").strip(),
+        recommended_next_action=str(_get(data, "recommended_next_action", "act", "ask_clarifying_question") or "ask_clarifying_question"),
+        suggested_reply_strategy=str(_get(data, "suggested_reply_strategy", "strat", "ask_single_question") or "ask_single_question"),
+        next_best_question=str(_get(data, "next_best_question", "q", "") or "").strip(),
+        funnel_stage=str(_get(data, "funnel_stage", "stage", "business_context") or "business_context"),
+        qualification_complete=bool(_get(data, "qualification_complete", "done", False)),
+        missing_fields=[str(x) for x in (_get(data, "missing_fields", "miss", []) or []) if str(x).strip()],
         qualification_score=qualification_score,
         qualification_band=qualification_band,
-        takeover_eligible=bool(data.get("takeover_eligible")),
-        video_offer_eligible=bool(data.get("video_offer_eligible")),
-        confidence_overall=_clamp(data.get("confidence_overall"), interpretation.confidence_overall),
-        reasoning_hint=str(data.get("reasoning_hint") or "").strip()[:400],
+        takeover_eligible=bool(_get(data, "takeover_eligible", "to", False)),
+        video_offer_eligible=bool(_get(data, "video_offer_eligible", "vo", False)),
+        confidence_overall=_clamp(_get(data, "confidence_overall", "co", interpretation.confidence_overall), interpretation.confidence_overall),
+        reasoning_hint=str(_get(data, "reasoning_hint", "why", "") or "").strip()[:400],
         used_llm=bool(data),
         model_name=llm.model_name,
     )
 
-    state["interpretation"] = interpretation
-    state["decision"] = decision
-    return state
-
-
-def _write_reply(llm: LLMService, state: QualificationGraphState) -> QualificationGraphState:
-    interpretation = state.get("interpretation") or TurnInterpretation()
-    decision = state.get("decision") or TurnDecision()
-    analysis = {
-        **asdict(interpretation),
-        **asdict(decision),
-    }
-    prompt = build_writer_prompt(
-        runtime_context=_prompt_runtime_context(state),
-        knowledge_context=state.get("retrieved_knowledge", []) or [],
-        recent_messages=state.get("recent_messages", []) or [],
-        latest_message=state.get("latest_message", ""),
-        analysis=analysis,
+    decision.reply = _normalize_reply(
+        decision.reply,
+        recommended_next_action=decision.recommended_next_action,
+        next_best_question=decision.next_best_question,
     )
-    decision.reply = llm.call_text(_WRITE_SYSTEM, prompt, temperature=0.2).strip()
+    state["interpretation"] = interpretation
     state["decision"] = decision
     return state
 
@@ -132,20 +144,17 @@ def run_qualification_graph(
     if StateGraph is None:
         state = _load_runtime_context(state)
         state = _retrieve_knowledge(state)
-        state = _analyze_turn(llm, state)
-        state = _write_reply(llm, state)
+        state = _qualify_and_write(llm, state)
         return state
 
     graph = StateGraph(QualificationGraphState)
     graph.add_node("load_runtime_context", _load_runtime_context)
     graph.add_node("retrieve_knowledge", _retrieve_knowledge)
-    graph.add_node("analyze_turn", lambda s: _analyze_turn(llm, s))
-    graph.add_node("write_reply", lambda s: _write_reply(llm, s))
+    graph.add_node("qualify_and_write", lambda s: _qualify_and_write(llm, s))
     graph.set_entry_point("load_runtime_context")
     graph.add_edge("load_runtime_context", "retrieve_knowledge")
-    graph.add_edge("retrieve_knowledge", "analyze_turn")
-    graph.add_edge("analyze_turn", "write_reply")
-    graph.add_edge("write_reply", END)
+    graph.add_edge("retrieve_knowledge", "qualify_and_write")
+    graph.add_edge("qualify_and_write", END)
     return graph.compile().invoke(state)
 
 
@@ -171,6 +180,17 @@ def _clamp_int(value: Any, default: int) -> int:
         return default
 
 
+def _normalize_reply(reply: str, *, recommended_next_action: str, next_best_question: str) -> str:
+    text = (reply or "").strip()
+    if text:
+        return text
+    if recommended_next_action == "route_support":
+        return "This sounds like an existing support issue, so I’m routing it to the support team now."
+    if next_best_question:
+        return next_best_question.strip()
+    return "Tell me a bit more about your current inbound lead process, and I’ll map how ACE would fit."
+
+
 def _normalize_score_and_band(data: Dict[str, Any], *, runtime_context: Dict[str, Any], fit_status: str, recommended_next_action: str) -> Tuple[int, str]:
     band_thresholds = dict(runtime_context.get("band_thresholds") or {})
     hot_min = _clamp_int(band_thresholds.get("hot_min"), 70)
@@ -178,8 +198,8 @@ def _normalize_score_and_band(data: Dict[str, Any], *, runtime_context: Dict[str
     if hot_min < warm_min:
         hot_min, warm_min = warm_min, hot_min
 
-    raw_score = _clamp_int(data.get("qualification_score"), -1)
-    raw_band = str(data.get("qualification_band") or "").strip().lower()
+    raw_score = _clamp_int(_get(data, "qualification_score", "score", -1), -1)
+    raw_band = str(_get(data, "qualification_band", "band", "") or "").strip().lower()
 
     score = raw_score
     band = raw_band if raw_band in {"cold", "warm", "hot"} else ""

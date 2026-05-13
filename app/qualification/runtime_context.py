@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 ACE_PRODUCT_BRIEF = [
     "ACE e-Counter is a website visitor-intake and qualification system for inbound customer interest.",
@@ -9,8 +9,15 @@ ACE_PRODUCT_BRIEF = [
     "ACE is not a marketplace or seller of the visitor's product. It helps the business handle inquiries, qualify demand, and improve follow-up.",
 ]
 
+_RUNTIME_CACHE: Dict[Tuple[str, str, int], Dict[str, Any]] = {}
+
 
 def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
+    key = _cache_key(qualifier)
+    cached = _RUNTIME_CACHE.get(key)
+    if cached is not None:
+        return cached
+
     field_schema = qualifier_field_schema(qualifier)
     required_fields = [str(v).strip() for v in list(getattr(qualifier, "required_fields", []) or []) if str(v).strip()]
     takeover_rules = dict(getattr(qualifier, "takeover_rules", {}) or {})
@@ -18,6 +25,7 @@ def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
     scoring_rules = dict(getattr(qualifier, "scoring_rules", {}) or {})
     band_thresholds = dict(getattr(qualifier, "band_thresholds", {}) or {})
     confidence_thresholds = dict(getattr(qualifier, "confidence_thresholds", {}) or {})
+
     context = {
         "name": str(getattr(qualifier, "name", "ACE e-Counter") or "ACE e-Counter").strip(),
         "slug": str(getattr(qualifier, "slug", "ace-e-counter") or "ace-e-counter").strip(),
@@ -34,29 +42,32 @@ def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
         "confidence_thresholds": confidence_thresholds,
         "takeover_rules": takeover_rules,
         "video_offer_rules": video_offer_rules,
-        "knowledge_snippets": _knowledge_snippets(
-            system_prompt=str(getattr(qualifier, "system_prompt", "") or "").strip(),
-            goal_definition=str(getattr(qualifier, "goal_definition", "") or "").strip(),
-            assistant_style=str(getattr(qualifier, "assistant_style", "") or "").strip(),
-            contact_capture_policy=str(getattr(qualifier, "contact_capture_policy", "") or "").strip(),
-            version_notes=str(getattr(qualifier, "version_notes", "") or "").strip(),
-            field_schema=field_schema,
-            required_fields=required_fields,
-            scoring_rules=scoring_rules,
-            band_thresholds=band_thresholds,
-            confidence_thresholds=confidence_thresholds,
-            takeover_rules=takeover_rules,
-            video_offer_rules=video_offer_rules,
-        ),
     }
+    context["knowledge_snippets"] = _knowledge_snippets(
+        system_prompt=context["system_prompt"],
+        goal_definition=context["goal_definition"],
+        assistant_style=context["assistant_style"],
+        contact_capture_policy=context["contact_capture_policy"],
+        version_notes=context["version_notes"],
+        field_schema=field_schema,
+        required_fields=required_fields,
+        scoring_rules=scoring_rules,
+        band_thresholds=band_thresholds,
+        confidence_thresholds=confidence_thresholds,
+        takeover_rules=takeover_rules,
+        video_offer_rules=video_offer_rules,
+    )
+    context["static_prompt_block"] = _static_prompt_block(context)
+    _RUNTIME_CACHE[key] = context
     return context
 
 
-def retrieve_knowledge(runtime_context: Dict[str, Any], recent_messages: List[Dict[str, str]], *, limit: int = 6) -> List[str]:
+def retrieve_knowledge(runtime_context: Dict[str, Any], recent_messages: List[Dict[str, str]], *, limit: int = 3) -> List[str]:
     snippets = [str(s).strip() for s in list(runtime_context.get("knowledge_snippets") or []) if str(s).strip()]
     if not snippets:
-        return ACE_PRODUCT_BRIEF[:]
-    query = " ".join(str(m.get("text") or "") for m in recent_messages[-8:] if str(m.get("text") or "").strip())
+        return ACE_PRODUCT_BRIEF[:2]
+
+    query = " ".join(str(m.get("text") or "") for m in recent_messages[-6:] if str(m.get("text") or "").strip())
     query_tokens = _tokens(query)
     scored = []
     for index, snippet in enumerate(snippets):
@@ -94,6 +105,38 @@ def qualifier_field_schema(qualifier: Any) -> List[Dict[str, Any]]:
     return out
 
 
+def _static_prompt_block(context: Dict[str, Any]) -> str:
+    parts = [
+        f"identity={context['name']}",
+        "product=ACE e-Counter qualifies inbound website interest, captures lead details, and routes strong opportunities.",
+        "guardrail=ACE does not sell the visitor's product.",
+    ]
+    if context.get("system_prompt"):
+        parts.append(f"manager_instructions={context['system_prompt']}")
+    if context.get("goal_definition"):
+        parts.append(f"goal={context['goal_definition']}")
+    if context.get("assistant_style"):
+        parts.append(f"style={context['assistant_style']}")
+    if context.get("required_fields"):
+        parts.append("required_fields=" + ", ".join(context["required_fields"][:5]))
+    if context.get("field_schema"):
+        fields = []
+        for item in list(context["field_schema"] or [])[:4]:
+            bit = f"{item['name']}:{item['type']}"
+            if item.get("required"):
+                bit += "*"
+            fields.append(bit)
+        if fields:
+            parts.append("field_schema=" + " | ".join(fields))
+    if context.get("contact_capture_policy"):
+        parts.append(f"contact_policy={context['contact_capture_policy']}")
+    if context.get("takeover_rules"):
+        parts.append("takeover_rules=" + _rule_summary(context["takeover_rules"]))
+    if context.get("band_thresholds"):
+        parts.append("band_thresholds=" + _rule_summary(context["band_thresholds"]))
+    return "\n".join(parts)
+
+
 def _knowledge_snippets(
     *,
     system_prompt: str,
@@ -115,25 +158,23 @@ def _knowledge_snippets(
     if system_prompt:
         snippets.append(f"Manager dashboard instructions: {system_prompt}")
     if assistant_style:
-        snippets.append(f"Preferred assistant style: {assistant_style}")
+        snippets.append(f"Assistant style: {assistant_style}")
     if required_fields:
-        snippets.append("Required qualification fields: " + ", ".join(required_fields))
+        snippets.append("Required fields: " + ", ".join(required_fields[:8]))
     if field_schema:
         capture_lines = []
-        for item in field_schema[:8]:
+        for item in field_schema[:6]:
             bit = f"{item['label']} ({item['type']})"
             if item.get("required"):
                 bit += ", required"
-            if item.get("description"):
-                bit += f": {item['description']}"
             capture_lines.append(bit)
-        snippets.append("Manager dashboard field schema: " + " | ".join(capture_lines))
+        snippets.append("Field schema: " + " | ".join(capture_lines))
     if contact_capture_policy:
         snippets.append(f"Contact capture policy: {contact_capture_policy}")
     if scoring_rules:
-        snippets.append("Scoring rules from manager dashboard: " + _rule_summary(scoring_rules))
+        snippets.append("Scoring rules: " + _rule_summary(scoring_rules))
     if band_thresholds:
-        snippets.append("Qualification band thresholds: " + _rule_summary(band_thresholds))
+        snippets.append("Band thresholds: " + _rule_summary(band_thresholds))
     if confidence_thresholds:
         snippets.append("Confidence thresholds: " + _rule_summary(confidence_thresholds))
     if takeover_rules:
@@ -147,12 +188,27 @@ def _knowledge_snippets(
 
 def _rule_summary(rules: Dict[str, Any]) -> str:
     parts = []
-    for key, value in list(rules.items())[:8]:
+    for key, value in list(rules.items())[:6]:
         if value is None or value == "":
             continue
         parts.append(f"{key}={value}")
-    return ", ".join(parts) if parts else "none specified"
+    return ", ".join(parts) if parts else "none"
+
+
+def _cache_key(qualifier: Any) -> Tuple[str, str, int]:
+    slug = str(getattr(qualifier, "slug", "ace-e-counter") or "ace-e-counter").strip()
+    version = int(getattr(qualifier, "version", 1) or 1)
+    notes = str(getattr(qualifier, "version_notes", "") or "").strip()
+    return slug, notes, version
 
 
 def _tokens(text: str) -> set[str]:
     return {token for token in re.findall(r"[a-zA-Z0-9_+-]{3,}", (text or "").lower())}
+
+
+def _display(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        return ", ".join(str(v).strip() for v in value if str(v).strip())
+    return str(value).strip()
