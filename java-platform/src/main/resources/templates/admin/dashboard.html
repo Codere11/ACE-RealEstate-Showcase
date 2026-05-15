@@ -7,10 +7,11 @@
     <style>
         :root {
             --bg: #0f172a;
-            --panel: #111827;
+            --bg-2: #101828;
+            --panel: rgba(15, 23, 42, 0.92);
             --panel-2: #0b1220;
-            --border: #1f2937;
-            --border-2: #1e293b;
+            --border: rgba(148, 163, 184, 0.16);
+            --border-2: rgba(148, 163, 184, 0.2);
             --text: #e2e8f0;
             --muted: #94a3b8;
             --accent: #93c5fd;
@@ -19,26 +20,89 @@
             --success-border: rgba(34, 197, 94, 0.35);
             --error-bg: rgba(239, 68, 68, 0.12);
             --error-border: rgba(239, 68, 68, 0.35);
+            --shadow: 0 26px 60px rgba(2, 8, 23, 0.34);
         }
         * { box-sizing: border-box; }
-        body { font-family: Inter, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
-        .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 20px 48px; }
-        .hero, .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; }
-        .hero { padding: 24px; margin-bottom: 20px; }
-        h1, h2, h3 { margin-top: 0; }
+        html, body { margin: 0; }
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(147,197,253,0.18), transparent 26%),
+                radial-gradient(circle at top right, rgba(126,240,199,0.12), transparent 20%),
+                linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        a { color: inherit; }
+        .wrap {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: clamp(18px, 3vw, 32px) clamp(14px, 2vw, 22px) 48px;
+        }
+        .hero, .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+        .hero {
+            padding: clamp(20px, 3vw, 28px);
+            margin-bottom: 18px;
+        }
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .eyebrow {
+            display: inline-flex;
+            width: fit-content;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(147,197,253,0.12);
+            border: 1px solid rgba(147,197,253,0.22);
+            color: #dbeafe;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        h1, h2, h3 { margin: 0; }
+        h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
         p, label { color: var(--muted); }
-        .top-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .hero-copy {
+            max-width: 720px;
+            display: grid;
+            gap: 10px;
+        }
+        .hero-copy p { margin: 0; }
+        .top-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
             text-decoration: none;
             border: 1px solid var(--border-2);
             color: var(--text);
             background: var(--panel-2);
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 14px;
+            font-weight: 700;
             cursor: pointer;
+            transition: transform .14s ease, border-color .14s ease, background .14s ease;
         }
+        .btn:hover { transform: translateY(-1px); }
         .btn.primary {
             color: #07111f;
             border: none;
@@ -49,68 +113,180 @@
             color: #fecaca;
             background: rgba(239, 68, 68, 0.08);
         }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 20px; }
-        .tile { background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 14px; padding: 16px; }
-        .tile strong { display: block; margin-bottom: 8px; }
-        .flash { padding: 14px 16px; border-radius: 14px; margin-bottom: 16px; }
-        .flash.success { background: var(--success-bg); border: 1px solid var(--success-border); }
-        .flash.error { background: var(--error-bg); border: 1px solid var(--error-border); }
-        .tab-radio { position: absolute; opacity: 0; pointer-events: none; }
-        .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
-        .tab-btn {
-            display: inline-block;
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-top: 22px;
+        }
+        .tile {
+            background: rgba(11, 18, 32, 0.88);
             border: 1px solid var(--border-2);
-            background: var(--panel-2);
+            border-radius: 16px;
+            padding: 16px;
+            display: grid;
+            gap: 8px;
+            min-height: 112px;
+            align-content: start;
+        }
+        .tile strong {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+        .tile span {
+            font-size: 1.15rem;
+            font-weight: 800;
             color: var(--text);
-            padding: 10px 14px;
-            border-radius: 12px;
-            cursor: pointer;
+        }
+        .flash {
+            padding: 14px 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
             font-weight: 600;
         }
-        .tab-panel { display: none; }
-        #tab-organizations-radio:checked ~ .tabs label[for="tab-organizations-radio"],
-        #tab-create-org-radio:checked ~ .tabs label[for="tab-create-org-radio"],
-        #tab-create-user-radio:checked ~ .tabs label[for="tab-create-user-radio"],
-        #tab-users-radio:checked ~ .tabs label[for="tab-users-radio"] {
-            background: linear-gradient(135deg, rgba(147,197,253,0.18), rgba(126,240,199,0.12));
-            border-color: #4b6b8c;
+        .flash.success { background: var(--success-bg); border: 1px solid var(--success-border); }
+        .flash.error { background: var(--error-bg); border: 1px solid var(--error-border); }
+        .panel { padding: clamp(16px, 2.6vw, 24px); }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        #tab-organizations-radio:checked ~ #tab-organizations,
-        #tab-create-org-radio:checked ~ #tab-create-org,
-        #tab-create-user-radio:checked ~ #tab-create-user,
-        #tab-users-radio:checked ~ #tab-users {
-            display: block;
+        .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            border: 1px solid var(--border-2);
+            background: rgba(11, 18, 32, 0.82);
+            color: var(--text);
+            padding: 10px 16px;
+            border-radius: 14px;
+            text-decoration: none;
+            font-weight: 700;
+            white-space: nowrap;
         }
-        .panel { padding: 22px; }
-        .org-card, .user-card { background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
-        .org-head, .user-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .badge { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(147,197,253,0.2), rgba(126,240,199,0.16));
+            border-color: rgba(147,197,253,0.42);
+            color: #eff6ff;
+        }
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .section-head p { margin: 6px 0 0; }
+        .org-card, .user-card {
+            background: rgba(11, 18, 32, 0.88);
+            border: 1px solid var(--border-2);
+            border-radius: 18px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 12px 28px rgba(2, 8, 23, 0.22);
+        }
+        .org-head, .user-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .entity-title {
+            display: grid;
+            gap: 6px;
+        }
+        .entity-route {
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
         .badge.active { background: rgba(34,197,94,0.14); color: #86efac; }
         .badge.inactive { background: rgba(239,68,68,0.14); color: #fca5a5; }
         .badge.role { background: rgba(147,197,253,0.14); color: #bfdbfe; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
         .field { display: flex; flex-direction: column; gap: 8px; }
         input, select {
             width: 100%;
+            min-height: 46px;
             background: #09111f;
             border: 1px solid var(--border-2);
             color: var(--text);
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 12px 14px;
         }
-        .inline-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+        input::placeholder { color: #66758f; }
+        .inline-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
         .muted { color: var(--muted); }
         .small { font-size: 13px; }
-        .subtle { opacity: 0.85; }
-        code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; }
-        .section-note { margin-bottom: 16px; }
+        code {
+            background: rgba(255,255,255,0.08);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+        .empty-state {
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px dashed var(--border-2);
+            background: rgba(11, 18, 32, 0.72);
+        }
+        @media (max-width: 860px) {
+            .tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+                scrollbar-width: none;
+            }
+            .tabs::-webkit-scrollbar { display: none; }
+        }
+        @media (max-width: 720px) {
+            .wrap { padding-inline: 12px; }
+            .hero, .panel { border-radius: 18px; }
+            .hero-top, .section-head, .org-head, .user-head { gap: 12px; }
+            .org-head, .user-head { flex-direction: column; }
+            .inline-actions { flex-direction: column; align-items: stretch; }
+            .btn, .tab-btn, .inline-actions .btn, .inline-actions form, .inline-actions form button { width: 100%; }
+            .inline-actions form { display: block; }
+            .stats, .form-grid { grid-template-columns: 1fr; }
+            .tile { min-height: 0; }
+        }
     </style>
 </head>
 <body>
 <div class="wrap">
     <div class="hero">
-        <h1>ACE Platform Admin</h1>
-        <p>Logged in as <strong th:text="${username}">admin</strong>. This is the platform admin surface for onboarding and managing organizations.</p>
+        <div class="hero-top">
+            <div class="hero-copy">
+                <div class="eyebrow">ACE platform admin</div>
+                <h1>Manage orgs fast. No desktop break. Better phone UX.</h1>
+                <p>Logged in as <strong th:text="${username}">admin</strong>. This page handles platform onboarding, org setup, and internal user access from one SpringBoot surface.</p>
+            </div>
+        </div>
 
         <div class="top-actions">
             <a class="btn primary" href="/demo">Open /demo</a>
@@ -128,8 +304,8 @@
                 <span th:text="${userCount}">0</span>
             </div>
             <div class="tile">
-                <strong>Current model</strong>
-                <span>One-page onboarding workspace with tabs.</span>
+                <strong>Admin flow</strong>
+                <span>Deep-link tabs. Better stacked forms. Cleaner cards.</span>
             </div>
         </div>
     </div>
@@ -138,32 +314,31 @@
     <div th:if="${errorMessage}" class="flash error" th:text="${errorMessage}">Error</div>
 
     <div class="panel">
-        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-organizations-radio" th:checked="${activeTab == 'organizations'}">
-        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-create-org-radio" th:checked="${activeTab == 'create-org'}">
-        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-create-user-radio" th:checked="${activeTab == 'create-user'}">
-        <input class="tab-radio" type="radio" name="admin-tabs" id="tab-users-radio" th:checked="${activeTab == 'users'}">
+        <nav class="tabs" aria-label="Admin sections">
+            <a class="tab-btn" th:classappend="${activeTab == 'organizations'} ? ' active'" th:href="@{/admin/dashboard(tab='organizations')}">Organizations</a>
+            <a class="tab-btn" th:classappend="${activeTab == 'create-org'} ? ' active'" th:href="@{/admin/dashboard(tab='create-org')}">Create organization</a>
+            <a class="tab-btn" th:classappend="${activeTab == 'create-user'} ? ' active'" th:href="@{/admin/dashboard(tab='create-user')}">Create user</a>
+            <a class="tab-btn" th:classappend="${activeTab == 'users'} ? ' active'" th:href="@{/admin/dashboard(tab='users')}">Users &amp; passwords</a>
+        </nav>
 
-        <div class="tabs" role="tablist" aria-label="Admin sections">
-            <label class="tab-btn" for="tab-organizations-radio">Organizations</label>
-            <label class="tab-btn" for="tab-create-org-radio">Create organization</label>
-            <label class="tab-btn" for="tab-create-user-radio">Create user</label>
-            <label class="tab-btn" for="tab-users-radio">Users & passwords</label>
-        </div>
+        <section th:if="${activeTab == 'organizations'}">
+            <div class="section-head">
+                <div>
+                    <h2>Organizations</h2>
+                    <p class="muted">Create, edit, open, and delete organizations from one clean mobile-safe admin flow.</p>
+                </div>
+            </div>
 
-        <section id="tab-organizations" class="tab-panel">
-            <h2>Organizations</h2>
-            <p class="section-note muted">Create, edit, open, and delete organizations from this one page.</p>
-
-            <div th:if="${#lists.isEmpty(organizations)}" class="org-card">
+            <div th:if="${#lists.isEmpty(organizations)}" class="empty-state">
                 <strong>No organizations yet.</strong>
                 <p class="muted">Create the first one in the next tab.</p>
             </div>
 
             <div th:each="org : ${organizations}" class="org-card">
                 <div class="org-head">
-                    <div>
+                    <div class="entity-title">
                         <strong th:text="${org.name}">Organization</strong>
-                        <div class="small muted">Public route: <code th:text="'/' + ${org.slug}">/demo</code></div>
+                        <div class="entity-route">Public route: <code th:text="'/' + ${org.slug}">/demo</code></div>
                     </div>
                     <span class="badge" th:classappend="${org.active} ? ' active' : ' inactive'" th:text="${org.active} ? 'active' : 'inactive'">active</span>
                 </div>
@@ -189,7 +364,7 @@
                     <div class="inline-actions">
                         <button class="btn primary" type="submit">Save organization</button>
                         <a class="btn" th:href="@{'/' + ${org.slug}}" target="_blank">Open public route</a>
-                        <a class="btn" th:href="@{'/' + ${org.slug} + '/dashboard'}">Open Org Dashboard</a>
+                        <a class="btn" th:href="@{'/' + ${org.slug} + '/dashboard'}">Open org dashboard</a>
                     </div>
                 </form>
 
@@ -201,98 +376,114 @@
             </div>
         </section>
 
-        <section id="tab-create-org" class="tab-panel">
-            <h2>Create organization</h2>
-            <p class="section-note muted">This is enough for the current product step: make a slug route that works and attach an admin later.</p>
+        <section th:if="${activeTab == 'create-org'}">
+            <div class="section-head">
+                <div>
+                    <h2>Create organization</h2>
+                    <p class="muted">Make the tenant slug route first. Fill other details later. Layout now stays clean on small screens too.</p>
+                </div>
+            </div>
 
-            <form action="/admin/organizations" method="post">
-                <div class="form-grid">
-                    <div class="field">
-                        <label>Organization name</label>
-                        <input type="text" name="name" placeholder="ABC Nepremičnine" required>
+            <div class="org-card">
+                <form action="/admin/organizations" method="post">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label>Organization name</label>
+                            <input type="text" name="name" placeholder="ABC Nepremičnine" required>
+                        </div>
+                        <div class="field">
+                            <label>Slug</label>
+                            <input type="text" name="slug" placeholder="abc-nepremicnine" required>
+                        </div>
+                        <div class="field">
+                            <label>Active</label>
+                            <select name="active">
+                                <option value="true" selected>true</option>
+                                <option value="false">false</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label>Slug</label>
-                        <input type="text" name="slug" placeholder="abc-nepremicnine" required>
+                    <div class="inline-actions">
+                        <button class="btn primary" type="submit">Create organization</button>
                     </div>
-                    <div class="field">
-                        <label>Active</label>
-                        <select name="active">
-                            <option value="true" selected>true</option>
-                            <option value="false">false</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="inline-actions">
-                    <button class="btn primary" type="submit">Create organization</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </section>
 
-        <section id="tab-create-user" class="tab-panel">
-            <h2>Create user</h2>
-            <p class="section-note muted">Create a real organization user with a real login. Org users land in their own organization dashboard after login.</p>
+        <section th:if="${activeTab == 'create-user'}">
+            <div class="section-head">
+                <div>
+                    <h2>Create user</h2>
+                    <p class="muted">Create a real organization user with a real login. Org users land in their own dashboard after login.</p>
+                </div>
+            </div>
 
-            <form action="/admin/users" method="post">
-                <div class="form-grid">
-                    <div class="field">
-                        <label>Organization</label>
-                        <select name="organizationId" required>
-                            <option value="">Select organization</option>
-                            <option th:each="org : ${organizations}" th:value="${org.id}" th:text="${org.name + ' (' + org.slug + ')'}"></option>
-                        </select>
+            <div class="user-card">
+                <form action="/admin/users" method="post">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label>Organization</label>
+                            <select name="organizationId" required>
+                                <option value="">Select organization</option>
+                                <option th:each="org : ${organizations}" th:value="${org.id}" th:text="${org.name + ' (' + org.slug + ')'}"></option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Username</label>
+                            <input type="text" name="username" placeholder="client-admin" required>
+                        </div>
+                        <div class="field">
+                            <label>Email</label>
+                            <input type="email" name="email" placeholder="admin@client.si" required>
+                        </div>
+                        <div class="field">
+                            <label>Password</label>
+                            <input type="text" name="password" placeholder="temporary password" required>
+                        </div>
+                        <div class="field">
+                            <label>Role</label>
+                            <select name="role">
+                                <option value="ORG_ADMIN" selected>ORG_ADMIN</option>
+                                <option value="MANAGER">MANAGER</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Active</label>
+                            <select name="active">
+                                <option value="true" selected>true</option>
+                                <option value="false">false</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label>Username</label>
-                        <input type="text" name="username" placeholder="client-admin" required>
+                    <div class="inline-actions">
+                        <button class="btn primary" type="submit">Create user</button>
                     </div>
-                    <div class="field">
-                        <label>Email</label>
-                        <input type="email" name="email" placeholder="admin@client.si" required>
-                    </div>
-                    <div class="field">
-                        <label>Password</label>
-                        <input type="text" name="password" placeholder="temporary password" required>
-                    </div>
-                    <div class="field">
-                        <label>Role</label>
-                        <select name="role">
-                            <option value="ORG_ADMIN" selected>ORG_ADMIN</option>
-                            <option value="MANAGER">MANAGER</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Active</label>
-                        <select name="active">
-                            <option value="true" selected>true</option>
-                            <option value="false">false</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="inline-actions">
-                    <button class="btn primary" type="submit">Create user</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </section>
 
-        <section id="tab-users" class="tab-panel">
-            <h2>Users & passwords</h2>
-            <p class="section-note muted">Internal-only for now: usernames and visible passwords can be reviewed and edited directly from the admin dashboard.</p>
+        <section th:if="${activeTab == 'users'}">
+            <div class="section-head">
+                <div>
+                    <h2>Users &amp; passwords</h2>
+                    <p class="muted">Internal-only for now: usernames and visible passwords can be reviewed and edited directly from the admin dashboard.</p>
+                </div>
+            </div>
 
-            <div th:if="${#lists.isEmpty(users)}" class="user-card">
+            <div th:if="${#lists.isEmpty(users)}" class="empty-state">
                 <strong>No users found.</strong>
             </div>
 
             <div th:each="user : ${users}" class="user-card">
                 <div class="user-head">
-                    <div>
+                    <div class="entity-title">
                         <strong th:text="${user.username}">username</strong>
-                        <div class="small muted">
+                        <div class="entity-route">
                             Organization:
                             <span th:text="${user.organization != null ? user.organization.name + ' (' + user.organization.slug + ')' : 'Platform-wide user'}">Platform-wide user</span>
                         </div>
                     </div>
-                    <div class="inline-actions">
+                    <div class="inline-actions" style="margin-top: 0;">
                         <span class="badge role" th:text="${user.role}">ROLE</span>
                         <span class="badge" th:classappend="${user.active} ? ' active' : ' inactive'" th:text="${user.active} ? 'active' : 'inactive'">active</span>
                     </div>

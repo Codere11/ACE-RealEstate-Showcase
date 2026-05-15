@@ -48,8 +48,9 @@ public class AdminController {
         Model model,
         Principal principal
     ) {
+        String activeTab = normalizeTab(tab);
         model.addAttribute("username", principal != null ? principal.getName() : "admin");
-        model.addAttribute("activeTab", tab);
+        model.addAttribute("activeTab", activeTab);
         model.addAttribute("organizations", organizationRepository.findAll(Sort.by(Sort.Direction.ASC, "name")));
         model.addAttribute("users", userRepository.findAllByOrderByUsernameAsc());
         model.addAttribute("roles", UserRole.values());
@@ -268,6 +269,18 @@ public class AdminController {
             return null;
         }
         return organization;
+    }
+
+    private String normalizeTab(String tab) {
+        if (tab == null || tab.isBlank()) {
+            return "organizations";
+        }
+        return switch (tab.trim().toLowerCase()) {
+            case "create-org" -> "create-org";
+            case "create-user" -> "create-user";
+            case "users" -> "users";
+            default -> "organizations";
+        };
     }
 
     private String normalizeSlug(String rawSlug) {

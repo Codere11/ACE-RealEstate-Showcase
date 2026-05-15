@@ -7,17 +7,33 @@
     <style>
         * { box-sizing: border-box; }
         html, body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #22252A; background: #0E1014; }
-        button, input, textarea { font: inherit; }
+        body { line-height: 1.5; }
+        button, input, textarea, select { font: inherit; }
+        a { color: inherit; }
         .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
             display: grid;
-            grid-template-columns: 160px 1fr 220px;
+            grid-template-columns: minmax(0, 240px) minmax(0, 1fr) minmax(0, 260px);
+            gap: 16px;
             align-items: center;
-            padding: 12px 18px;
-            background: radial-gradient(1000px 300px at 50% -120px, rgba(193,164,108,.22), transparent 60%), linear-gradient(180deg, #121417, #0C0D10 70%);
+            padding: 14px clamp(16px, 2vw, 24px);
+            background: radial-gradient(1000px 300px at 50% -120px, rgba(193,164,108,.22), transparent 60%), linear-gradient(180deg, rgba(18,20,23,.96), rgba(12,13,16,.92) 70%);
             border-bottom: 1px solid rgba(193,164,108,.32);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 14px 28px rgba(0,0,0,.18);
         }
-        .left, .right { display: flex; align-items: center; }
-        .right { justify-content: flex-end; gap: 10px; }
+        .left, .right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        .right {
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
         .client-logo {
             width: 44px;
             height: 44px;
@@ -29,12 +45,35 @@
             place-items: center;
             font-weight: 800;
             box-shadow: 0 6px 14px rgba(0,0,0,.25);
+            flex: 0 0 auto;
         }
-        .tabs { display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .client-brand {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+        }
+        .client-brand__eyebrow {
+            color: rgba(237, 235, 230, .64);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .client-brand__name {
+            color: #F9FAFB;
+            font-size: 16px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tabs { display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; }
         .tabs a, .tabs span {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
+            min-height: 42px;
             background: #171A1F;
             border: 1px solid #2A2E34;
             color: #EDEBE6;
@@ -42,40 +81,83 @@
             border-radius: 999px;
             font-weight: 700;
             text-decoration: none;
+            white-space: nowrap;
         }
         .tabs a.active { color: #1E2126; background: #C1A46C; border-color: #C1A46C; }
         .tabs .disabled { opacity: .55; cursor: default; }
-        .user-pill { background: #171A1F; border: 1px solid #2A2E34; color: #EDEBE6; border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700; }
-        .dashboard-background { min-height: calc(100vh - 72px); padding: 1.4rem 2rem 2rem; background: #0E1014; }
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 42px;
+            background: #171A1F;
+            border: 1px solid #2A2E34;
+            color: #EDEBE6;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .dashboard-background { min-height: calc(100vh - 80px); padding: clamp(16px, 2.5vw, 32px); background: #0E1014; }
         .dashboard-container {
-            max-width: 1240px;
+            max-width: 1280px;
             margin: auto;
-            background: #FFFFFF;
-            padding: 2rem;
-            border-radius: 18px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFFEFB 100%);
+            padding: clamp(18px, 3vw, 32px);
+            border-radius: 24px;
             border: 1px solid #E6E2D6;
             box-shadow: 0 28px 60px rgba(0,0,0,.35);
         }
-        .title { text-align: center; font-size: 2rem; font-weight: 900; color: #121417; margin: 0; }
-        .subtitle { text-align: center; color: #6B7280; margin: .5rem 0 1.4rem; }
+        .title { text-align: center; font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 900; color: #121417; margin: 0; }
+        .subtitle { text-align: center; color: #6B7280; margin: .5rem 0 1.6rem; }
         .hero-strip, .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             gap: 16px;
         }
-        .hero-strip { margin-bottom: 18px; }
+        .hero-strip { margin-bottom: 22px; }
         .card, .hero-card {
             background: #FFF;
             border: 1px solid #E6E2D6;
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 18px;
             box-shadow: 0 10px 22px rgba(18,20,23,.06);
         }
+        .hero-card {
+            display: grid;
+            gap: 8px;
+            min-height: 112px;
+            align-content: start;
+        }
         .hero-card strong, .card h3, .card h2 { color: #121417; margin-top: 0; }
+        .hero-card strong {
+            display: block;
+            font-size: clamp(1.1rem, 2.3vw, 1.45rem);
+            font-weight: 900;
+            color: #121417;
+        }
         .hero-card small, .muted, .card p { color: #6B7280; }
+        .hero-card small {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .hero-strip .hero-card strong {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #6B7280;
+        }
+        .hero-strip .hero-card small {
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            font-weight: 800;
+            color: #121417;
+        }
         .stack { display: grid; gap: 16px; min-width: 0; }
         .pill {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             padding: 5px 10px;
             border-radius: 999px;
             font-size: 12px;
@@ -93,11 +175,13 @@
             text-decoration: none;
             background: #171A1F;
             color: #EDEBE6;
+            min-height: 44px;
             padding: 10px 14px;
             border-radius: 999px;
             border: 1px solid #2A2E34;
             font-weight: 700;
             cursor: pointer;
+            transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
         }
         .btn.primary { background: #C1A46C; color: #1E2126; border-color: #C1A46C; }
         .btn.ghost { background: #FFF; color: #171A1F; border-color: #D7D0C0; }
@@ -222,13 +306,15 @@
         .live-stage-stats__label {
             font-weight: 700;
         }
-        .leads-grid {
+        .leads-grid,
+        .dashboard-split {
             display: grid;
             grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
             gap: 16px;
             align-items: start;
         }
-        .leads-grid > * {
+        .leads-grid > *,
+        .dashboard-split > * {
             min-width: 0;
         }
         .sidebar { display: grid; gap: 16px; }
@@ -544,9 +630,19 @@
             font-size: 13px;
         }
         .stats-grid .hero-card { padding: 16px; }
+        @media (max-width: 1100px) {
+            .topbar { grid-template-columns: 1fr; }
+            .left, .tabs, .right { justify-content: flex-start; }
+        }
         @media (max-width: 980px) {
-            .leads-grid { grid-template-columns: 1fr; }
-            .live-stage-stats { grid-template-columns: 1fr; }
+            .dashboard-split { grid-template-columns: 1fr; }
+            .dashboard-split--leads main { order: 1; }
+            .dashboard-split--leads aside { order: 2; }
+            .dashboard-split--leads .thread-panel {
+                order: -1;
+                margin-top: 0;
+            }
+            .live-stage-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .thread-panel {
                 position: static;
                 height: auto;
@@ -572,19 +668,71 @@
                 width: 100%;
                 max-height: calc(100vh - 20px);
                 padding: 16px;
+                border-radius: 20px;
             }
         }
         @media (max-width: 900px) {
-            .topbar { grid-template-columns: 1fr; gap: 10px; }
-            .left, .right, .tabs { justify-content: center; }
-            .dashboard-background { padding: 1rem; }
-            .dashboard-container { padding: 1.2rem; }
+            .tabs {
+                justify-content: flex-start;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+                scrollbar-width: none;
+            }
+            .tabs::-webkit-scrollbar { display: none; }
+            .dashboard-background { padding: 12px; }
+            .dashboard-container { padding: 16px; border-radius: 20px; }
+            .hero-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .live-preview-stage__actions { width: 100%; }
+        }
+        @media (max-width: 720px) {
+            .topbar { padding: 12px 14px; gap: 12px; }
+            .left, .right { justify-content: flex-start; }
+            .client-brand__name { font-size: 14px; }
+            .hero-strip, .stats-grid, .live-stage-stats, .helper-grid, .question-grid { grid-template-columns: 1fr; }
+            .live-preview-stage__meta {
+                justify-content: flex-start;
+                text-align: left;
+                width: 100%;
+            }
+            .live-preview-stage__meta-label,
+            .live-preview-stage__meta-value,
+            .live-stage-stats__label,
+            .live-stage-stats__value {
+                white-space: normal;
+            }
+            .builder-row { grid-template-columns: 1fr; }
+            .lead-head,
+            .payment-request-card__top,
+            .payment-request-card__foot,
+            .modal-card__header,
+            .modal-card__footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .lead-meta { justify-content: flex-start; }
+            .bubble { max-width: 100%; }
+            .btn,
+            .lead-actions .btn,
+            .actions .btn,
+            .live-preview-stage__actions .btn,
+            .modal-card__footer .btn {
+                width: 100%;
+            }
+            .thread-panel { padding: 14px; }
+            .thread { max-height: 52vh; }
         }
     </style>
 </head>
 <body>
 <header class="topbar">
-    <div class="left"><div class="client-logo" th:text="${#strings.substring(organization.name,0,1).toUpperCase()}">A</div></div>
+    <div class="left">
+        <div class="client-logo" th:text="${#strings.substring(organization.name,0,1).toUpperCase()}">A</div>
+        <div class="client-brand">
+            <span class="client-brand__eyebrow">ACE dashboard</span>
+            <strong class="client-brand__name" th:text="${organization.name}">Organization</strong>
+        </div>
+    </div>
     <nav class="tabs">
         <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=leads'}" th:classappend="${activeTab == 'leads'} ? ' active'">LEADS</a>
         <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=surveys'}" th:classappend="${activeTab == 'surveys'} ? ' active'">SURVEYS</a>
@@ -602,10 +750,10 @@
         <p class="subtitle"><span th:text="${organization.name}">Organization</span> · route <strong th:text="'/' + ${organization.slug}">/demo</strong></p>
 
         <div class="hero-strip">
-            <div class="hero-card"><strong>Organization</strong><br><small th:text="${organization.name}">Demo Agency</small></div>
-            <div class="hero-card"><strong>Slug</strong><br><small th:text="${organization.slug}">demo</small></div>
-            <div class="hero-card"><strong>Status</strong><br><small th:text="${organization.active} ? 'active' : 'inactive'">active</small></div>
-            <div class="hero-card"><strong>Team members</strong><br><small th:text="${orgUserCount}">0</small></div>
+            <div class="hero-card"><strong>Organization</strong><small th:text="${organization.name}">Demo Agency</small></div>
+            <div class="hero-card"><strong>Slug</strong><small th:text="${organization.slug}">demo</small></div>
+            <div class="hero-card"><strong>Status</strong><small th:text="${organization.active} ? 'active' : 'inactive'">active</small></div>
+            <div class="hero-card"><strong>Team members</strong><small th:text="${orgUserCount}">0</small></div>
         </div>
 
         <section th:if="${activeTab == 'leads'}" class="stack">
@@ -647,7 +795,7 @@
                 </div>
             </div>
 
-            <div class="leads-grid">
+            <div class="leads-grid dashboard-split dashboard-split--leads">
                 <aside class="sidebar">
                     <div class="card">
                         <h3>Filters</h3>
@@ -817,7 +965,7 @@
         </section>
 
         <section th:if="${activeTab == 'surveys'}" class="stack">
-            <div class="leads-grid">
+            <div class="leads-grid dashboard-split dashboard-split--builder">
                 <aside class="sidebar">
                     <div class="card stack">
                         <div>
@@ -932,7 +1080,7 @@
             </div>
         </section>
         <section th:if="${activeTab == 'qualifier'}" class="stack">
-            <div class="leads-grid">
+            <div class="leads-grid dashboard-split dashboard-split--builder">
                 <aside class="sidebar">
                     <div class="card stack">
                         <div>
