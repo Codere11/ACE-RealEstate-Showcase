@@ -8,7 +8,17 @@ ACE e-Counter is a multi-tenant visitor-intake and conversion platform built aro
 - Login: `https://ace-realestate-showcase-production.up.railway.app/login`
 
 ## Demo video
-[![Watch the ACE e-Counter demo](docs/media/dashboard-leads-screen.png)](https://www.youtube.com/watch?v=0DwcuaiS--M)
+**Click the preview image below to watch the full demo on YouTube.**
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=0DwcuaiS--M" title="Watch the ACE e-Counter demo on YouTube">
+    <img src="docs/media/dashboard-leads-screen.png" alt="ACE e-Counter demo preview — click to watch on YouTube" width="900">
+  </a>
+</p>
+
+<p align="center">
+  ▶ <a href="https://www.youtube.com/watch?v=0DwcuaiS--M"><strong>Click the image to watch the demo on YouTube</strong></a>
+</p>
 
 - YouTube walkthrough: `https://www.youtube.com/watch?v=0DwcuaiS--M`
 - Covers the visitor intake flow, AI qualification, manager dashboard, takeover, and payment request flow
