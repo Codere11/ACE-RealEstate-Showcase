@@ -225,16 +225,16 @@
 <body>
 <section class="agent-hero">
     <div class="agent-hero__inner">
-        <div class="agent-hero__brand">ACE e-Counter</div>
+        <div class="agent-hero__brand">ProstorAI e-Counter</div>
         <div id="liveHelpCamera" class="agent-hero__camera">
             <video id="liveHelpVideo" class="agent-hero__live-video" autoplay playsinline></video>
             <audio id="liveHelpAudio" autoplay muted></audio>
             <div id="liveHelpState" class="agent-hero__camera-state" style="display:none;">
-                <div class="agent-hero__camera-eyebrow">Live help</div>
-                <div id="liveHelpTitle" class="agent-hero__camera-title">Live help has ended</div>
+                <div class="agent-hero__camera-eyebrow">Živa pomoč</div>
+                <div id="liveHelpTitle" class="agent-hero__camera-title">Živa pomoč je končana</div>
             </div>
-            <div id="liveHelpBadge" class="agent-hero__live-badge" style="display:none;">A team member live</div>
-            <button id="liveHelpAudioToggle" class="agent-hero__audio-toggle" type="button" style="display:none;">Unmute</button>
+            <div id="liveHelpBadge" class="agent-hero__live-badge" style="display:none;">Živa pomoč</div>
+            <button id="liveHelpAudioToggle" class="agent-hero__audio-toggle" type="button" style="display:none;">Vklopi zvok</button>
         </div>
     </div>
 </section>
@@ -242,13 +242,13 @@
 <div class="agent-page" id="qualifier-app"
      th:attr="data-org-slug=${organization.slug},data-sid=${sid},data-initial-message=${initialAssistantMessage}">
     <div class="chat-card">
-        <div class="pill">Open qualifier mode</div>
+        <div class="pill">ProstorAI e-Counter</div>
         <div id="thread" class="thread"></div>
         <div class="composer">
-            <label for="chatInput" class="muted">Message</label>
-            <textarea id="chatInput" placeholder="Describe your business and what you want help with…"></textarea>
+            <label for="chatInput" class="muted">Sporočilo</label>
+            <textarea id="chatInput" placeholder="Vpišite vprašanje o parceli, stavbi ali tveganjih…"></textarea>
             <div class="composer-actions">
-                <button id="chatSendButton" type="button" class="btn">Send</button>
+                <button id="chatSendButton" type="button" class="btn">Pošlji</button>
             </div>
         </div>
     </div>
@@ -299,25 +299,25 @@
     els.liveHelpState.style.display = (state.liveHelpState === 'joining' || state.liveHelpState === 'ended') ? 'flex' : 'none';
     els.liveHelpBadge.style.display = state.liveHelpState === 'live' ? 'block' : 'none';
     els.liveHelpAudioToggle.style.display = state.liveHelpState === 'live' ? 'inline-flex' : 'none';
-    els.liveHelpAudioToggle.textContent = state.liveHelpAudioMuted ? 'Unmute' : 'Mute';
+    els.liveHelpAudioToggle.textContent = state.liveHelpAudioMuted ? 'Vklopi zvok' : 'Izklopi zvok';
 
     if (state.liveHelpState === 'joining') {
-      els.liveHelpTitle.textContent = `${state.liveHelpManagerName || 'A team member'} is joining to help`;
+      els.liveHelpTitle.textContent = `${state.liveHelpManagerName || 'Administrator'} se pridružuje za pomoč`;
       return;
     }
     if (state.liveHelpState === 'live') {
-      els.liveHelpBadge.textContent = `${state.liveHelpManagerName || 'A team member'} live`;
+      els.liveHelpBadge.textContent = `${state.liveHelpManagerName || 'Administrator'} v živo`;
       return;
     }
     if (state.liveHelpState === 'ended') {
-      els.liveHelpTitle.textContent = 'Live help has ended';
+      els.liveHelpTitle.textContent = 'Živa pomoč je končana';
     }
   }
 
   function toggleLiveHelpAudio() {
     state.liveHelpAudioMuted = !state.liveHelpAudioMuted;
     els.liveHelpAudio.muted = state.liveHelpAudioMuted;
-    els.liveHelpAudioToggle.textContent = state.liveHelpAudioMuted ? 'Unmute' : 'Mute';
+    els.liveHelpAudioToggle.textContent = state.liveHelpAudioMuted ? 'Vklopi zvok' : 'Izklopi zvok';
     if (!state.liveHelpAudioMuted) {
       els.liveHelpAudio.play().catch(() => {});
     }
