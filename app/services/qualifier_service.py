@@ -116,6 +116,7 @@ class QualifierService:
             latest_message=text,
             recent_messages=recent_messages,
             profile_before=profile_before,
+            spatial_context=(meta or {}).get("spatialContext") or (meta or {}).get("spatial_context"),
         )
 
         interpretation: TurnInterpretation = graph_state.get("interpretation") or TurnInterpretation()
@@ -211,14 +212,9 @@ class QualifierService:
         )
 
     def _fallback_reply(self, latest_message: str, profile: Dict[str, Any]) -> str:
-        visitor_type = str(profile.get("visitor_type") or "unclear")
-        if visitor_type == "existing_customer_support":
-            return "Če ste obstoječa stranka, na kratko opišite težavo in pustite kontakt, pa vas usmerimo naprej."
-        if visitor_type in {"partner_or_vendor", "job_seeker", "irrelevant_or_joke", "abusive_or_spam"}:
-            return "Pomagam lahko pri ACE e-Counter kvalifikaciji in naslednjih korakih. Če želite preveriti, ali je primeren za vaš posel, mi na kratko opišite situacijo."
         if self._looks_slovenian(latest_message):
-            return "Na kratko mi opišite vaš posel in kako danes dobivate stranke, pa preverim, kako vam lahko ACE e-Counter pomaga."
-        return "Briefly describe your business and how customers reach you today, and I’ll check how ACE e-Counter could help."
+            return "Pozdravljeni! Sem ProstorAI, vaš digitalni asistent za prostorske podatke. Lahko vam pomagam pri vpogledu v podatke o parcelah, stavbah, namenski rabi in boniteti tal. Kaj vas zanima?"
+        return "Hello! I'm ProstorAI, your spatial data assistant for Slovenia. I can help you look up parcels, buildings, land use, and soil quality data. What would you like to know?"
 
     def _combine_reasoning(self, interpretation_reason: str, decision_reason: str) -> str:
         parts = [p.strip() for p in [interpretation_reason, decision_reason] if p and p.strip()]
@@ -241,7 +237,7 @@ class QualifierService:
 
     def _looks_slovenian(self, text: str) -> bool:
         lowered = (text or "").lower()
-        return any(token in lowered for token in [" kako ", " ali ", " sem ", " prodajam", " podjet", " strank", " povpraš"])
+        return any(token in lowered for token in [" kako ", " ali ", " sem ", " prodajam", " podjet", " strank", " povpraš", "parcela", "parcelo", "stavba", "stavbo", "zemljišč", "nepremičnin", "kataster", "občina", "naslov"])
 
 
 service = QualifierService()

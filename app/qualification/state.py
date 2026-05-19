@@ -41,6 +41,7 @@ class QualificationGraphState(TypedDict, total=False):
     latest_message: str
     recent_messages: List[Dict[str, str]]
     profile_before: Dict[str, Any]
+    spatial_context: Optional[Dict[str, Any]]
     runtime_context: Dict[str, Any]
     retrieved_knowledge: List[str]
     interpretation: TurnInterpretation

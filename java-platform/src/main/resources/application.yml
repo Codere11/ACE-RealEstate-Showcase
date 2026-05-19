@@ -7,6 +7,9 @@ spring:
       - optional:file:.env[.properties]
   profiles:
     default: dev
+  mvc:
+    async:
+      request-timeout: 120000
 
 server:
   port: ${PORT:8080}

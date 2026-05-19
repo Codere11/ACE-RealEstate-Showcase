@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+import json
+from typing import Any, Dict, List, Optional, Tuple
 
-from app.qualification.prompts import build_qualify_prompt
+from app.qualification.prompts import build_qualify_prompt, build_conversation_prompt, PROSTORAI_ROLE_CONTRACT, PROSTORAI_CAPABILITIES
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
 from app.qualification.state import QualificationGraphState, TurnDecision, TurnInterpretation
 from app.services.llm_service import LLMService
@@ -14,7 +15,7 @@ except Exception:  # pragma: no cover
     END = "__end__"  # type: ignore
 
 
-_QUALIFY_SYSTEM = "You analyze ACE e-Counter qualification turns and return only valid JSON."
+_QUALIFY_SYSTEM = "You analyze ProstorAI spatial assistance turns and return only valid JSON."
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
@@ -66,60 +67,57 @@ def _get(data: Dict[str, Any], long_key: str, short_key: str, default=None):
 
 
 def _qualify_and_write(llm: LLMService, state: QualificationGraphState) -> QualificationGraphState:
-    prompt = build_qualify_prompt(
-        runtime_context=_prompt_runtime_context(state),
-        knowledge_context=state.get("retrieved_knowledge", []) or [],
-        existing_profile=_prompt_profile(state),
-        recent_messages=(state.get("recent_messages", []) or [])[-4:],
-        latest_message=state.get("latest_message", ""),
-    )
-    data = llm.call_json(_QUALIFY_SYSTEM, prompt)
-    profile_after = dict(state.get("profile_before", {}) or {})
-    profile_after.update(dict(_get(data, "profile_after", "p", {}) or {}))
-    interpretation = TurnInterpretation(
-        visitor_type=str(_get(data, "visitor_type", "vt", "unclear") or "unclear"),
-        preferred_language=str(_get(data, "preferred_language", "lang", "en") or "en"),
-        profile_after=profile_after,
-        field_confidence={k: float(v) for k, v in dict(_get(data, "field_confidence", "fc", {}) or {}).items() if _is_number(v)},
-        confidence_overall=_clamp(_get(data, "confidence_overall", "co", 0.0), 0.0),
-        supporting_quotes=[str(x) for x in (_get(data, "supporting_quotes", "sq", []) or []) if str(x).strip()][:4],
-        reasoning_hint=str(_get(data, "reasoning_hint", "why", "") or "").strip()[:400],
-        used_llm=bool(data),
-        model_name=llm.model_name,
-    )
-    interpretation.profile_after["visitor_type"] = interpretation.visitor_type
-    interpretation.profile_after["preferred_language"] = interpretation.preferred_language
-    if interpretation.supporting_quotes:
-        interpretation.profile_after["supporting_quotes"] = interpretation.supporting_quotes
+    spatial = state.get("spatial_context")
+    profile = _prompt_profile(state)
+    recent = (state.get("recent_messages", []) or [])[-6:]
+    latest = state.get("latest_message", "")
 
-    qualification_score, qualification_band = _normalize_score_and_band(
-        data,
-        runtime_context=state.get("runtime_context", {}) or {},
-        fit_status=str(interpretation.profile_after.get("fit_status") or "unknown"),
-        recommended_next_action=str(_get(data, "recommended_next_action", "act", "ask_clarifying_question") or "ask_clarifying_question"),
+    compact_spatial = json.dumps(spatial or {}, ensure_ascii=False, separators=(",", ":"))
+    compact_profile = json.dumps(profile, ensure_ascii=False, separators=(",", ":"))
+    compact_msgs = json.dumps([{"r": m.get("role","user"), "t": m.get("text","")} for m in recent], ensure_ascii=False, separators=(",", ":"))
+
+    system = (
+        f"{PROSTORAI_ROLE_CONTRACT}\n\n"
+        f"{PROSTORAI_CAPABILITIES}\n\n"
+        f"SPATIAL_CONTEXT: {compact_spatial}\n"
+        f"PROFILE: {compact_profile}\n"
+        f"MESSAGES: {compact_msgs}\n"
+    )
+    user = json.dumps(latest, ensure_ascii=False)
+
+    # Tool-calling loop — correct OpenAI pattern
+    msgs = [{"role": "user", "content": user}]
+    reply = ""
+    for round_idx in range(4):
+        # First 3 rounds: MUST use a tool. Last round: can answer.
+        force = (round_idx < 3)
+        resp = llm.call_with_tools(system, msgs, GURS_TOOLS, required=force)
+        tcs = resp.get("tool_calls")
+        if not tcs:
+            reply = resp.get("text", "")
+            break
+        # Execute all tool calls from this round
+        results = {}
+        for tc in tcs:
+            results[tc["id"]] = execute_tool(tc["name"], tc["args"])
+        for tc in tcs:
+            msgs.append({"role": "assistant", "content": None, "tool_calls": [{"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}]})
+            msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
+    # Fallback: get JSON response if LLM didn't answer directly
+    if not reply:
+        reply = llm.call_json_response(system, msgs)
+    if not reply:
+        reply = "Pozdravljeni! Sem ProstorAI, vaš digitalni asistent za prostorske podatke Slovenije. Kako vam lahko pomagam?"
+
+    used_llm = bool(reply)
+    interpretation = TurnInterpretation(
+        visitor_type="sales_prospect", preferred_language="sl",
+        used_llm=used_llm, model_name=llm.model_name,
     )
     decision = TurnDecision(
-        reply=str(_get(data, "reply", "rep", "") or "").strip(),
-        recommended_next_action=str(_get(data, "recommended_next_action", "act", "ask_clarifying_question") or "ask_clarifying_question"),
-        suggested_reply_strategy=str(_get(data, "suggested_reply_strategy", "strat", "ask_single_question") or "ask_single_question"),
-        next_best_question=str(_get(data, "next_best_question", "q", "") or "").strip(),
-        funnel_stage=str(_get(data, "funnel_stage", "stage", "business_context") or "business_context"),
-        qualification_complete=bool(_get(data, "qualification_complete", "done", False)),
-        missing_fields=[str(x) for x in (_get(data, "missing_fields", "miss", []) or []) if str(x).strip()],
-        qualification_score=qualification_score,
-        qualification_band=qualification_band,
-        takeover_eligible=bool(_get(data, "takeover_eligible", "to", False)),
-        video_offer_eligible=bool(_get(data, "video_offer_eligible", "vo", False)),
-        confidence_overall=_clamp(_get(data, "confidence_overall", "co", interpretation.confidence_overall), interpretation.confidence_overall),
-        reasoning_hint=str(_get(data, "reasoning_hint", "why", "") or "").strip()[:400],
-        used_llm=bool(data),
-        model_name=llm.model_name,
-    )
-
-    decision.reply = _normalize_reply(
-        decision.reply,
-        recommended_next_action=decision.recommended_next_action,
-        next_best_question=decision.next_best_question,
+        reply=reply, recommended_next_action="continue_conversation",
+        qualification_band="warm", qualification_score=55, confidence_overall=0.5,
+        used_llm=used_llm, model_name=llm.model_name,
     )
     state["interpretation"] = interpretation
     state["decision"] = decision
@@ -133,12 +131,14 @@ def run_qualification_graph(
     latest_message: str,
     recent_messages: List[Dict[str, str]],
     profile_before: Dict[str, Any],
+    spatial_context: Optional[Dict[str, Any]] = None,
 ) -> QualificationGraphState:
     state: QualificationGraphState = {
         "qualifier": qualifier,
         "latest_message": latest_message,
         "recent_messages": recent_messages,
         "profile_before": profile_before,
+        "spatial_context": spatial_context,
     }
 
     if StateGraph is None:

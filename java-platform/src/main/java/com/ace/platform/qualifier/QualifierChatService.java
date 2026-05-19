@@ -37,12 +37,12 @@ public class QualifierChatService {
         Lead lead = leadService.getOrCreateLead(organization, sid, null);
         lead = leadService.markOpenChat(lead);
         Qualifier qualifier = qualifierService.findActive(organization.getId()).orElse(null);
-        String greeting = qualifier != null ? initialGreeting(qualifier) : "Tell me a bit about your business and what you need help with.";
+        String greeting = qualifier != null ? initialGreeting(qualifier) : "Pozdravljeni! Sem ProstorAI. Iščete lahko naslov ali parcelo in vprašate kar koli o nepremičnini.";
         return new QualifierChatResult(lead.getSid(), greeting, qualifier != null ? qualifier.getName() : "ACE e-Counter");
     }
 
     @Transactional
-    public QualifierChatResult handleVisitorMessage(Organization organization, String sid, String message) {
+    public QualifierChatResult handleVisitorMessage(Organization organization, String sid, String message, Map<String, Object> spatialContext) {
         Lead lead = leadService.getOrCreateLead(organization, sid, null);
         lead = leadService.markOpenChat(lead);
         Qualifier qualifier = qualifierService.findActive(organization.getId()).orElse(null);
@@ -68,7 +68,8 @@ public class QualifierChatService {
                 trimmed,
                 qualifierPayload(qualifier),
                 recentMessages(lead),
-                lead.getQualifierProfile() != null ? lead.getQualifierProfile() : Map.of()
+                lead.getQualifierProfile() != null ? lead.getQualifierProfile() : Map.of(),
+                spatialContext
             )
         );
 
@@ -92,11 +93,7 @@ public class QualifierChatService {
     }
 
     private String initialGreeting(Qualifier qualifier) {
-        String goal = qualifier.getGoalDefinition();
-        if (goal != null && !goal.isBlank()) {
-            return "Tell me a bit about your business and what you need help with, and I’ll guide the next step.";
-        }
-        return "Tell me a bit about your business and what you need help with.";
+        return "Pozdravljeni! Sem ProstorAI. Iščete lahko naslov ali parcelo in vprašate kar koli o nepremičnini.";
     }
 
     private List<Map<String, String>> recentMessages(Lead lead) {

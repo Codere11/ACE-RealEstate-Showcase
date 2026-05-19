@@ -55,7 +55,8 @@ public class PythonQualifierRuntimeClient {
         String message,
         Map<String, Object> qualifier,
         @JsonProperty("recent_messages") List<Map<String, String>> recentMessages,
-        @JsonProperty("existing_profile") Map<String, Object> existingProfile
+        @JsonProperty("existing_profile") Map<String, Object> existingProfile,
+        @JsonProperty("spatial_context") Map<String, Object> spatialContext
     ) {
     }
 

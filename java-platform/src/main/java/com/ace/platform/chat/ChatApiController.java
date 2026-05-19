@@ -210,13 +210,15 @@ public class ChatApiController {
         Organization organization = resolveOrganization(request.tenant_slug(), request.meta());
         boolean explicitSurveyMode = request.meta() != null
             && request.meta().get("survey_slug") != null
-            && !request.meta().get("survey_slug").isBlank();
+            && !String.valueOf(request.meta().get("survey_slug")).isBlank();
         ChatResponse response;
         if (!explicitSurveyMode && qualifierService.findActive(organization.getId()).isPresent()) {
+            Map<String, Object> spatial = request.meta() != null ? toMap(request.meta().get("spatialContext")) : null;
             QualifierChatService.QualifierChatResult result = qualifierChatService.handleVisitorMessage(
                 organization,
                 request.sid(),
-                request.message()
+                request.message(),
+                spatial
             );
             response = new ChatResponse(
                 result.sid(),
@@ -232,7 +234,7 @@ public class ChatApiController {
             PublicChatService.ChatResult result = publicChatService.handleVisitorMessage(
                 organization,
                 request.sid(),
-                request.meta() != null ? request.meta().getOrDefault("survey_slug", "start") : "start",
+                request.meta() != null ? String.valueOf(request.meta().getOrDefault("survey_slug", "start")) : "start",
                 request.message()
             );
             response = new ChatResponse(
@@ -286,10 +288,11 @@ public class ChatApiController {
         });
     }
 
-    private Organization resolveOrganization(String tenantSlug, Map<String, String> meta) {
+    private Organization resolveOrganization(String tenantSlug, Map<String, Object> meta) {
         String effectiveSlug = tenantSlug;
         if ((effectiveSlug == null || effectiveSlug.isBlank()) && meta != null) {
-            effectiveSlug = meta.get("organization_slug");
+            Object slugObj = meta.get("organization_slug");
+            if (slugObj != null) effectiveSlug = String.valueOf(slugObj);
         }
         if (effectiveSlug == null || effectiveSlug.isBlank()) {
             effectiveSlug = "demo";
@@ -345,7 +348,7 @@ public class ChatApiController {
         return user.getOrganization().getId();
     }
 
-    public record ChatRequest(String sid, String message, String tenant_slug, Map<String, String> meta) {
+    public record ChatRequest(String sid, String message, String tenant_slug, Map<String, Object> meta) {
     }
 
     public record ChatResponse(
@@ -468,5 +471,11 @@ public class ChatApiController {
                 message.getCreatedAt().atOffset(ZoneOffset.UTC).toInstant().toEpochMilli()
             );
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> toMap(Object obj) {
+        if (obj instanceof Map) return (Map<String, Object>) obj;
+        return null;
     }
 }

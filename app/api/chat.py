@@ -590,6 +590,7 @@ async def _chat_stream_impl(req: ChatRequest, db: Session | None = None):
     except Exception:
         logger.exception("persist/publish user message failed (stream) sid=%s", sid)
 
+    q_result: QualificationResult | None = None
     if db is not None:
         try:
             q_result = qualifier_service.qualify_message(

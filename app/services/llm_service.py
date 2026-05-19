@@ -77,3 +77,43 @@ class LLMService:
         except Exception as e:  # pragma: no cover
             logger.warning("llm text call failed provider=%s model=%s err=%s", self.provider, self.model_name, e)
             return ""
+
+    def call_with_tools(self, system_prompt: str, messages: list, tools: list, *, temperature: float = 0, required: bool = False) -> dict:
+        """Returns {'text': str} if LLM answered, or {'tool_calls': [{id, name, args}]} if it wants tools."""
+        client = self._client_or_none()
+        if client is None:
+            return {"text": ""}
+        try:
+            full_msgs = [{"role": "system", "content": system_prompt}] + messages
+            kwargs = dict(
+                model=self.model_name, temperature=temperature, messages=full_msgs, tools=tools,
+            )
+            kwargs["tool_choice"] = "required" if required else "auto"
+            resp = client.chat.completions.create(**kwargs)
+            msg = (resp.choices or [None])[0].message
+            if msg.tool_calls:
+                return {"tool_calls": [{"id": t.id, "name": t.function.name, "args": json.loads(t.function.arguments)} for t in msg.tool_calls]}
+            return {"text": (msg.content or "").strip()}
+        except Exception as e:
+            logger.warning("llm tool call failed err=%s", e)
+            return {"text": ""}
+
+    def call_json_response(self, system_prompt: str, messages: list, *, temperature: float = 0) -> str:
+        """Final call to get JSON {"rep": "..."} after tool loop."""
+        client = self._client_or_none()
+        if client is None:
+            return ""
+        try:
+            full_msgs = [{"role": "system", "content": system_prompt}] + messages
+            full_msgs.append({"role": "user", "content": "Odgovori uporabniku v slovenščini z vsemi podatki. Vrni JSON: {\"rep\":\"tvoj odgovor\"}"})
+            resp = client.chat.completions.create(
+                model=self.model_name,
+                temperature=temperature,
+                response_format={"type": "json_object"},
+                messages=full_msgs,
+            )
+            content = (resp.choices[0].message.content or "{}").strip()
+            return json.loads(content).get("rep", "") if content.startswith("{") else content
+        except Exception as e:
+            logger.warning("llm json response failed err=%s", e)
+            return ""

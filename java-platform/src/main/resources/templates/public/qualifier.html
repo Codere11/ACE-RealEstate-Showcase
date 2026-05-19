@@ -384,6 +384,7 @@ const searchResults = document.getElementById('searchResults');
 let searchMarker = null;
 let parcelLayer = null;
 let searchDebounce = null;
+let spatialContext = null;
 
 function gursToWgs(e, n) {
     var wgs = proj4('EPSG:3794', 'EPSG:4326', [parseFloat(e), parseFloat(n)]);
@@ -446,6 +447,78 @@ function selectGursResult(feature) {
                 } catch(e) {}
             }
             if (!match) return;
+            // Build spatial context for AI chat — fire enrichment fetches
+            var fp = match.properties;
+            spatialContext = {
+                parcel: {
+                    stParcele: fp.ST_PARCELE,
+                    koId: fp.KO_ID,
+                    povrsina: fp.POVRSINA,
+                    obcina: p.OBCINA_NAZIV
+                }
+            };
+            // Fetch enriched data in parallel
+            var d = 0.0004;
+            var bbox2 = (latlng[1] - d) + ',' + (latlng[0] - d) + ',' + (latlng[1] + d) + ',' + (latlng[0] + d);
+            Promise.all([
+                fetch('https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features/collections/SI.GURS.KN:STAVBE/items?f=application%2Fgeo%2Bjson&bbox=' + bbox2 + '&limit=5').then(function(r){return r.json()}).catch(function(){return null}),
+                fetch('https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features/collections/SI.GURS.KN:NAMENSKE_RABE/items?f=application%2Fgeo%2Bjson&bbox=' + bbox2 + '&limit=5').then(function(r){return r.json()}).catch(function(){return null}),
+                fetch('https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features/collections/SI.GURS.KN:DEJANSKE_RABE/items?f=application%2Fgeo%2Bjson&bbox=' + bbox2 + '&limit=5').then(function(r){return r.json()}).catch(function(){return null}),
+                fetch('https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features/collections/SI.GURS.KN:BONITETE/items?f=application%2Fgeo%2Bjson&bbox=' + bbox2 + '&limit=5').then(function(r){return r.json()}).catch(function(){return null})
+            ]).then(function(results) {
+                var stavbe = results[0], namenska = results[1], dejanska = results[2], bonitete = results[3];
+                // Find building containing the pin
+                if (stavbe && stavbe.features) {
+                    for (var i = 0; i < stavbe.features.length; i++) {
+                        try { if (turf.booleanPointInPolygon(pinPoint, stavbe.features[i])) {
+                            var b = stavbe.features[i].properties;
+                            spatialContext.building = {
+                                tip: b.TIPI_STAVB_NAZIV_SL,
+                                letoIzgradnje: b.LETO_IZGRADNJE,
+                                letoObnoveFasade: b.LETO_OBNOVE_FASADE,
+                                steviloEtaz: b.STEVILO_ETAZ,
+                                steviloStanovanj: b.STEVILO_STANOVANJ,
+                                brutoTlorisnaPovrsina: b.BRUTO_TLORISNA_POVRSINA,
+                                konstrukcija: b.NOSILNE_KONSTRUKCIJE_NAZIV_SL,
+                                elektrika: b.ELEKTRIKA_NAZIV_SL,
+                                vodovod: b.VODOVOD_NAZIV_SL,
+                                kanalizacija: b.KANALIZACIJA_NAZIV_SL,
+                                steviloPoslovnihProstorov: b.STEVILO_POSLOVNIH_PROSTOROV,
+                                visinaH1: b.VISINA_H1,
+                                visinaH2: b.VISINA_H2
+                            };
+                            break;
+                        }} catch(e) {}
+                    }
+                }
+                // Find zoning containing the pin
+                if (namenska && namenska.features) {
+                    for (var i = 0; i < namenska.features.length; i++) {
+                        try { if (turf.booleanPointInPolygon(pinPoint, namenska.features[i])) {
+                            var n = namenska.features[i].properties;
+                            spatialContext.landUse = spatialContext.landUse || {};
+                            spatialContext.landUse.namenskaRaba = n.PODROBNE_NAMENSKE_RABE_NAZIV_SL + ' — ' + n.PODROBNE_NAMENSKE_RABE_OPIS_SL;
+                            break;
+                        }} catch(e) {}
+                    }
+                }
+                // Find soil data containing the pin
+                if (bonitete && bonitete.features) {
+                    for (var i = 0; i < bonitete.features.length; i++) {
+                        try { if (turf.booleanPointInPolygon(pinPoint, bonitete.features[i])) {
+                            var s = bonitete.features[i].properties;
+                            spatialContext.soil = {
+                                boniteta: s.BONITETA,
+                                tockeTla: s.TOCKE_TLA,
+                                tockePodnebje: s.TOCKE_KLIMA,
+                                tockeRelief: s.TOCKE_RELIEF
+                            };
+                            break;
+                        }} catch(e) {}
+                    }
+                }
+            }).catch(function(){});
+
             parcelLayer = L.geoJSON(match, {
                 style: { color: '#C1A46C', weight: 3, fillOpacity: 0.12, fillColor: '#C1A46C' },
                 onEachFeature: function(f, l) {
@@ -790,7 +863,7 @@ chatToggle.addEventListener('click', () => {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
-        body: JSON.stringify({ sid: state.sid, message: text, tenant_slug: state.orgSlug, meta: { organization_slug: state.orgSlug } })
+        body: JSON.stringify({ sid: state.sid, message: text, tenant_slug: state.orgSlug, meta: { organization_slug: state.orgSlug, spatialContext: spatialContext } })
       });
       if (!res.ok) {
         const body = await res.text().catch(() => '');
