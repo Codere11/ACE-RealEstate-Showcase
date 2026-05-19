@@ -1,0 +1,142 @@
+# GURS Public APIs — Reference for ProstorAI / ACE e-Counter Prototype
+# Last verified: 19 May 2026
+# All endpoints below are PUBLIC — no authentication, no registration required.
+
+## Official Documentation
+- Swagger UI (OGC API - Features): https://ipi.eprostor.gov.si/wfs-si-gurs-kn/swagger-ui/
+- Public viewer (manual testing): https://ipi.eprostor.gov.si/jv/
+- License: CC-BY 4.0 (attribution required)
+
+---
+
+## 1. Address Search (REST)
+GET https://ipi.eprostor.gov.si/jv-api/search?filter={query}&source=NSLV-STA-FULL
+
+Example:
+  https://ipi.eprostor.gov.si/jv-api/search?filter=Resljeva%20cesta%2010%20Ljubljana&source=NSLV-STA-FULL
+
+Returns JSON array of "features" with:
+  - ULICA_NAZIV         : street name
+  - HS_STEVILKA         : house number
+  - NASELJE_NAZIV       : settlement
+  - OBCINA_NAZIV        : municipality
+  - POSTNI_OKOLIS_NAZIV : post office area
+  - E, N                : coordinates in EPSG:3794 (D96/TM Slovenian national grid)
+  - EID_STAVBA          : building entity ID
+  - EID_HISNA_STEVILKA  : house number entity ID
+
+---
+
+## 2. OGC API - Features (RECOMMENDED — returns GeoJSON directly)
+Base URL: https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features
+
+### List all layers (collections)
+GET /collections
+  → https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features/collections?f=application/json
+
+### Get features from a layer as GeoJSON
+GET /collections/{layerId}/items?f=application/geo+json&bbox={minLon},{minLat},{maxLon},{maxLat}&limit=N
+
+Example — get parcels in Ljubljana area:
+  https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features/collections/SI.GURS.KN:OSNOVNI_PARCELE/items?f=application%2Fgeo%2Bjson&bbox=14.49,46.03,14.55,46.08&limit=5
+
+### Key layers (30+ available)
+  SI.GURS.KN:OSNOVNI_PARCELE       — parcel polygons + EID, KO_ID, ST_PARCELE, POVRSINA (area), centroid
+  SI.GURS.KN:OSNOVNI_STAVBE        — building polygons
+  SI.GURS.KN:STAVBE_OBRIS          — building outlines
+  SI.GURS.KN:STAVBE_TLORIS         — building floor plans
+  SI.GURS.KN:GRADBENE_PARCELE      — building parcels
+  SI.GURS.KN:HISNE_STEVILKE        — house number points
+  SI.GURS.KN:NASLOVI_HS            — addresses linked to house numbers
+  SI.GURS.KN:DEJANSKE_RABE         — actual land use (polygons)
+  SI.GURS.KN:NAMENSKE_RABE         — planned land use (polygons)
+  SI.GURS.KN:KATASTRSKE_OBCINE     — cadastral municipality boundaries
+  SI.GURS.KN:BONITETE              — soil quality
+  SI.GURS.KN:GOZDNO_GOSP_OBM       — forest management areas
+  SI.GURS.KN:UREJENE_MEJE          — arranged boundaries
+  SI.GURS.KN:DELI_STAVB            — building parts
+  SI.GURS.KN:ETAZE                 — floors/condominium units
+  SI.GURS.KN:PARCELE_JAVNI_LASTNIKI — publicly owned parcels
+
+### Get a single feature by ID
+GET /collections/{layerId}/items/{featureId}?f=application/geo+json
+
+---
+
+## 3. WFS — Classic OGC Web Feature Service (XML)
+https://ipi.eprostor.gov.si/wfs-si-gurs-kn/wfs
+
+GetCapabilities (list all layers):
+  ?service=WFS&request=GetCapabilities
+
+GetFeature (parcels in bbox, max 3):
+  ?service=WFS&request=GetFeature&version=2.0.0
+  &typeNames=SI.GURS.KN:OSNOVNI_PARCELE
+  &srsName=EPSG:3794
+  &bbox=462000,101500,462300,101800,EPSG:3794
+  &count=3
+
+Note: prefers OGC API - Features (section 2) for new development — GeoJSON is much easier.
+
+---
+
+## 4. WMS — Raster Map Layers
+https://ipi.eprostor.gov.si/wms-si-gurs-kn/wms
+
+GetCapabilities:
+  ?service=WMS&request=GetCapabilities
+
+GetMap example:
+  ?service=WMS&request=GetMap&layers=SI.GURS.KN:OSNOVNI_PARCELE
+  &bbox=...&width=800&height=600&srs=EPSG:3794&format=image/png
+
+27 layers available (same layer names as WFS above, plus orthophoto).
+
+Use with Leaflet: L.tileLayer.wms(url, { layers: 'SI.GURS.KN:OSNOVNI_PARCELE', ... })
+
+---
+
+## 5. WFS RPE — Register of Spatial Units (administrative boundaries)
+https://ipi.eprostor.gov.si/wfs-si-gurs-rpe/wfs
+
+Layers include:
+  SI.GURS.RPE:OBCINE               — municipalities
+  SI.GURS.RPE:NASELJA              — settlements
+  SI.GURS.RPE:ULICE                — streets
+  SI.GURS.RPE:POSTNI_OKOLISI       — postal districts
+  SI.GURS.RPE:STATISTICNE_REGIJE   — statistical regions
+  SI.GURS.RPE:UPRAVNE_ENOTE        — administrative units
+  SI.GURS.RPE:KATASTRSKE_OBCINE    — cadastral municipalities
+
+---
+
+## 6. Coordinate Systems
+- GURS native:  EPSG:3794 (D96/TM — Slovenian national grid, meters)
+- Leaflet/Web:  EPSG:4326 (WGS84 — lat/lon degrees)
+
+The OGC API - Features (section 2) handles reprojection automatically
+when you use f=application/geo+json and WGS84 bbox coordinates.
+
+For classic WFS/WMS in EPSG:3794, you need proj4 to convert to EPSG:4326:
+  const d96 = '+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9999 +x_0=500000 +y_0=-5000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
+  proj4(d96, 'EPSG:4326', [x, y]); // returns [lon, lat]
+
+---
+
+## 7. What Requires Authentication
+Not available publicly:
+- Owner names and personal/ownership data
+- Mass valuation / market records (vrednotenje.gov.si)
+- ETN (Evidenca trga nepremičnin) — real estate transaction records
+- Bulk/full-database downloads (JGP portal)
+
+These require GURS credentials or direct partnership (Omsoft has this).
+
+---
+
+## 8. Recommended Usage for Prototype
+1. Address search → get coordinates + EIDs
+2. OGC API /collections/{layer}/items?f=geo+json&bbox=... → get GeoJSON directly
+3. Leaflet L.geoJSON() overlay for parcel polygons
+4. WMS as optional background map layer
+5. Pass selected parcel (EID, KO, number) to AI qualifier chat payload
