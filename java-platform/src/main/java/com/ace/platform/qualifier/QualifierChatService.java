@@ -37,7 +37,7 @@ public class QualifierChatService {
         Lead lead = leadService.getOrCreateLead(organization, sid, null);
         lead = leadService.markOpenChat(lead);
         Qualifier qualifier = qualifierService.findActive(organization.getId()).orElse(null);
-        String greeting = qualifier != null ? initialGreeting(qualifier) : "Pozdravljeni! Sem ProstorAI. Iščete lahko naslov ali parcelo in vprašate kar koli o nepremičnini.";
+        String greeting = qualifier != null ? initialGreeting(qualifier) : "Dober dan! Dobrodošli v Lepota \u0026 Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?";
         return new QualifierChatResult(lead.getSid(), greeting, qualifier != null ? qualifier.getName() : "ACE e-Counter");
     }
 
@@ -93,7 +93,7 @@ public class QualifierChatService {
     }
 
     private String initialGreeting(Qualifier qualifier) {
-        return "Pozdravljeni! Sem ProstorAI. Iščete lahko naslov ali parcelo in vprašate kar koli o nepremičnini.";
+        return "Dober dan! Dobrodošli v Lepota \u0026 Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?";
     }
 
     private List<Map<String, String>> recentMessages(Lead lead) {

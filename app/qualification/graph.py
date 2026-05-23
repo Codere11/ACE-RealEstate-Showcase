@@ -1,22 +1,181 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from app.qualification.prompts import build_qualify_prompt, build_conversation_prompt, SALON_ROLE_CONTRACT, SALON_CAPABILITIES
+from app.qualification.prompts import build_classify_prompt, build_node_prompt
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
-from app.qualification.state import QualificationGraphState, TurnDecision, TurnInterpretation
+from app.qualification.state import (
+    QualificationGraphState,
+    TurnDecision,
+    TurnInterpretation,
+    ConversationStage,
+)
 from app.services.llm_service import LLMService
 from app.qualification.tools import SALON_TOOLS, execute_tool
 
 try:
     from langgraph.graph import StateGraph, END
-except Exception:  # pragma: no cover
+except Exception:
     StateGraph = None  # type: ignore
     END = "__end__"  # type: ignore
 
 
-_SALON_SYSTEM = "You are AI Receptor, a warm Slovenian beauty salon receptionist. Analyze turns and return only valid JSON."
+# ── Graph nodes ──
+
+def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
+    """Determine what the customer wants RIGHT NOW."""
+    latest = state.get("latest_message", "").strip()
+    recent = state.get("recent_messages", []) or []
+    existing_stage = state.get("conversation_stage", "")
+
+    # Fast-path: single-word greetings mid-conversation = idle
+    lowered = latest.lower()
+    greeting_words = {"dober dan", "zdravo", "živjo", "pozdravljeni", "pozdravljena",
+                       "dober večer", "dober dan!", "živjo!", "hej", "oj", "hi", "hello"}
+    is_just_greeting = lowered in greeting_words or (len(lowered.split()) <= 2 and any(g in lowered for g in ["dober", "zdravo", "živjo", "pozdrav", "hej", "oj", "hi"]))
+
+    if existing_stage and existing_stage != "greeting" and is_just_greeting:
+        state["conversation_stage"] = "idle"
+        return state
+
+    # Use LLM to classify for longer messages
+    llm = LLMService()
+    if llm.is_available() and latest:
+        prompt = build_classify_prompt(latest, recent)
+        result = llm.call_json(prompt, latest)
+        stage: ConversationStage = result.get("stage", "greeting") if isinstance(result, dict) else "greeting"
+    else:
+        stage = "greeting"
+
+    # If we're past greeting and LLM still says greeting, check if it's really just a greeting word
+    if existing_stage and stage == "greeting" and existing_stage != "greeting":
+        stage = "idle"
+    # If first-ever message is a greeting word, that's a proper greeting
+    elif not existing_stage and is_just_greeting:
+        stage = "greeting"
+    # If we're in greeting stage and message is just another greeting — stay idle
+    elif existing_stage == "greeting" and is_just_greeting:
+        stage = "idle"
+
+    state["conversation_stage"] = stage
+    return state
+
+
+def _route_by_stage(state: QualificationGraphState) -> str:
+    stage = state.get("conversation_stage", "greeting")
+    # Map to node names
+    return stage
+
+
+def _greeting_node(state: QualificationGraphState) -> QualificationGraphState:
+    return _reply_for_stage(state, "greeting")
+
+
+def _discovery_node(state: QualificationGraphState) -> QualificationGraphState:
+    return _reply_for_stage(state, "discovery")
+
+
+def _availability_node(state: QualificationGraphState) -> QualificationGraphState:
+    return _reply_for_stage(state, "availability")
+
+
+def _booking_node(state: QualificationGraphState) -> QualificationGraphState:
+    return _reply_for_stage(state, "booking")
+
+
+def _handoff_node(state: QualificationGraphState) -> QualificationGraphState:
+    return _reply_for_stage(state, "handoff")
+
+
+def _idle_node(state: QualificationGraphState) -> QualificationGraphState:
+    return _reply_for_stage(state, "idle")
+
+
+def _reply_for_stage(state: QualificationGraphState, stage: str) -> QualificationGraphState:
+    llm = LLMService()
+    latest = state.get("latest_message", "")
+    recent = (state.get("recent_messages", []) or [])[-6:]
+    hours_mentioned = state.get("hours_mentioned", False)
+    services_presented = state.get("services_presented", False)
+
+    # Get salon state from tools
+    salon_state = execute_tool("salon_get_context", {})
+
+    state_json = salon_state
+    messages_json = json.dumps(
+        [{"r": m.get("role", "user"), "t": m.get("text", "")} for m in recent],
+        ensure_ascii=False,
+    )
+    latest_json = json.dumps(latest, ensure_ascii=False)
+
+    system = build_node_prompt(
+        stage,
+        hours_mentioned=hours_mentioned,
+        services_presented=services_presented,
+        state_json=state_json,
+        messages_json=messages_json,
+        latest_json=latest_json,
+    )
+
+    # Tool-calling: first try, allow tools for availability/booking
+    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff")
+    force_tools = stage in ("greeting", "discovery")  # must check salon state + services
+    msgs = [{"role": "user", "content": latest_json}]
+    reply = ""
+
+    if needs_tools and llm.is_available():
+        resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=force_tools)
+        tcs = resp.get("tool_calls")
+        if tcs:
+            results = {}
+            for tc in tcs:
+                results[tc["id"]] = execute_tool(tc["name"], tc["args"])
+            for tc in tcs:
+                msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                    {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                ]})
+                msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
+            # Get final reply after tools
+            reply = llm.call_json_response(system, msgs)
+        else:
+            reply = resp.get("text", "")
+
+    if not reply:
+        reply = llm.call_text(system, latest_json)
+
+    # Unwrap JSON if the LLM returned {"rep":"..."} instead of plain text
+    reply = _unwrap_reply(reply)
+
+    if not reply:
+        reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+
+    # Update state flags
+    if stage == "greeting":
+        state["hours_mentioned"] = True
+        state["services_presented"] = True
+    if stage == "booking":
+        state["booking_confirmed"] = True
+
+    interpretation = TurnInterpretation(
+        visitor_type="new_visitor",
+        preferred_language="sl",
+        used_llm=bool(reply),
+        model_name=llm.model_name,
+    )
+    decision = TurnDecision(
+        reply=reply,
+        recommended_next_action="continue_conversation",
+        funnel_stage=stage,
+        qualification_band="warm",
+        qualification_score=55,
+        confidence_overall=0.5,
+        used_llm=bool(reply),
+        model_name=llm.model_name,
+    )
+    state["interpretation"] = interpretation
+    state["decision"] = decision
+    return state
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
@@ -33,90 +192,20 @@ def _retrieve_knowledge(state: QualificationGraphState) -> QualificationGraphSta
     return state
 
 
-def _prompt_runtime_context(state: QualificationGraphState) -> Dict[str, Any]:
-    ctx = dict(state.get("runtime_context", {}) or {})
-    return {
-        "static_prompt_block": str(ctx.get("static_prompt_block") or "").strip(),
-        "max_clarifying_questions": int(ctx.get("max_clarifying_questions") or 3),
-    }
+# ── Entry point ──
 
-
-def _prompt_profile(state: QualificationGraphState) -> Dict[str, Any]:
-    profile = dict(state.get("profile_before", {}) or {})
-    keep_keys = [
-        "visitor_type",
-        "preferred_language",
-        "service_interest",
-        "budget_range",
-        "preferred_time",
-        "skin_concern",
-        "urgency",
-    ]
-    return {key: profile.get(key) for key in keep_keys if profile.get(key) not in (None, "", [], {})}
-
-
-def _get(data: Dict[str, Any], long_key: str, short_key: str, default=None):
-    if short_key in data:
-        return data.get(short_key)
-    return data.get(long_key, default)
-
-
-def _qualify_and_write(llm: LLMService, state: QualificationGraphState) -> QualificationGraphState:
-    spatial = state.get("spatial_context")
-    profile = _prompt_profile(state)
-    recent = (state.get("recent_messages", []) or [])[-6:]
-    latest = state.get("latest_message", "")
-
-    compact_spatial = json.dumps(spatial or {}, ensure_ascii=False, separators=(",", ":"))
-    compact_profile = json.dumps(profile, ensure_ascii=False, separators=(",", ":"))
-    compact_msgs = json.dumps([{"r": m.get("role","user"), "t": m.get("text","")} for m in recent], ensure_ascii=False, separators=(",", ":"))
-
-    system = (
-        f"{SALON_ROLE_CONTRACT}\n\n"
-        f"{SALON_CAPABILITIES}\n\n"
-        f"SALON_STATE: {compact_spatial}\n"
-        f"PROFILE: {compact_profile}\n"
-        f"MESSAGES: {compact_msgs}\n"
-    )
-    user = json.dumps(latest, ensure_ascii=False)
-
-    # Tool-calling loop — up to 4 rounds
-    msgs = [{"role": "user", "content": user}]
-    reply = ""
-    for round_idx in range(4):
-        force = (round_idx < 2)  # First 2 rounds: MUST use a tool
-        resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=force)
-        tcs = resp.get("tool_calls")
-        if not tcs:
-            reply = resp.get("text", "")
-            break
-        # Execute all tool calls from this round
-        results = {}
-        for tc in tcs:
-            results[tc["id"]] = execute_tool(tc["name"], tc["args"])
-        for tc in tcs:
-            msgs.append({"role": "assistant", "content": None, "tool_calls": [{"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}]})
-            msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
-
-    # Fallback: get JSON response if LLM didn't answer directly
-    if not reply:
-        reply = llm.call_json_response(system, msgs)
-    if not reply:
-        reply = "Dober dan! Dobrodošli v Lepota & Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?"
-
-    used_llm = bool(reply)
-    interpretation = TurnInterpretation(
-        visitor_type="new_visitor", preferred_language="sl",
-        used_llm=used_llm, model_name=llm.model_name,
-    )
-    decision = TurnDecision(
-        reply=reply, recommended_next_action="continue_conversation",
-        qualification_band="warm", qualification_score=55, confidence_overall=0.5,
-        used_llm=used_llm, model_name=llm.model_name,
-    )
-    state["interpretation"] = interpretation
-    state["decision"] = decision
-    return state
+def _unwrap_reply(text: str) -> str:
+    """If LLM returned JSON {"rep":"..."}, extract just the reply text."""
+    if not text:
+        return ""
+    text = text.strip()
+    if text.startswith("{") and '"rep"' in text:
+        try:
+            data = json.loads(text)
+            return data.get("rep", text)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return text
 
 
 def run_qualification_graph(
@@ -128,102 +217,62 @@ def run_qualification_graph(
     profile_before: Dict[str, Any],
     spatial_context: Optional[Dict[str, Any]] = None,
 ) -> QualificationGraphState:
+    # Carry forward conversation state from profile
     state: QualificationGraphState = {
         "qualifier": qualifier,
         "latest_message": latest_message,
         "recent_messages": recent_messages,
         "profile_before": profile_before,
         "spatial_context": spatial_context,
+        "conversation_stage": profile_before.get("conversation_stage") or "",
+        "hours_mentioned": profile_before.get("hours_mentioned", False),
+        "services_presented": profile_before.get("services_presented", False),
+        "service_interest": profile_before.get("service_interest", ""),
+        "booking_date": profile_before.get("booking_date", ""),
+        "booking_time": profile_before.get("booking_time", ""),
+        "booking_confirmed": False,
     }
 
     if StateGraph is None:
         state = _load_runtime_context(state)
-        state = _retrieve_knowledge(state)
-        state = _qualify_and_write(llm, state)
-        return state
+        state = _classify_intent(state)
+        stage = state.get("conversation_stage", "greeting")
+        return _reply_for_stage(state, stage)
 
     graph = StateGraph(QualificationGraphState)
+
+    # Nodes
     graph.add_node("load_runtime_context", _load_runtime_context)
     graph.add_node("retrieve_knowledge", _retrieve_knowledge)
-    graph.add_node("qualify_and_write", lambda s: _qualify_and_write(llm, s))
+    graph.add_node("classify_intent", _classify_intent)
+    graph.add_node("greeting", _greeting_node)
+    graph.add_node("discovery", _discovery_node)
+    graph.add_node("availability", _availability_node)
+    graph.add_node("booking", _booking_node)
+    graph.add_node("handoff", _handoff_node)
+    graph.add_node("idle", _idle_node)
+
+    # Edges
     graph.set_entry_point("load_runtime_context")
     graph.add_edge("load_runtime_context", "retrieve_knowledge")
-    graph.add_edge("retrieve_knowledge", "qualify_and_write")
-    graph.add_edge("qualify_and_write", END)
+    graph.add_edge("retrieve_knowledge", "classify_intent")
+
+    # Conditional routing from classify to stage-specific node
+    graph.add_conditional_edges(
+        "classify_intent",
+        _route_by_stage,
+        {
+            "greeting": "greeting",
+            "discovery": "discovery",
+            "availability": "availability",
+            "booking": "booking",
+            "handoff": "handoff",
+            "idle": "idle",
+        },
+    )
+
+    # All stage nodes go to END
+    for stage_node in ("greeting", "discovery", "availability", "booking", "handoff", "idle"):
+        graph.add_edge(stage_node, END)
+
     return graph.compile().invoke(state)
-
-
-def _is_number(value: Any) -> bool:
-    try:
-        float(value)
-        return True
-    except Exception:
-        return False
-
-
-def _clamp(value: Any, default: float) -> float:
-    try:
-        return max(0.0, min(1.0, float(value)))
-    except Exception:
-        return default
-
-
-def _clamp_int(value: Any, default: int) -> int:
-    try:
-        return max(0, min(100, int(round(float(value)))))
-    except Exception:
-        return default
-
-
-def _normalize_reply(reply: str, *, recommended_next_action: str, next_best_question: str) -> str:
-    text = (reply or "").strip()
-    if text:
-        return text
-    if next_best_question:
-        return next_best_question.strip()
-    return "Povejte mi malo več o vaših željah glede nege kože, in vam bom z veseljem svetovala. 💆‍♀️"
-
-
-def _normalize_score_and_band(data: Dict[str, Any], *, runtime_context: Dict[str, Any], fit_status: str, recommended_next_action: str) -> Tuple[int, str]:
-    band_thresholds = dict(runtime_context.get("band_thresholds") or {})
-    hot_min = _clamp_int(band_thresholds.get("hot_min"), 70)
-    warm_min = _clamp_int(band_thresholds.get("warm_min"), 40)
-    if hot_min < warm_min:
-        hot_min, warm_min = warm_min, hot_min
-
-    raw_score = _clamp_int(_get(data, "qualification_score", "score", -1), -1)
-    raw_band = str(_get(data, "qualification_band", "band", "") or "").strip().lower()
-
-    score = raw_score
-    band = raw_band if raw_band in {"cold", "warm", "hot"} else ""
-
-    if score < 0:
-        score = 0
-
-    if score == 0 and band in {"warm", "hot"}:
-        score = warm_min + 5 if band == "warm" else max(hot_min + 5, 80)
-    elif score == 0 and fit_status == "high":
-        score = max(warm_min + 5, 55)
-    elif score == 0 and fit_status == "medium":
-        score = max(warm_min, 45)
-
-    if not band:
-        if score >= hot_min:
-            band = "hot"
-        elif score >= warm_min:
-            band = "warm"
-        else:
-            band = "cold"
-
-    if band == "hot" and score < hot_min:
-        score = max(score, hot_min)
-    elif band == "warm" and score < warm_min:
-        score = max(score, warm_min)
-    elif band == "cold" and score >= warm_min and fit_status != "high":
-        band = "warm"
-
-    if recommended_next_action in {"offer_human_takeover"} and score < hot_min:
-        score = max(score, hot_min)
-        band = "hot"
-
-    return max(0, min(100, score)), band

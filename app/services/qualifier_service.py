@@ -213,8 +213,8 @@ class QualifierService:
 
     def _fallback_reply(self, latest_message: str, profile: Dict[str, Any]) -> str:
         if self._looks_slovenian(latest_message):
-            return "Pozdravljeni! Sem ProstorAI, vaš digitalni asistent za prostorske podatke. Lahko vam pomagam pri vpogledu v podatke o parcelah, stavbah, namenski rabi in boniteti tal. Kaj vas zanima?"
-        return "Hello! I'm ProstorAI, your spatial data assistant for Slovenia. I can help you look up parcels, buildings, land use, and soil quality data. What would you like to know?"
+            return "Dober dan! Dobrodošli v Lepota & Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?"
+        return "Hello! Welcome to Lepota & Sprostitev. 💆‍♀️ How can I help you with your skincare today?"
 
     def _combine_reasoning(self, interpretation_reason: str, decision_reason: str) -> str:
         parts = [p.strip() for p in [interpretation_reason, decision_reason] if p and p.strip()]

@@ -58,8 +58,15 @@ def evaluate(payload: QualifierRuntimeRequest):
     decision: TurnDecision = state.get("decision") or TurnDecision()
     profile = dict(interpretation.profile_after or payload.existing_profile or {})
     profile["visitor_type"] = interpretation.visitor_type or profile.get("visitor_type") or "unclear"
-    profile["funnel_stage"] = decision.funnel_stage or profile.get("funnel_stage") or "business_context"
+    profile["funnel_stage"] = decision.funnel_stage or profile.get("funnel_stage") or "greeting"
     profile["qualification_complete"] = bool(decision.qualification_complete)
+    # Persist conversation state so graph knows what it already said
+    profile["conversation_stage"] = state.get("conversation_stage") or decision.funnel_stage or "greeting"
+    profile["hours_mentioned"] = state.get("hours_mentioned", False)
+    profile["services_presented"] = state.get("services_presented", False)
+    profile["service_interest"] = state.get("service_interest") or profile.get("service_interest", "")
+    profile["booking_date"] = state.get("booking_date") or profile.get("booking_date", "")
+    profile["booking_time"] = state.get("booking_time") or profile.get("booking_time", "")
     if interpretation.supporting_quotes:
         profile["supporting_quotes"] = interpretation.supporting_quotes
 
@@ -88,7 +95,4 @@ def combine_reasoning(interpretation_reason: str, decision_reason: str) -> str:
 
 
 def fallback_reply(latest_message: str) -> str:
-    lowered = (latest_message or "").lower()
-    if any(token in lowered for token in [" kako ", " ali ", " sem ", "parcela", "parcelo", "stavba", "stavbo", "zemljišč", "nepremičnin", "kataster"]):
-        return "Pozdravljeni! Sem ProstorAI, vaš digitalni asistent za prostorske podatke. Kako vam lahko pomagam?"
-    return "Pozdravljeni! Sem ProstorAI, vaš digitalni asistent za prostorske podatke. Kako vam lahko pomagam?"
+    return "Dober dan! Dobrodošli v Lepota & Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?"

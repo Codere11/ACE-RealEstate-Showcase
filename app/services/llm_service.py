@@ -78,6 +78,30 @@ class LLMService:
             logger.warning("llm text call failed provider=%s model=%s err=%s", self.provider, self.model_name, e)
             return ""
 
+    def call_text_stream(self, system_prompt: str, user_prompt: str, *, temperature: float = 0.2):
+        """Stream tokens. Yields each token string. Caller iterates."""
+        client = self._client_or_none()
+        if client is None:
+            yield ""
+            return
+        try:
+            stream = client.chat.completions.create(
+                model=self.model_name,
+                temperature=temperature,
+                stream=True,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            for chunk in stream:
+                delta = (chunk.choices or [None])[0]
+                if delta and delta.delta and delta.delta.content:
+                    yield delta.delta.content
+        except Exception as e:
+            logger.warning("llm stream failed err=%s", e)
+            yield ""
+
     def call_with_tools(self, system_prompt: str, messages: list, tools: list, *, temperature: float = 0, required: bool = False) -> dict:
         """Returns {'text': str} if LLM answered, or {'tool_calls': [{id, name, args}]} if it wants tools."""
         client = self._client_or_none()
@@ -105,7 +129,7 @@ class LLMService:
             return ""
         try:
             full_msgs = [{"role": "system", "content": system_prompt}] + messages
-            full_msgs.append({"role": "user", "content": "Odgovori uporabniku v slovenščini z vsemi podatki. Vrni JSON: {\"rep\":\"tvoj odgovor\"}"})
+            full_msgs.append({"role": "user", "content": "PREBERI zgodovino pogovora. Če si že povedal/a da je salon zaprt — NE ponavljaj. Če si že naštel/a storitve — NE ponavljaj. Če je to samo 'dober dan' sredi pogovora — ne predstavljaj se ponovno. Bodi kratek (1-3 stavke). Odgovori v slovenščini. Vrni JSON: {\"rep\":\"tvoj odgovor\"}"})
             resp = client.chat.completions.create(
                 model=self.model_name,
                 temperature=temperature,
