@@ -40,7 +40,7 @@ def create_initial_users():
         if not demo_tenant:
             demo_tenant = Client(
                 slug="demo-agency",
-                name="Demo e-Counter Agency",
+                name="Demo Salon",
                 active=True
             )
             db.add(demo_tenant)

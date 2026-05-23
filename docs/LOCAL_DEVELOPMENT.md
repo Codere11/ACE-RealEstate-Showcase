@@ -1,6 +1,6 @@
 # Local Development Runbook
 
-This is the recommended local path for the current ACE e-Counter architecture.
+This is the recommended local path for the current ACE Reception Services architecture.
 
 ## Prerequisites
 - Java 21

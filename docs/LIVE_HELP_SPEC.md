@@ -1,7 +1,7 @@
 # Live Help Spec
 
 ## Purpose
-Add the first proper implementation slice for one-way live help inside ACE e-Counter.
+Add the first proper implementation slice for one-way live help inside ACE Reception Services.
 
 This feature is **not** a two-way video call yet.
 For the visitor, it behaves like a staff member stepping in live:
@@ -12,7 +12,7 @@ For the visitor, it behaves like a staff member stepping in live:
 
 ## Product intent
 Live help should feel like a real counter or store interaction:
-- the visitor starts with ACE e-Counter
+- the visitor starts with ACE Reception Services
 - a staff member can prepare to step in
 - the staff member can go live above the conversation
 - the visitor sees live help in the existing top rectangle

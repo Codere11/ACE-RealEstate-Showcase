@@ -32,10 +32,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s:%(lineno)d - %(message)s",
 )
 logger = logging.getLogger("ace.main")
-logger.info("Starting ACE e-Counter Backend with LOG_LEVEL=%s", LOG_LEVEL)
+logger.info("Starting ACE Reception Services Backend with LOG_LEVEL=%s", LOG_LEVEL)
 
 # ---- FastAPI app ------------------------------------------------------------
-app = FastAPI(title="ACE e-Counter Backend")
+app = FastAPI(title="ACE Reception Services")
 app.add_middleware(RequestLoggerMiddleware)
 
 # Startup initialization

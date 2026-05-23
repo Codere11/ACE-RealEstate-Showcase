@@ -1160,7 +1160,7 @@
 
                             <div class="field">
                                 <label for="qualifierSystemPrompt">Core business-fit instructions</label>
-                                <textarea id="qualifierSystemPrompt" rows="10" placeholder="Explain ACE e-Counter accurately. Treat real businesses as valid prospects even if they are small, informal, or offline-first. Ask one useful follow-up question when needed."></textarea>
+                                <textarea id="qualifierSystemPrompt" rows="10" placeholder="Ti si AI Receptor za kozmetični salon. Toplo pozdravi obiskovalce, odgovarjaj na vprašanja, svetuj pri izbiri tretmajev in rezerviraj termine."></textarea>
                             </div>
 
                             <div class="checkbox-row">
@@ -2315,7 +2315,7 @@
 
     function renderQualifierList() {
       if (!state.qualifiers.length) {
-        els.qualifierList.innerHTML = '<div class="empty-card">No qualifiers yet. Create one to begin configuring the ACE e-Counter policy.</div>';
+        els.qualifierList.innerHTML = '<div class="empty-card">Ni receptorjev. Ustvarite prvega za konfiguracijo AI Receptorja.</div>';
         return;
       }
       els.qualifierList.innerHTML = '';
@@ -2347,7 +2347,7 @@
       }
       els.qualifierEditor.style.display = 'grid';
       els.qualifierEditorEmpty.style.display = 'none';
-      els.qualifierEditorTitle.textContent = qualifier.name || 'ACE e-Counter qualifier';
+      els.qualifierEditorTitle.textContent = qualifier.name || 'AI Receptor';
       els.qualifierEditorMeta.innerHTML = `<span class="pill ${qualifier.status === 'live' ? 'success' : qualifier.status === 'archived' ? '' : 'warn'}">${escapeHtml(qualifier.status)}</span><span class="pill dark">v${Number(qualifier.version || 1)}</span>${qualifier.publishedAt ? `<span class="pill">Published ${new Date(qualifier.publishedAt).toLocaleString()}</span>` : ''}`;
       els.qualifierName.value = qualifier.name || '';
       els.qualifierSlug.value = qualifier.slug || '';

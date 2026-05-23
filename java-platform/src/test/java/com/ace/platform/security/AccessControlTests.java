@@ -108,7 +108,7 @@ class AccessControlTests {
 
         mockMvc.perform(get("/demo/dashboard"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("ACE e-Counter Intelligence")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("ACE Reception Services")));
     }
 
     @Test

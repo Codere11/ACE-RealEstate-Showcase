@@ -4,9 +4,9 @@ import re
 from typing import Any, Dict, List, Tuple
 
 ACE_PRODUCT_BRIEF = [
-    "ACE e-Counter is a website visitor-intake and qualification system for inbound customer interest.",
-    "ACE engages visitors on landing pages, asks focused qualification questions, captures useful lead details, and routes strong opportunities to a manager or next step.",
-    "ACE is not a marketplace or seller of the visitor's product. It helps the business handle inquiries, qualify demand, and improve follow-up.",
+    "ACE Reception Services je virtualni receptor za kozmetične salone — pomaga pri pozdravljanju strank, odgovarjanju na vprašanja o storitvah, in rezervaciji terminov.",
+    "AI Receptor deluje kot pravi receptor: topel, profesionalen, pripravljen pomagati strankam pri izbiri tretmajev in rezervaciji.",
+    "ACE Reception Services ni splošni asistent — specializiran je za kozmetične salone in njihove specifične potrebe.",
 ]
 
 _RUNTIME_CACHE: Dict[Tuple[str, str, int], Dict[str, Any]] = {}
@@ -27,8 +27,8 @@ def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
     confidence_thresholds = dict(getattr(qualifier, "confidence_thresholds", {}) or {})
 
     context = {
-        "name": str(getattr(qualifier, "name", "ACE e-Counter") or "ACE e-Counter").strip(),
-        "slug": str(getattr(qualifier, "slug", "ace-e-counter") or "ace-e-counter").strip(),
+        "name": str(getattr(qualifier, "name", "AI Receptor") or "AI Receptor").strip(),
+        "slug": str(getattr(qualifier, "slug", "ai-receptor") or "ai-receptor").strip(),
         "system_prompt": str(getattr(qualifier, "system_prompt", "") or "").strip(),
         "assistant_style": str(getattr(qualifier, "assistant_style", "") or "").strip(),
         "goal_definition": str(getattr(qualifier, "goal_definition", "") or "").strip(),
@@ -108,8 +108,8 @@ def qualifier_field_schema(qualifier: Any) -> List[Dict[str, Any]]:
 def _static_prompt_block(context: Dict[str, Any]) -> str:
     parts = [
         f"identity={context['name']}",
-        "product=ACE e-Counter qualifies inbound website interest, captures lead details, and routes strong opportunities.",
-        "guardrail=ACE does not sell the visitor's product.",
+        "product=ACE Reception Services je virtualni receptor za kozmetične salone — pozdravlja stranke, odgovarja na vprašanja, in rezervira termine.",
+        "guardrail=ACE Reception Services ni splošni asistent — osredotočen je na salonske storitve.",
     ]
     if context.get("system_prompt"):
         parts.append(f"manager_instructions={context['system_prompt']}")
@@ -196,7 +196,7 @@ def _rule_summary(rules: Dict[str, Any]) -> str:
 
 
 def _cache_key(qualifier: Any) -> Tuple[str, str, int]:
-    slug = str(getattr(qualifier, "slug", "ace-e-counter") or "ace-e-counter").strip()
+    slug = str(getattr(qualifier, "slug", "ai-receptor") or "ai-receptor").strip()
     version = int(getattr(qualifier, "version", 1) or 1)
     notes = str(getattr(qualifier, "version_notes", "") or "").strip()
     return slug, notes, version

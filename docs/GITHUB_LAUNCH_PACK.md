@@ -1,6 +1,6 @@
 # GitHub Launch Pack
 
-Use this when presenting ACE e-Counter as a flagship repository.
+Use this when presenting ACE Reception Services as a flagship repository.
 
 ## Suggested GitHub Bio
 `Software engineer building product-focused SaaS systems with Java, Spring Boot, FastAPI, LangGraph, PostgreSQL, and AI-assisted workflows.`

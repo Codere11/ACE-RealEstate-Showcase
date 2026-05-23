@@ -38,7 +38,7 @@ public class QualifierChatService {
         lead = leadService.markOpenChat(lead);
         Qualifier qualifier = qualifierService.findActive(organization.getId()).orElse(null);
         String greeting = qualifier != null ? initialGreeting(qualifier) : "Dober dan! Dobrodošli v Lepota \u0026 Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?";
-        return new QualifierChatResult(lead.getSid(), greeting, qualifier != null ? qualifier.getName() : "ACE e-Counter");
+        return new QualifierChatResult(lead.getSid(), greeting, qualifier != null ? qualifier.getName() : "AI Receptor");
     }
 
     @Transactional
@@ -55,11 +55,11 @@ public class QualifierChatService {
         leadService.captureContactHints(lead, trimmed);
 
         if (lead.isTakeoverActive()) {
-            return new QualifierChatResult(lead.getSid(), null, qualifier != null ? qualifier.getName() : "ACE e-Counter");
+            return new QualifierChatResult(lead.getSid(), null, qualifier != null ? qualifier.getName() : "AI Receptor");
         }
 
         if (qualifier == null) {
-            return new QualifierChatResult(lead.getSid(), null, "ACE e-Counter");
+            return new QualifierChatResult(lead.getSid(), null, "AI Receptor");
         }
 
         PythonQualifierRuntimeClient.RuntimeResponse response = pythonQualifierRuntimeClient.evaluate(

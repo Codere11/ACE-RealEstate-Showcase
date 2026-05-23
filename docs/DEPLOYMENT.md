@@ -1,6 +1,6 @@
 # Live Deployment Blueprint
 
-This is the recommended production/demo deployment shape for ACE e-Counter.
+This is the recommended production/demo deployment shape for ACE Reception Services.
 
 ## Current live demo
 - Public app: `https://ace-realestate-showcase-production.up.railway.app/`

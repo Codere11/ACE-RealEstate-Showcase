@@ -1,7 +1,7 @@
 # AI Qualifier Spec
 
 See also:
-- `docs/ACE_ECOUNTER_QUALIFICATION_SPEC.md` — product-facing qualification funnel redesign for ACE e-Counter
+- `Reception-Services.txt` — project goal and north star
 
 ## Status
 ### Implemented first step (2026-04-30)

@@ -1,7 +1,7 @@
 # Project Presentation Guide
 
 ## 30-Second Pitch
-ACE e-Counter is a multi-tenant visitor-intake and conversion platform built around a Java Spring Boot application with a Python FastAPI + LangGraph AI/runtime service. It supports public intake, manager-side operations, live handoff, and payment requests in one product flow.
+ACE Reception Services is a multi-tenant visitor-intake and conversion platform built around a Java Spring Boot application with a Python FastAPI + LangGraph AI/runtime service. It supports public intake, manager-side operations, live handoff, and payment requests in one product flow.
 
 ## Live Demo
 - Public app: `https://ace-realestate-showcase-production.up.railway.app/`

@@ -1,6 +1,6 @@
 # Stripe Connect Local Setup
 
-This document describes the recommended local setup for Stripe Connect in ACE e-Counter.
+This document describes the recommended local setup for Stripe Connect in ACE Reception Services.
 
 ## Goal
 Platform-level Stripe configuration should happen once.
@@ -91,7 +91,7 @@ Forward at least:
 8. open a lead and send a payment request
 
 ## 7. Local fallback behavior
-If the connected account is not fully payment-ready yet, ACE e-Counter can still open a Stripe-hosted demo checkout path so the flow remains testable.
+If the connected account is not fully payment-ready yet, ACE Reception Services can still open a Stripe-hosted demo checkout path so the flow remains testable.
 
 ## 8. Relevant routes
 ### Java dashboard routes
