@@ -7,6 +7,7 @@ from app.qualification.prompts import build_qualify_prompt, build_conversation_p
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
 from app.qualification.state import QualificationGraphState, TurnDecision, TurnInterpretation
 from app.services.llm_service import LLMService
+from app.qualification.tools import GURS_TOOLS, execute_tool
 
 try:
     from langgraph.graph import StateGraph, END

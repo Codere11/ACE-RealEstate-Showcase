@@ -1,92 +1,75 @@
-# ACE e-Counter
+# ACE Reception Services
 
-ACE e-Counter is a multi-tenant visitor-intake and conversion platform built around a **Java Spring Boot application** with a supporting **Python AI/runtime service**.
+ACE Reception Services is an **AI receptionist platform for Slovenian beauty salons (kozmeticni saloni)** — a no-brainer for any salon looking to modernize their front desk.
 
-## Live demo
-- Public app: `https://ace-realestate-showcase-production.up.railway.app/`
-- Demo organization: `https://ace-realestate-showcase-production.up.railway.app/demo`
-- Login: `https://ace-realestate-showcase-production.up.railway.app/login`
+It replicates the real-world reception experience online: greet visitors, answer questions, help them select services, book appointments, and hand off to human staff when needed.
 
-## Demo video
-**Click the preview image below to watch the full demo on YouTube.**
+## Goal
 
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=0DwcuaiS--M" title="Watch the ACE e-Counter demo on YouTube">
-    <img src="docs/media/dashboard-leads-screen.png" alt="ACE e-Counter demo preview — click to watch on YouTube" width="900">
-  </a>
-</p>
+> Make ACE a **no-brainer** for Slovenian beauty salons and similar appointment-based service businesses.
 
-<p align="center">
-  ▶ <a href="https://www.youtube.com/watch?v=0DwcuaiS--M"><strong>Click the image to watch the demo on YouTube</strong></a>
-</p>
+Why salons: they already have the perfect business model to digitalize — someone walks in, talks with the receptionist, asks questions, selects a service, gets it done. Higher transaction volume = faster revenue via commissions.
 
-- YouTube walkthrough: `https://www.youtube.com/watch?v=0DwcuaiS--M`
-- Covers the visitor intake flow, AI qualification, manager dashboard, takeover, and payment request flow
-
-It is designed to show a complete product story:
-- visitor intake through survey or open chat
-- AI-assisted qualification
-- manager-side lead operations
-- live human handoff
-- payment request flow with Stripe-hosted checkout
+## Demo concept
+- **3 demo services** with AI-generated photos
+- **AI receptionist** sits middle-bottom of the page — highly inviting
+- **"We are open — a human can join you"** / **"We are closed — I can handle the basics"**
+- **Calendar + appointment booking** on the visitor side
+- **Live staff video handoff** with slow fade-in (accept/deny controls)
+- **Staff dashboard** with calendar, leads, and conversation takeover
 
 ## Stack
-- **Java 21 + Spring Boot + Thymeleaf** — main product application
-- **Python + FastAPI + LangGraph** — AI/runtime service and qualification orchestration
+- **Angular** — visitor-side SPA (AI receptionist chat, services, calendar, live handoff)
+- **Java 21 + Spring Boot + Thymeleaf** — backend REST API + manager dashboard
+- **Python + FastAPI + LangGraph** — AI/runtime service and receptionist orchestration
 - **PostgreSQL** — persistence
-- **LiveKit** — live-help transport for demo/testing
-- **Stripe / Stripe Connect** — payment requests and hosted checkout
+- **LiveKit** — live staff video handoff
 
 ## What lives where
-- `java-platform/` — primary application
+- `angular-visitor/` — visitor-side Angular SPA (planned)
+- `java-platform/` — backend API + manager dashboard
 - `app/` — Python AI/runtime service
+- `ace-mobile/` — existing Ionic/Angular mobile companion
 - `docs/` — product and architecture documentation
 - `scripts/` — helper and seed scripts
 
 ## Product surface
-### Visitor side
+### Visitor side (Angular SPA)
 Visitors can:
-- start in survey mode or open qualification chat
-- continue the conversation naturally
-- receive live human help when a manager steps in
-- receive a payment request button directly in chat
+- chat with the AI receptionist naturally
+- browse services with AI-generated photos
+- get answers about services, pricing, and availability
+- book appointments via calendar
+- see open/closed hours status
+- accept or deny staff joining the conversation
+- explicitly request a human staff member
+- experience a premium slow fade-in when staff joins via video
 
-### Manager side
+### Manager side (Java dashboard)
 Managers can:
-- open the organization dashboard
-- inspect lead threads and qualification signals
-- take over chat
-- manage surveys and qualifier behavior
-- preview and start live help
-- send payment requests
+- manage calendar and appointments
+- inspect lead threads and conversation history
+- take over conversations from the AI receptionist
+- join visitor conversations via live video
+- manage services and operating hours
+- set open/closed status
 
 ## Architecture summary
+### Angular visitor SPA
+The visitor experience — the core product surface. An AI receptionist that feels like walking into a real salon.
+
 ### Java app
-The Java application is the main user-facing product.
-It currently owns:
-- auth and login
-- public visitor routes
-- organization dashboard
-- survey management UI
-- qualifier management UI
-- lead thread and takeover flow
-- live-help session UI flow
-- payment request UI and public payment pages
+Backend REST API serving the Angular SPA, plus the Thymeleaf-rendered manager dashboard. Owns auth, org management, calendar, leads, and live-session orchestration.
 
 ### Python service
-The Python service supports AI/runtime behavior, including:
-- qualifier/runtime logic
-- LangGraph-based qualification orchestration
-- event and runtime support paths
-- integration points used by the Java app when AI behavior is needed
+The AI brain — LangGraph-powered receptionist logic, intent routing (greet → qualify → book → handoff), and conversational behavior.
 
 ## Live deployment shape
-The live Railway deployment currently runs as a **single public container** built from the repo-root `Dockerfile`:
-- Java serves the public app on the external port
+The live Railway deployment runs as a **single public container** built from the repo-root `Dockerfile`:
+- Java serves the API + dashboard on the external port
 - Python runtime runs inside the same container on `127.0.0.1:8000`
+- Angular visitor SPA is served as static assets (or via separate deployment)
 - PostgreSQL remains a separate managed Railway service
-
-This keeps the source architecture split between Java and Python while making the hosted demo much more robust to deploy.
 
 ## Local development
 ### 1. Start infrastructure
@@ -100,35 +83,31 @@ cd java-platform
 ./mvnw spring-boot:run
 ```
 
-### 3. Optionally run the Python AI/runtime service
+### 3. Run the Python AI/runtime service
 ```bash
 ./run_backend.sh
 ```
 
+### 4. Run the Angular visitor SPA (planned)
+```bash
+cd angular-visitor
+ng serve
+```
+
 ### Main local URLs
+- Angular visitor: `http://127.0.0.1:4200`
 - Java app: `http://127.0.0.1:8080`
-- Demo public route: `http://127.0.0.1:8080/demo`
 - Demo dashboard: `http://127.0.0.1:8080/demo/dashboard`
 - Login: `http://127.0.0.1:8080/login`
 - Demo credentials: `admin / test123`
 - Python service docs: `http://127.0.0.1:8000/docs`
 
 ## Documentation
-- `ARCHITECTURE.md` — current system architecture
-- `docs/LOCAL_DEVELOPMENT.md` — Java-first local runbook
+- `Reception-Services.txt` — project goal and north star
+- `ARCHITECTURE.md` — system architecture with flow diagrams
 - `docs/PRODUCT_OVERVIEW.md` — product-level overview
-- `docs/API_OVERVIEW.md` — Java and Python route ownership summary
-- `docs/AI_QUALIFIER_SPEC.md` — qualifier/product behavior details
-- `docs/LIVE_HELP_SPEC.md` — live-help design notes
-- `docs/STRIPE_CONNECT_LOCAL_SETUP.md` — Stripe local setup notes
-
-## Why this repo is strong
-ACE e-Counter shows:
-- product architecture, not isolated scripts
-- a clean Java app paired with a focused Python AI service
-- multi-tenant design
-- manager-side operational workflows
-- a real path from intake to conversion
+- `docs/LOCAL_DEVELOPMENT.md` — local runbook
+- `docs/API_OVERVIEW.md` — route ownership summary
 
 ## Author
 Maks Ponikvar

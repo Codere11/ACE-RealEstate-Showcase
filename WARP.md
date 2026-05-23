@@ -1,10 +1,19 @@
 # WARP.md
 
+ACE Reception Services — AI receptionist for Slovenian beauty salons.
+
 This repository is centered on:
-- `java-platform/` — main Spring Boot application
+- `angular-visitor/` — Angular SPA (visitor-side receptionist, planned)
+- `java-platform/` — Spring Boot backend API + manager dashboard
 - `app/` — Python FastAPI + LangGraph AI/runtime service
 
 ## Common commands
+
+### Angular visitor SPA (planned)
+```bash
+cd angular-visitor
+ng serve
+```
 
 ### Java app
 ```bash
@@ -24,9 +33,11 @@ docker compose -f docker-compose-simple.yml up -d
 ```
 
 ## Local URLs
+- Angular visitor: `http://127.0.0.1:4200`
 - Java app: `http://127.0.0.1:8080`
 - Python docs: `http://127.0.0.1:8000/docs`
 
 ## Architecture note
-Treat the Java app as the main product surface.
-Treat the Python service as the FastAPI + LangGraph AI/runtime support layer.
+Angular SPA = visitor product surface (AI receptionist, services, booking, live handoff).
+Java app = REST API for Angular + Thymeleaf dashboard for managers.
+Python service = AI receptionist brain (LangGraph intent routing).

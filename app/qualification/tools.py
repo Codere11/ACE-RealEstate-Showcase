@@ -12,10 +12,13 @@ _SLOVENIA_BBOX = "13.2,45.4,16.7,46.9"
 _BASE_OGCN = "https://ipi.eprostor.gov.si/wfs-si-gurs-kn/ogc/features"
 _BASE_OGCR = "https://ipi.eprostor.gov.si/wfs-si-gurs-rpe/ogc/features"
 _BASE_WFS = "https://ipi.eprostor.gov.si/wfs-si-gurs-kn/wfs"
+_BASE_WFS_EV = "https://ipi.eprostor.gov.si/wfs-si-gurs-ev/wfs"
 _BASE_SEARCH = "https://ipi.eprostor.gov.si/jv-api/search"
 
 # Municipality bbox cache — loaded once, avoids 7s penalty per query
 _muni_cache: dict = {}
+# Cadastral municipality name cache — KO_ID → name
+_ko_cache: dict = {}
 
 
 def _fetch(url: str) -> dict:
@@ -64,11 +67,40 @@ GURS_TOOLS = [
         "type": "function",
         "function": {
             "name": "gurs_get_building",
-            "description": "Pridobi vse podatke o stavbi po EID: leto izgradnje, etaže, stanovanja, konstrukcija, priključki, površina.",
+            "description": "Pridobi vse podatke o stavbi po EID: status, leto izgradnje in obnove fasade, etaže (tudi katera je pritličje), stanovanja, poslovni prostori, konstrukcija, priključki (elektrika, voda, kanalizacija, plin), bruto površina, višinske kote (najnižja, najvišja, karakteristična), katastrska občina (ID in ime), tip stavbe.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "eid": {"type": "string", "description": "EID stavbe iz gurs_search_address"}
+                },
+                "required": ["eid"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "gurs_get_building_parts",
+            "description": "Pridobi dele stavbe (stanovanja, poslovne prostore) z EID stavbe. Vrne: številko dela, dejansko rabo (stanovanje/poslovni prostor), uporabno in neto tlorisno površino, etažo, prisotnost dvigala, leto obnove inštalacij in oken, podatek o etažni lastnini. Uporabi ko uporabnik sprašuje o stanovanjih, poslovnih prostorih ali posameznih delih stavbe.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "eid": {"type": "string", "description": "EID stavbe"},
+                    "limit": {"type": "integer", "description": "Max delov stavbe, privzeto 10"}
+                },
+                "required": ["eid"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "gurs_get_building_addresses",
+            "description": "Pridobi vse naslove stavbe po EID (ulica, hišna številka, naselje, občina, pošta). Uporabi ko uporabnik vpraša 'kateri naslovi so v tej stavbi' ali 'na katerih naslovih je ta stavba'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "eid": {"type": "string", "description": "EID stavbe"}
                 },
                 "required": ["eid"]
             }
@@ -121,8 +153,50 @@ GURS_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "gurs_get_actual_land_use",
+            "description": "Pridobi dejansko rabo zemljišča (ne namensko!) za območje (bbox). Vrne opis dejanske rabe v slovenščini (npr. 'pozidano zemljišče', 'gozd', 'kmetijsko zemljišče', 'stanovanjska raba').",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "bbox": {"type": "string", "description": "Bbox: 'minLon,minLat,maxLon,maxLat'"}
+                },
+                "required": ["bbox"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "gurs_get_soil_quality",
             "description": "Pridobi boniteto tal (0-100) za območje (bbox). Vrne skupno oceno in razčlenitev na tla, podnebje, relief.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "bbox": {"type": "string", "description": "Bbox: 'minLon,minLat,maxLon,maxLat'"}
+                },
+                "required": ["bbox"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "gurs_get_mass_valuation",
+            "description": "Pridobi podatke o množičnem vrednotenju stavbe (EV) po EID: leto izgradnje (EV vir), leto obnove strehe, število etaž, površina, tip konstrukcije, tip stavbe, ZPS šifra. Uporabi ko uporabnik sprašuje o vrednosti nepremičnine, letu obnove strehe ali podatkih iz vrednotenja.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "eid": {"type": "string", "description": "EID stavbe"}
+                },
+                "required": ["eid"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "gurs_get_utility_summary",
+            "description": "Pridobi povzetek komunalne opremljenosti za območje (bbox) iz KGI (Kataster gospodarske javne infrastrukture): elektrika, vodovod, kanalizacija, plin, telekomunikacije, toplovod. Vrne 'Da' ali 'Ni podatka' za vsako omrežje.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -159,8 +233,8 @@ GURS_TOOLS = [
 
 
 def _load_municipality_cache():
-    """Pre-load all municipality bboxes. Called once on first query."""
-    global _muni_cache
+    """Pre-load all municipality bboxes and cadastral municipality names. Called once on first query."""
+    global _muni_cache, _ko_cache
     if _muni_cache:
         return
     data = _fetch(f"{_BASE_OGCR}/collections/SI.GURS.RPE:OBCINE/items?f=application/geo%2Bjson&bbox={_SLOVENIA_BBOX}&limit=212")
@@ -172,7 +246,24 @@ def _load_municipality_cache():
             for pt in ring:
                 lons.append(pt[0]); lats.append(pt[1])
         _muni_cache[name] = f"{min(lons):.4f},{min(lats):.4f},{max(lons):.4f},{max(lats):.4f}"
-    logger.warning(f"Municipality cache loaded: {len(_muni_cache)} občin")
+    # Load cadastral municipality names (KO_ID → name, e.g. 1735 → STOŽICE)
+    try:
+        ko_data = _fetch(f"{_BASE_OGCN}/collections/SI.GURS.KN:KATASTRSKE_OBCINE/items?f=application/geo%2Bjson&bbox={_SLOVENIA_BBOX}&limit=3000")
+        for f in (ko_data.get("features") or []):
+            p = f["properties"]
+            ko_id = p.get("KO_ID") or p.get("KO_SIFRA")
+            ko_name = p.get("KO_NAZIV") or p.get("NAZIV")
+            if ko_id and ko_name:
+                _ko_cache[str(ko_id)] = str(ko_name)
+        logger.warning(f"Municipality cache loaded: {len(_muni_cache)} občin, {len(_ko_cache)} katastrskih občin")
+    except Exception as e:
+        logger.warning(f"KO name cache load failed (non-fatal): {e}")
+
+
+def _ko_name(ko_id) -> str:
+    """Resolve cadastral municipality ID to name, e.g. 1735 → STOŽICE."""
+    _load_municipality_cache()
+    return _ko_cache.get(str(ko_id), str(ko_id))
 
 
 def execute_tool(name: str, args: dict) -> str:
@@ -238,17 +329,32 @@ def execute_tool(name: str, args: dict) -> str:
             if not feats:
                 return json.dumps({"napaka": f"Stavba {eid} ni najdena"}, ensure_ascii=False)
             p = feats[0]["properties"]
+            ko_id = p.get("KO_ID")
             return json.dumps({"stavba": {
-                "eid": eid, "tip": p.get("TIPI_STAVB_NAZIV_SL"),
+                "eid": eid,
+                "status": p.get("STATUSI_VPISA_STAVBE_NAZIV_SL"),
+                "st_stavbe": p.get("ST_STAVBE"),
+                "tip": p.get("TIPI_STAVB_NAZIV_SL"),
                 "leto_izgradnje": p.get("LETO_IZGRADNJE"),
+                "leto_obnove_fasade": p.get("LETO_OBNOVE_FASADE"),
                 "stevilo_etaz": p.get("STEVILO_ETAZ"),
+                "pritlicje_etaza": p.get("STEVILO_PRITLICNE_ETAZE") or p.get("ETAZA_PRITLICJE"),
                 "stevilo_stanovanj": p.get("STEVILO_STANOVANJ"),
+                "stevilo_poslovnih_prostorov": p.get("STEVILO_POSLOVNIH_PROSTOROV"),
                 "bruto_povrsina_m2": p.get("BRUTO_TLORISNA_POVRSINA"),
                 "konstrukcija": p.get("NOSILNE_KONSTRUKCIJE_NAZIV_SL"),
+                "visina_najnizja_m": p.get("VISINA_H1"),
+                "visina_najvisja_m": p.get("VISINA_H2"),
+                "visina_karakteristicna_m": p.get("VISINA_H3"),
                 "elektrika": p.get("ELEKTRIKA_NAZIV_SL"),
                 "vodovod": p.get("VODOVOD_NAZIV_SL"),
                 "kanalizacija": p.get("KANALIZACIJA_NAZIV_SL"),
-                "obcina": p.get("RPE_OBCINE_NAZIV"), "ko_id": p.get("KO_ID"),
+                "plinovod": p.get("PLINOVOD_NAZIV_SL"),
+                "toplotna_energija": p.get("TOPLOTNA_ENERGIJA_NAZIV_SL"),
+                "obcina": p.get("RPE_OBCINE_NAZIV"),
+                "ko_id": ko_id,
+                "ko_ime": _ko_name(ko_id) if ko_id else None,
+                "natancnost_polozaja": p.get("POLOZAJNE_NATANCNOSTI_STAVBE_NAZIV_SL"),
             }}, ensure_ascii=False)
 
         if name == "gurs_get_parcels":
@@ -264,6 +370,7 @@ def execute_tool(name: str, args: dict) -> str:
             results = [{
                 "st_parcele": f["properties"].get("ST_PARCELE"),
                 "ko_id": f["properties"].get("KO_ID"),
+                "ko_ime": _ko_name(f["properties"].get("KO_ID")),
                 "povrsina_m2": f["properties"].get("POVRSINA"),
             } for f in (data.get("features") or [])[:limit]]
             total = data.get("numberMatched", len(results))
@@ -290,6 +397,17 @@ def execute_tool(name: str, args: dict) -> str:
                 results.append(p.get("PODROBNE_NAMENSKE_RABE_OPIS_SL") or p.get("PODROBNE_NAMENSKE_RABE_NAZIV_SL", ""))
             return json.dumps({"namenska_raba": [r for r in results if r]}, ensure_ascii=False)
 
+        if name == "gurs_get_actual_land_use":
+            bbox = args["bbox"]
+            data = _fetch(f"{_BASE_OGCN}/collections/SI.GURS.KN:DEJANSKE_RABE/items?f=application/geo%2Bjson&bbox={bbox}&limit=5")
+            results = []
+            for f in (data.get("features") or [])[:5]:
+                p = f["properties"]
+                raba = p.get("MASKA_IME") or p.get("RABA_NAZIV_SL") or p.get("DEJANSKA_RABA_NAZIV_SL", "")
+                if raba:
+                    results.append(raba)
+            return json.dumps({"dejanska_raba": results}, ensure_ascii=False)
+
         if name == "gurs_get_soil_quality":
             bbox = args["bbox"]
             data = _fetch(f"{_BASE_OGCN}/collections/SI.GURS.KN:BONITETE/items?f=application/geo%2Bjson&bbox={bbox}&limit=3")
@@ -303,6 +421,100 @@ def execute_tool(name: str, args: dict) -> str:
                     "tocke_relief": p.get("TOCKE_RELIEF"),
                 })
             return json.dumps({"bonitete_tal": results}, ensure_ascii=False)
+
+        if name == "gurs_get_building_parts":
+            eid = args["eid"]
+            limit = int(args.get("limit", 10))
+            cql = urllib.parse.quote(f"EID_STAVBA='{eid}'")
+            data = _fetch(f"{_BASE_WFS}?service=WFS&request=GetFeature&version=2.0.0&typeNames=SI.GURS.KN:DELI_STAVB&srsName=EPSG:4326&count={limit}&outputFormat=application/json&cql_filter={cql}")
+            feats = data.get("features") or []
+            if not feats:
+                return json.dumps({"deli_stavbe": [], "stevilo": 0}, ensure_ascii=False)
+            results = []
+            for f in feats[:limit]:
+                p = f["properties"]
+                results.append({
+                    "st_dela": p.get("ST_DELA_STAVBE") or p.get("ST_STANOVANJA"),
+                    "naslov": p.get("NASLOV_DELA_STAVBE"),
+                    "dejanska_raba": p.get("VRSTE_DEJANSKIH_RAB_DEL_ST_NAZIV_SL"),
+                    "uporabna_povrsina_m2": p.get("UPORABNA_POVRSINA"),
+                    "neto_povrsina_m2": p.get("POVRSINA"),
+                    "stevilka_etaze": p.get("ETAZE_DELA_STAVBE"),
+                    "st_etaze_vhoda": p.get("ST_ETAZE_GLAVNEGA_VHODA"),
+                    "dvigalo": p.get("DVIGALO_NAZIV_SL"),
+                    "leto_obnove_instalacij": p.get("LETO_OBNOVE_INSTALACIJ"),
+                    "leto_obnove_oken": p.get("LETO_OBNOVE_OKEN"),
+                    "etazna_lastnina": p.get("ETAZNA_LASTNINA_NAZIV_SL"),
+                    "skupni_del": p.get("SKUPNI_DEL_ETAZNA_LASTNINA_NAZIV_SL"),
+                    "upravnik": p.get("NAZIV"),
+                    "upravnik_status": p.get("STATUSI_UPRAVNIKOV_NAZIV_SL"),
+                })
+            total = data.get("numberMatched", len(results))
+            return json.dumps({"deli_stavbe": results, "stevilo": total}, ensure_ascii=False)
+
+        if name == "gurs_get_building_addresses":
+            eid = args["eid"]
+            cql = urllib.parse.quote(f"EID_STAVBA='{eid}'")
+            data = _fetch(f"{_BASE_WFS}?service=WFS&request=GetFeature&version=2.0.0&typeNames=SI.GURS.KN:NASLOVI_HS&srsName=EPSG:4326&count=50&outputFormat=application/json&cql_filter={cql}")
+            feats = data.get("features") or []
+            results = []
+            for f in feats[:20]:
+                p = f["properties"]
+                results.append({
+                    "ulica": p.get("ULICA_NAZIV"),
+                    "hisna_st": p.get("HS_STEVILKA"),
+                    "naselje": p.get("NASELJE_NAZIV"),
+                    "obcina": p.get("OBCINA_NAZIV"),
+                    "posta": p.get("POSTNI_OKOLIS_NAZIV") or p.get("POSTA_STEVILKA"),
+                })
+            return json.dumps({"naslovi": results, "stevilo": len(results)}, ensure_ascii=False)
+
+        if name == "gurs_get_mass_valuation":
+            eid = args["eid"]
+            cql = urllib.parse.quote(f"EID_STAVBA='{eid}'")
+            data = _fetch(f"{_BASE_WFS_EV}?service=WFS&request=GetFeature&version=2.0.0&typeNames=SI.GURS.EV:STAVBA&srsName=EPSG:4326&count=1&outputFormat=application/json&cql_filter={cql}")
+            feats = data.get("features") or []
+            if not feats:
+                return json.dumps({"napaka": f"Podatki EV za stavbo {eid} niso na voljo (množično vrednotenje morda ni objavljeno za to stavbo)"}, ensure_ascii=False)
+            p = feats[0]["properties"]
+            return json.dumps({"vrednotenje": {
+                "leto_izgradnje": p.get("LETO_IZG_STA"),
+                "leto_obnove_strehe": p.get("LETO_OBN_STREHE"),
+                "stevilo_etaz": p.get("ST_ETAZ"),
+                "povrsina_m2": p.get("POV_STAVBE"),
+                "konstrukcija": p.get("NAZIV_KONSTRUKCIJA"),
+                "tip_stavbe": p.get("NAZIV_TIP_STAVBE"),
+                "zps_stavba": p.get("ZPS_STAVBA"),
+                "st_parcel_pod_stavbo": p.get("ST_PAR_STAVBE"),
+            }}, ensure_ascii=False)
+
+        if name == "gurs_get_utility_summary":
+            bbox = args["bbox"]
+            # Expand bbox ~500m for KGI (KGI layers can be sparse in dense urban areas at tight bbox)
+            parts = [float(x) for x in bbox.split(",")]
+            if len(parts) == 4:
+                pad = 0.005  # ~500m
+                wide_bbox = f"{parts[0]-pad},{parts[1]-pad},{parts[2]+pad},{parts[3]+pad}"
+            else:
+                wide_bbox = bbox
+            # Quick existence check for key utility layers via KGI WFS
+            utility_layers = {
+                "elektrika": "POLIGONI_ELEKTRICNA_ENERGIJA_G",
+                "vodovod": "POLIGONI_VODOVOD_G",
+                "kanalizacija": "POLIGONI_KANALIZACIJA_G",
+                "plin": "POLIGONI_ZEMELJSKI_PLIN_G",
+                "telekomunikacije": "POLIGONI_ELEKTRONSKE_KOMUNIKACIJE_G",
+                "toplovod": "POLIGONI_TOPLOTNA_ENERGIJA_G",
+            }
+            results = {}
+            for label, layer in utility_layers.items():
+                try:
+                    url = f"https://ipi.eprostor.gov.si/wfs-si-gurs-kgi/wfs?service=WFS&request=GetFeature&version=2.0.0&typeNames=SI.GURS.KGI:{layer}&srsName=EPSG:4326&count=1&outputFormat=application/json&bbox={wide_bbox.replace(',','%2C')},EPSG:4326"
+                    d = _fetch(url)
+                    results[label] = "Da" if (d.get("features") or d.get("numberMatched")) else "Ni podatka"
+                except Exception:
+                    results[label] = "Ni podatka"
+            return json.dumps({"komunalna_opremljenost": results}, ensure_ascii=False)
 
         return json.dumps({"napaka": f"Neznano orodje: {name}"}, ensure_ascii=False)
     except Exception as e:
