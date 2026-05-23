@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError, timer, of } from 'rxjs';
 import { catchError, retryWhen, delayWhen, scan, switchMap, timeout } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { environment, getTenantSlug } from '../../environments/environment';
 
 // --- Request / Response types mirroring Java backend ---
 
@@ -61,7 +61,9 @@ export interface PollResult {
 @Injectable({ providedIn: 'root' })
 export class ChatApiService {
   private readonly baseUrl = environment.apiUrl;
-  private readonly tenantSlug = environment.tenantSlug;
+  private get tenantSlug(): string {
+    return getTenantSlug();
+  }
 
   constructor(private readonly http: HttpClient) {}
 
