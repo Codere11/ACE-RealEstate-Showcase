@@ -289,8 +289,7 @@
         </div>
 
         <div class="top-actions">
-            <a class="btn primary" href="/demo">Open /demo</a>
-            <a class="btn" href="/">Open root route</a>
+            <a class="btn primary" href="http://localhost:4200" target="_blank">Odpri salon (Angular SPA)</a>
             <a class="btn" href="/actuator/health">Health</a>
         </div>
 
@@ -304,7 +303,7 @@
                 <span th:text="${userCount}">0</span>
             </div>
             <div class="tile">
-                <strong>Admin flow</strong>
+                <strong>Saloni in osebje</strong>
                 <span>Deep-link tabs. Better stacked forms. Cleaner cards.</span>
             </div>
         </div>
@@ -338,7 +337,7 @@
                 <div class="org-head">
                     <div class="entity-title">
                         <strong th:text="${org.name}">Organization</strong>
-                        <div class="entity-route">Public route: <code th:text="'/' + ${org.slug}">/demo</code></div>
+                        <div class="entity-route">Visitor SPA: <code th:text="'http://localhost:4200'">http://localhost:4200</code></div>
                     </div>
                     <span class="badge" th:classappend="${org.active} ? ' active' : ' inactive'" th:text="${org.active} ? 'active' : 'inactive'">active</span>
                 </div>

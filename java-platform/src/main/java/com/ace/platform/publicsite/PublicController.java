@@ -2,6 +2,8 @@ package com.ace.platform.publicsite;
 
 import com.ace.platform.organization.OrganizationRepository;
 import com.ace.platform.tenant.TenantRouteService;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,14 +13,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.Map;
 
 /**
- * Minimal public controller — the visitor-facing UI is served by the Angular SPA.
- * These endpoints now return JSON status for debugging / health checks.
+ * Public controller — serves the Angular SPA for visitor routes.
+ * When the Angular SPA static files are available (classpath:static/index.html),
+ * visitor routes are served by the SPA. Otherwise, returns JSON status.
  */
 @Controller
 public class PublicController {
 
     private final TenantRouteService tenantRouteService;
     private final OrganizationRepository organizationRepository;
+    private final boolean spaAvailable;
 
     public PublicController(
         TenantRouteService tenantRouteService,
@@ -26,40 +30,21 @@ public class PublicController {
     ) {
         this.tenantRouteService = tenantRouteService;
         this.organizationRepository = organizationRepository;
+        this.spaAvailable = new ClassPathResource("static/index.html").exists();
     }
 
-    @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
-    public Map<String, Object> root() {
-        return Map.of(
-            "status", "ok",
-            "message", "ACE Reception Services — visitor UI is served by the Angular SPA"
-        );
-    }
-
-    @GetMapping(value = "/demo", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
-    public Map<String, Object> demo() {
-        return organizationRepository.findBySlugAndActiveTrue("demo")
-            .map(org -> Map.<String, Object>of(
-                "status", "ok",
-                "organization", org.getName(),
-                "slug", org.getSlug(),
-                "message", "Visitor UI is served by the Angular SPA"
-            ))
-            .orElse(Map.of(
-                "status", "not_found",
-                "message", "No active demo organization"
-            ));
-    }
-
-    @GetMapping(value = "/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
-    public Map<String, Object> tenant(@PathVariable String tenantSlug) {
-        if (tenantRouteService.isReservedPathSegment(tenantSlug)) {
-            return Map.of("status", "reserved", "slug", tenantSlug);
+    @GetMapping({"/", "/demo", "/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}"})
+    public String visitorRoutes() {
+        if (spaAvailable) {
+            return "forward:/index.html";
         }
-        return organizationRepository.findBySlugAndActiveTrue(tenantSlug)
+        return "redirect:http://localhost:4200";
+    }
+
+    @GetMapping(value = "/api/public/organizations/{orgSlug}/status", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, Object> status(@PathVariable String orgSlug) {
+        return organizationRepository.findBySlugAndActiveTrue(orgSlug)
             .map(org -> Map.<String, Object>of(
                 "status", "ok",
                 "organization", org.getName(),
@@ -67,7 +52,7 @@ public class PublicController {
             ))
             .orElse(Map.of(
                 "status", "not_found",
-                "slug", tenantSlug
+                "slug", orgSlug
             ));
     }
 }

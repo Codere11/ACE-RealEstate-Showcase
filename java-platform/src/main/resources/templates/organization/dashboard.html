@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${organization.name} + ' Dashboard'">Organization Dashboard</title>
+    <title th:text="${organization.name} + ' — ACE Reception Services'">Organization Dashboard</title>
     <style>
         * { box-sizing: border-box; }
         html, body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #22252A; background: #0E1014; }
@@ -734,11 +734,8 @@
         </div>
     </div>
     <nav class="tabs">
-        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=leads'}" th:classappend="${activeTab == 'leads'} ? ' active'">LEADS</a>
-        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=surveys'}" th:classappend="${activeTab == 'surveys'} ? ' active'">SURVEYS</a>
-        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=qualifier'}" th:classappend="${activeTab == 'qualifier'} ? ' active'">AI QUALIFIER</a>
-        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=payments'}" th:classappend="${activeTab == 'payments'} ? ' active'">PAYMENTS</a>
-        <span class="disabled">ANALYTICS · coming soon</span>
+        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=leads'}" th:classappend="${activeTab == 'leads'} ? ' active'">KONVERZACIJE</a>
+        <a th:href="@{'/' + ${organization.slug} + '/dashboard?tab=receptor'}" th:classappend="${activeTab == 'receptor'} ? ' active'">AI RECEPTOR</a>
     </nav>
     <div class="right"><div class="user-pill">Viewer: <span th:text="${viewer}">preview</span></div></div>
 </header>
@@ -746,8 +743,8 @@
 <div class="dashboard-background">
     <div class="dashboard-container" id="dashboard-app"
          th:attr="data-org-id=${organizationId},data-org-slug=${organization.slug},data-selected-sid=${selectedLeadSid},data-selected-survey-id=${selectedSurveyId},data-selected-qualifier-id=${selectedQualifierId},data-active-tab=${activeTab}">
-        <h1 class="title">ACE e-Counter Intelligence</h1>
-        <p class="subtitle"><span th:text="${organization.name}">Organization</span> · route <strong th:text="'/' + ${organization.slug}">/demo</strong></p>
+        <h1 class="title">ACE Reception Services</h1>
+        <p class="subtitle"><span th:text="${organization.name}">Organization</span> · route <strong th:text="'/' + ${organization.slug}">/demo</strong> · AI Receptor aktiviran</p>
 
         <div class="hero-strip">
             <div class="hero-card"><strong>Organization</strong><small th:text="${organization.name}">Demo Agency</small></div>
@@ -781,8 +778,8 @@
 
                 <div class="live-stage-stats">
                     <div class="live-stage-stats__item">
-                        <span class="live-stage-stats__label">Public survey route</span>
-                        <span class="live-stage-stats__value muted" th:text="'/' + ${organization.slug} + '/survey/start'">/demo/survey/start</span>
+                        <span class="live-stage-stats__label">Visitor SPA</span>
+                        <span class="live-stage-stats__value muted">http://localhost:4200</span>
                     </div>
                     <div class="live-stage-stats__item">
                         <span class="live-stage-stats__label">Live leads</span>
@@ -796,7 +793,7 @@
             </div>
 
             <div class="leads-grid dashboard-split dashboard-split--leads">
-                <aside class="sidebar">
+                <aside class="sidebar" style="min-height: 0;">
                     <div class="card">
                         <h3>Filters</h3>
                         <div class="filter-grid">
@@ -1079,60 +1076,60 @@
                 </main>
             </div>
         </section>
-        <section th:if="${activeTab == 'qualifier'}" class="stack">
+        <section th:if="${activeTab == 'receptor'}" class="stack">
             <div class="leads-grid dashboard-split dashboard-split--builder">
                 <aside class="sidebar">
                     <div class="card stack">
                         <div>
-                            <h3>ACE e-Counter qualifier</h3>
-                            <p class="muted">Create, tune, publish, and archive the active AI qualifier for this organization.</p>
+                            <h3>AI Receptor</h3>
+                            <p class="muted">Ustvarite, prilagodite in objavite AI Receptorja za ta salon.</p>
                         </div>
                         <div class="actions">
-                            <button id="qualifierCreateButton" type="button" class="btn primary">New qualifier</button>
+                            <button id="qualifierCreateButton" type="button" class="btn primary">Nov receptor</button>
                         </div>
                         <div class="note-card">
-                            <strong>How this is used</strong>
-                            Java owns the dashboard configuration and active qualifier resolution. The runtime bridge can consume the published qualifier as the internal AI policy.
+                            <strong>Kako deluje</strong>
+                            AI Receptor pozdravlja obiskovalce, odgovarja na vprašanja o storitvah, pomaga pri rezervaciji terminov in povezuje z osebjem.
                         </div>
                     </div>
 
                     <div class="card">
-                        <h3>Qualifiers</h3>
-                        <p class="muted">Open a qualifier to edit policy, captured fields, and publish state.</p>
-                        <div id="qualifierList" class="lead-list"><div class="empty-card">Loading qualifiers…</div></div>
+                        <h3>Receptorji</h3>
+                        <p class="muted">Odprite receptorja za urejanje in objavo.</p>
+                        <div id="qualifierList" class="lead-list"><div class="empty-card">Nalaganje receptorjev…</div></div>
                     </div>
                 </aside>
 
                 <main class="stack">
-                    <div id="qualifierEditorEmpty" class="empty-card">Create or select a qualifier to configure the ACE e-Counter policy.</div>
+                    <div id="qualifierEditorEmpty" class="empty-card">Ustvarite ali izberite receptorja za konfiguracijo.</div>
                     <div id="qualifierEditor" class="stack" style="display:none;">
                         <div class="card stack">
                             <div class="lead-head">
                                 <div>
-                                    <h2 id="qualifierEditorTitle" style="margin:0 0 8px;">ACE e-Counter qualifier</h2>
+                                    <h2 id="qualifierEditorTitle" style="margin:0 0 8px;">AI Receptor</h2>
                                     <div id="qualifierEditorMeta" class="status-row"></div>
                                 </div>
                                 <div class="actions">
-                                    <button id="qualifierPublishButton" type="button" class="btn">Publish</button>
-                                    <button id="qualifierArchiveButton" type="button" class="btn danger">Archive</button>
+                                    <button id="qualifierPublishButton" type="button" class="btn">Objavi</button>
+                                    <button id="qualifierArchiveButton" type="button" class="btn danger">Arhiviraj</button>
                                 </div>
                             </div>
 
                             <div class="helper-grid">
                                 <div class="field">
-                                    <label for="qualifierName">Name</label>
-                                    <input id="qualifierName" type="text" placeholder="ACE e-Counter">
+                                    <label for="qualifierName">Ime</label>
+                                    <input id="qualifierName" type="text" placeholder="AI Receptor">
                                 </div>
                                 <div class="field">
                                     <label for="qualifierSlug">Slug</label>
-                                    <input id="qualifierSlug" type="text" placeholder="ace-e-counter">
+                                    <input id="qualifierSlug" type="text" placeholder="ai-receptor">
                                 </div>
                                 <div class="field">
-                                    <label for="qualifierAssistantStyle">Assistant style</label>
-                                    <input id="qualifierAssistantStyle" type="text" placeholder="friendly, concise, consultative">
+                                    <label for="qualifierAssistantStyle">Slog receptorja</label>
+                                    <input id="qualifierAssistantStyle" type="text" placeholder="prijazen, topel, profesionalen">
                                 </div>
                                 <div class="field">
-                                    <label for="qualifierContactCapturePolicy">Contact capture policy</label>
+                                    <label for="qualifierContactCapturePolicy">Zajem kontaktnih podatkov</label>
                                     <input id="qualifierContactCapturePolicy" type="text" placeholder="when_high_intent_or_explicit">
                                 </div>
                             </div>
@@ -2486,12 +2483,12 @@
     async function createQualifier() {
       showMessage('');
       const payload = {
-        name: 'ACE e-Counter',
+        name: 'AI Receptor',
         slug: nextDefaultSlug(),
         status: 'draft',
-        systemPrompt: 'Explain ACE e-Counter accurately. Treat real businesses as valid prospects even if they are small, informal, or offline-first. Ask one useful follow-up question when needed.',
-        assistantStyle: 'friendly, concise, consultative',
-        goalDefinition: 'Understand whether ACE can help this business, learn how they currently get customers, surface pain points, and move strong leads toward the next step.',
+        systemPrompt: 'Ti si AI Receptor za kozmetični salon. Toplo pozdravi obiskovalce, odgovarjaj na vprašanja o storitvah, pomagaj pri izbiri tretmajev in rezerviraj termine.',
+        assistantStyle: 'prijazen, topel, profesionalen',
+        goalDefinition: 'Pomagati strankam pri izbiri kozmetičnih storitev, odgovarjati na vprašanja, in rezervirati termine — kot pravi receptor v salonu.',
         fieldSchema: buildFieldSchema(defaultTrackedFields()),
         requiredFields: defaultTrackedFields().filter(field => field.required).map(field => field.name),
         scoringRules: { notes: 'Runtime metadata only' },
@@ -3043,8 +3040,10 @@
 
   if (base.activeTab === 'leads') initLeads();
   if (base.activeTab === 'surveys') initSurveys();
-  if (base.activeTab === 'qualifier') initQualifiers();
+  if (base.activeTab === 'receptor') initQualifiers();
   if (base.activeTab === 'payments') initPayments();
+  // Backwards compat
+  if (base.activeTab === 'qualifier') initQualifiers();
 })();
 </script>
 </body>
