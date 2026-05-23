@@ -1247,6 +1247,9 @@
   const root = document.getElementById('dashboard-app');
   if (!root || !root.dataset.orgId) return;
 
+  // VISIBLE PROOF THE SCRIPT RUNS
+  document.getElementById('leadList').innerHTML = '<div class="empty-card" style="background:#ecfdf5;color:#059669;">✅ Script se je zagnal. Nalagam pogovore...</div>';
+
   const base = {
     orgId: root.dataset.orgId,
     orgSlug: root.dataset.orgSlug,
@@ -1485,12 +1488,12 @@
     }
 
     function releasePreviewMedia() {
-      try { localVideoTrack?.stop(); } catch {}
-      try { localAudioTrack?.stop(); } catch {}
+      try { localVideoTrack?.stop(); } catch(e) {}
+      try { localAudioTrack?.stop(); } catch(e) {}
       localVideoTrack = null;
       localAudioTrack = null;
       els.livePreviewVideo.srcObject = null;
-      try { els.livePreviewVideo.load(); } catch {}
+      try { els.livePreviewVideo.load(); } catch(e) {}
       state.livePreviewHasVideo = false;
     }
 
@@ -1558,7 +1561,7 @@
     function disconnectLiveRoom() {
       const room = liveRoom;
       if (room) suppressLiveRoomDisconnectHandler = true;
-      try { room?.disconnect(); } catch {}
+      try { room?.disconnect(); } catch(e) {}
       liveRoom = null;
       liveRoomName = null;
     }
@@ -1969,7 +1972,7 @@
       } catch (error) {
         showLiveError(error?.message || 'Failed to go live.');
         if (lead?.sid) {
-          try { await loadCurrentLiveSession(lead.sid); } catch {}
+          try { await loadCurrentLiveSession(lead.sid); } catch(e) {}
         }
       } finally {
         state.liveSessionLoading = false;
