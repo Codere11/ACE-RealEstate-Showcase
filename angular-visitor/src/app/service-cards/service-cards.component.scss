@@ -1,0 +1,98 @@
+.services-section {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2e1065;
+  margin: 0 0 1.25rem;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.service-card {
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 24px rgba(124, 58, 237, 0.18);
+  }
+}
+
+.service-image {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #7c3aed;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.service-details {
+  padding: 1rem 1.15rem 1.15rem;
+}
+
+.service-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2e1065;
+  margin: 0 0 0.5rem;
+}
+
+.service-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+  color: #7c6b82;
+}
+
+.price {
+  font-weight: 700;
+  color: #5b21b6;
+}
+
+.book-btn {
+  width: 100%;
+  padding: 0.6rem 0;
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 640px) {
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+}

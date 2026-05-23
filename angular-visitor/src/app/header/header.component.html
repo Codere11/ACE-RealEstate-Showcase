@@ -1,0 +1,20 @@
+<header class="salon-header">
+  <div class="header-left">
+    <div class="logo-placeholder">
+      <span>L&amp;S</span>
+    </div>
+    <div class="salon-info">
+      <h1 class="salon-name">{{ salon.salonName }}</h1>
+      <p class="salon-subtitle">{{ salon.salonSubtitle }}</p>
+    </div>
+  </div>
+  <div class="header-right">
+    @if (salon.status() === 'open') {
+      <span class="status-badge open">☀ Odprto</span>
+      <span class="hours">{{ salon.openHour }}–{{ salon.closeHour }}</span>
+    } @else {
+      <span class="status-badge closed">🌙 Zaprto</span>
+      <span class="hours">Odprti {{ salon.openHour }}</span>
+    }
+  </div>
+</header>

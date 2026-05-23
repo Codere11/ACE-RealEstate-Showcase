@@ -1,0 +1,70 @@
+<section class="chat-section" id="chat-section">
+  <div class="chat-card" [class.minimized]="minimized()">
+    <div class="chat-header" (click)="toggleMinimize()">
+      <span class="chat-title">AI Receptor</span>
+      <span class="chat-status" [class.online]="salon.status() === 'open'"></span>
+      <span class="minimize-icon">{{ minimized() ? '▲' : '▼' }}</span>
+    </div>
+
+    @if (!minimized()) {
+      <!-- Connection status banner -->
+      @if (salon.connectionStatus() === 'connecting') {
+        <div class="connection-banner connecting">⏳ Povezovanje s strežnikom...</div>
+      } @else if (salon.connectionStatus() === 'error') {
+        <div class="connection-banner error">
+          ⚠️ {{ salon.errorMessage() || 'Povezava ni uspela.' }}
+          <button class="retry-btn" (click)="retryConnection()">Poskusi znova</button>
+        </div>
+      }
+
+      <div class="chat-messages" #chatContainer>
+        <!-- Staff video -->
+        @if (salon.staffState() !== 'idle') {
+          <app-staff-video></app-staff-video>
+        }
+
+        <!-- Messages -->
+        @for (msg of salon.messages(); track $index) {
+          <div class="message-row" [class]="msg.role === 'user' ? 'row-user' : 'row-ai'">
+            @if (msg.role !== 'user') {
+              <div class="avatar">{{ msg.role === 'system' ? '🔔' : '🤖' }}</div>
+            }
+            <div class="message-bubble" [class]="messageClass(msg)">
+              <div class="message-text">{{ msg.text }}</div>
+              @if (msg.actions && msg.actions.length) {
+                <div class="message-actions">
+                  @for (action of msg.actions; track action.label) {
+                    <button class="action-btn" (click)="onAction(action.type)">
+                      {{ action.label }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Calendar picker -->
+        @if (showCalendar()) {
+          <app-calendar-picker
+            (slotSelected)="onSlotSelected($event)"
+            (close)="onCalendarClose()"
+          ></app-calendar-picker>
+        }
+      </div>
+
+      <div class="chat-input-row">
+        <input
+          type="text"
+          class="chat-input"
+          placeholder="Vpišite sporočilo ..."
+          [(ngModel)]="inputText"
+          (keyup.enter)="send()"
+        />
+        <button class="send-btn" (click)="send()" [disabled]="!inputText.trim()">
+          Pošlji
+        </button>
+      </div>
+    }
+  </div>
+</section>

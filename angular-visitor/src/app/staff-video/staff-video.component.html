@@ -1,0 +1,25 @@
+<div class="staff-video" [class.connected]="salon.staffState() === 'connected'">
+  <div class="video-frame" [class.fade-in]="salon.staffState() === 'joining' || salon.staffState() === 'connected'">
+    @if (salon.staffState() === 'offering') {
+      <div class="video-pending">
+        <div class="pulse-ring"></div>
+        <span>Osebje na voljo</span>
+      </div>
+    } @else if (salon.staffState() === 'joining') {
+      <div class="video-loading">
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+        <span class="loading-dot"></span>
+      </div>
+    } @else if (salon.staffState() === 'connected') {
+      <div class="video-live">
+        <div class="staff-avatar">🧑‍💼</div>
+        <div class="staff-info">
+          <span class="staff-name">Maja</span>
+          <span class="staff-role">Kozmetičarka</span>
+        </div>
+        <span class="live-badge">● V živo</span>
+      </div>
+    }
+  </div>
+</div>

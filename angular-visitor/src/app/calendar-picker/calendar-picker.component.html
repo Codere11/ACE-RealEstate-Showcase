@@ -1,0 +1,63 @@
+<div class="calendar-container">
+  <div class="calendar-header">
+    <button class="nav-btn" (click)="prevMonth()">◀</button>
+    <span class="month-title">{{ title() }}</span>
+    <button class="nav-btn" (click)="nextMonth()">▶</button>
+    <button class="close-btn" (click)="close.emit()">✕</button>
+  </div>
+
+  <!-- Day grid -->
+  <div class="day-names">
+    @for (name of dayNames; track name) {
+      <div class="day-name">{{ name }}</div>
+    }
+  </div>
+  <div class="day-grid">
+    @for (day of days(); track $index) {
+      @if (day !== null) {
+        <div
+          class="day-cell"
+          [class.selected]="isSelectedDate(day)"
+          (click)="selectDate(day)"
+        >
+          {{ day }}
+        </div>
+      } @else {
+        <div class="day-cell empty"></div>
+      }
+    }
+  </div>
+
+  <!-- Time slots -->
+  @if (selectedDate()) {
+    <div class="slots-section">
+      <div class="slots-label">Izbrani datum: {{ formatSlotDate() }}</div>
+      <div class="slots-title">Možni termini:</div>
+      <div class="slots-list">
+        @for (slot of slots(); track slot.time) {
+          <div
+            class="slot-item"
+            [class.unavailable]="!slot.available"
+            [class.selected]="selectedSlot() === slot.time"
+            (click)="selectSlot(slot)"
+          >
+            @if (slot.available) {
+              <span class="slot-radio">○</span>
+            } @else {
+              <span class="slot-radio">●</span>
+            }
+            <span class="slot-time">{{ slot.time }}</span>
+            @if (!slot.available) {
+              <span class="slot-status">Zasedeno</span>
+            }
+          </div>
+        }
+      </div>
+      @if (selectedSlot()) {
+        <button class="confirm-btn" (click)="confirm()">
+          Potrdi rezervacijo — {{ selectedSlot() }}
+        </button>
+      }
+    </div>
+  }
+</div>
