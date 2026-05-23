@@ -111,10 +111,12 @@ public class OrganizationDashboardController {
                 effectiveSurveyId = currentSurvey.getId();
             }
         }
-        if ("qualifier".equals(activeTab) && effectiveQualifierId == null) {
-            effectiveQualifierId = qualifierService.findDefaultSelection(organization.getId())
-                .map(q -> q.getId())
-                .orElse(null);
+        if ("qualifier".equals(activeTab) || "receptor".equals(activeTab)) {
+            if (effectiveQualifierId == null) {
+                effectiveQualifierId = qualifierService.findDefaultSelection(organization.getId())
+                    .map(q -> q.getId())
+                    .orElse(null);
+            }
         }
 
         model.addAttribute("organization", organization);
@@ -207,7 +209,7 @@ public class OrganizationDashboardController {
         }
         return switch (tab.trim().toLowerCase()) {
             case "surveys" -> "surveys";
-            case "qualifier" -> "qualifier";
+            case "qualifier", "receptor" -> "receptor";
             case "payments" -> "payments";
             default -> "leads";
         };
