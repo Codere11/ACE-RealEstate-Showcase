@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>ACE — Not Found</title></head>
+<body style="font-family:Inter,sans-serif;background:#0E1014;color:#EDEBE6;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+<div style="text-align:center;max-width:400px;">
+<h1 style="font-size:3rem;margin:0;" th:text="${title}">Not Found</h1>
+<p th:text="${message}">The requested page is not available.</p>
+<p style="color:#6B7280;font-size:0.85rem;" th:text="'/' + ${pathSegment}">/unknown</p>
+<a href="/login" style="color:#C1A46C;">Back to login</a>
+</div>
+</body>
+</html>

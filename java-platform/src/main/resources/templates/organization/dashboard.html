@@ -1674,7 +1674,11 @@
       const leads = visibleLeads();
       updateOverview();
       if (!leads.length) {
-        els.leadList.innerHTML = '<div class="empty-card">No leads match the current filters.</div>';
+        if (!state.leads.length) {
+          els.leadList.innerHTML = '<div class="empty-card">⏳ Nalaganje pogovorov...<br><small>Če to vidite dlje časa, preverite konzolo (F12) za napake.</small></div>';
+        } else {
+          els.leadList.innerHTML = '<div class="empty-card">Ni rezultatov za izbrane filtre. (' + state.leads.length + ' skupaj, 0 vidnih)</div>';
+        }
         return;
       }
       els.leadList.innerHTML = '';
@@ -1827,9 +1831,15 @@
     }
 
     async function loadLeads() {
-      const res = await fetch(`/api/organizations/${base.orgId}/leads`, { credentials: 'same-origin' });
-      if (!res.ok) return;
-      state.leads = await res.json();
+      try {
+        const res = await fetch(`/api/organizations/${base.orgId}/leads`, { credentials: 'same-origin' });
+        if (!res.ok) {
+          console.error('loadLeads failed: HTTP', res.status, res.statusText);
+          els.leadList.innerHTML = '<div class="empty-card" style="color:#dc2626;">⚠️ Napaka pri nalaganju: HTTP ' + res.status + ' — ' + res.statusText + '<br><small>Preverite da ste prijavljeni (admin / test123)</small></div>';
+          return;
+        }
+        state.leads = await res.json();
+        console.log('loadLeads: loaded', state.leads.length, 'leads');
       if (state.selectedSid && !state.leads.some(l => l.sid === state.selectedSid)) {
         state.selectedSid = '';
         state.messages = [];
