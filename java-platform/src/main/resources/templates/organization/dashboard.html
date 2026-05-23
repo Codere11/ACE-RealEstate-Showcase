@@ -782,7 +782,7 @@
                 <div class="live-stage-stats">
                     <div class="live-stage-stats__item">
                         <span class="live-stage-stats__label">Visitor SPA</span>
-                        <span class="live-stage-stats__value muted">http://localhost:4200</span>
+                        <span class="live-stage-stats__value muted" th:text="'http://localhost:4200/?org=' + ${organization.slug}">http://localhost:4200/?org=demo</span>
                     </div>
                     <div class="live-stage-stats__item">
                         <span class="live-stage-stats__label">Live leads</span>

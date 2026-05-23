@@ -34,11 +34,12 @@ public class PublicController {
     }
 
     @GetMapping({"/", "/demo", "/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}"})
-    public String visitorRoutes() {
+    public String visitorRoutes(@PathVariable(required = false) String tenantSlug) {
         if (spaAvailable) {
             return "forward:/index.html";
         }
-        return "redirect:http://localhost:4200";
+        String org = tenantSlug != null ? tenantSlug : "demo";
+        return "redirect:http://localhost:4200/?org=" + org;
     }
 
     @GetMapping(value = "/api/public/organizations/{orgSlug}/status", produces = MediaType.APPLICATION_JSON_VALUE)
