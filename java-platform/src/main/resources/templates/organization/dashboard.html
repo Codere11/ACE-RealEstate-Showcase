@@ -1286,7 +1286,7 @@
   async function parseJson(res) {
     try {
       return await res.json();
-    } catch {
+    } catch(e) {
       return null;
     }
   }
@@ -2420,7 +2420,7 @@
       let scoringRules;
       try {
         scoringRules = parseJsonTextarea(els.qualifierScoringRules.value, { notes: 'Runtime metadata only' });
-      } catch {
+      } catch(e) {
         showMessage('Scoring rules must be valid JSON.', true);
         return null;
       }
