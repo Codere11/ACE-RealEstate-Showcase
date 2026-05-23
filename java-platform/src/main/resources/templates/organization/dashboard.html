@@ -1241,7 +1241,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script async src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <script th:inline="javascript">
 (() => {
   const root = document.getElementById('dashboard-app');
@@ -2185,15 +2185,13 @@
     renderLiveStage();
     renderPaymentModal();
     renderTags();
-    loadTags();
-    loadPaymentSettings().finally(() => {
-      loadLeads().then(async () => {
-        if (state.selectedSid) {
-          await loadCurrentLiveSession(state.selectedSid);
-          await loadPaymentRequests(state.selectedSid);
-        }
-      }).finally(poll);
+    // Fire loadLeads IMMEDIATELY — no dependencies
+    loadLeads().then(() => {
+      poll();
     });
+    // Background: load tags and payment settings if available
+    loadTags().catch(() => {});
+    loadPaymentSettings().catch(() => {});
   }
 
   function initQualifiers() {
