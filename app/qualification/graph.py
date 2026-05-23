@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.qualification.prompts import build_qualify_prompt, build_conversation_prompt, PROSTORAI_ROLE_CONTRACT, PROSTORAI_CAPABILITIES
+from app.qualification.prompts import build_qualify_prompt, build_conversation_prompt, SALON_ROLE_CONTRACT, SALON_CAPABILITIES
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
 from app.qualification.state import QualificationGraphState, TurnDecision, TurnInterpretation
 from app.services.llm_service import LLMService
-from app.qualification.tools import GURS_TOOLS, execute_tool
+from app.qualification.tools import SALON_TOOLS, execute_tool
 
 try:
     from langgraph.graph import StateGraph, END
@@ -16,7 +16,7 @@ except Exception:  # pragma: no cover
     END = "__end__"  # type: ignore
 
 
-_QUALIFY_SYSTEM = "You analyze ProstorAI spatial assistance turns and return only valid JSON."
+_SALON_SYSTEM = "You are AI Receptor, a warm Slovenian beauty salon receptionist. Analyze turns and return only valid JSON."
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
@@ -46,17 +46,11 @@ def _prompt_profile(state: QualificationGraphState) -> Dict[str, Any]:
     keep_keys = [
         "visitor_type",
         "preferred_language",
-        "business_type",
-        "business_model",
-        "customer_source",
-        "sales_motion",
-        "growth_constraint",
-        "pain_points",
-        "desired_outcome",
-        "use_case_fit",
-        "fit_status",
-        "supporting_quotes",
-        "funnel_stage",
+        "service_interest",
+        "budget_range",
+        "preferred_time",
+        "skin_concern",
+        "urgency",
     ]
     return {key: profile.get(key) for key in keep_keys if profile.get(key) not in (None, "", [], {})}
 
@@ -78,21 +72,20 @@ def _qualify_and_write(llm: LLMService, state: QualificationGraphState) -> Quali
     compact_msgs = json.dumps([{"r": m.get("role","user"), "t": m.get("text","")} for m in recent], ensure_ascii=False, separators=(",", ":"))
 
     system = (
-        f"{PROSTORAI_ROLE_CONTRACT}\n\n"
-        f"{PROSTORAI_CAPABILITIES}\n\n"
-        f"SPATIAL_CONTEXT: {compact_spatial}\n"
+        f"{SALON_ROLE_CONTRACT}\n\n"
+        f"{SALON_CAPABILITIES}\n\n"
+        f"SALON_STATE: {compact_spatial}\n"
         f"PROFILE: {compact_profile}\n"
         f"MESSAGES: {compact_msgs}\n"
     )
     user = json.dumps(latest, ensure_ascii=False)
 
-    # Tool-calling loop — correct OpenAI pattern
+    # Tool-calling loop — up to 4 rounds
     msgs = [{"role": "user", "content": user}]
     reply = ""
     for round_idx in range(4):
-        # First 3 rounds: MUST use a tool. Last round: can answer.
-        force = (round_idx < 3)
-        resp = llm.call_with_tools(system, msgs, GURS_TOOLS, required=force)
+        force = (round_idx < 2)  # First 2 rounds: MUST use a tool
+        resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=force)
         tcs = resp.get("tool_calls")
         if not tcs:
             reply = resp.get("text", "")
@@ -104,15 +97,16 @@ def _qualify_and_write(llm: LLMService, state: QualificationGraphState) -> Quali
         for tc in tcs:
             msgs.append({"role": "assistant", "content": None, "tool_calls": [{"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}]})
             msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
+
     # Fallback: get JSON response if LLM didn't answer directly
     if not reply:
         reply = llm.call_json_response(system, msgs)
     if not reply:
-        reply = "Pozdravljeni! Sem ProstorAI, vaš digitalni asistent za prostorske podatke Slovenije. Kako vam lahko pomagam?"
+        reply = "Dober dan! Dobrodošli v Lepota & Sprostitev. 💆‍♀️ Kako vam lahko danes pomagam pri negi vaše kože?"
 
     used_llm = bool(reply)
     interpretation = TurnInterpretation(
-        visitor_type="sales_prospect", preferred_language="sl",
+        visitor_type="new_visitor", preferred_language="sl",
         used_llm=used_llm, model_name=llm.model_name,
     )
     decision = TurnDecision(
@@ -185,11 +179,9 @@ def _normalize_reply(reply: str, *, recommended_next_action: str, next_best_ques
     text = (reply or "").strip()
     if text:
         return text
-    if recommended_next_action == "route_support":
-        return "This sounds like an existing support issue, so I’m routing it to the support team now."
     if next_best_question:
         return next_best_question.strip()
-    return "Tell me a bit more about your current inbound lead process, and I’ll map how ACE would fit."
+    return "Povejte mi malo več o vaših željah glede nege kože, in vam bom z veseljem svetovala. 💆‍♀️"
 
 
 def _normalize_score_and_band(data: Dict[str, Any], *, runtime_context: Dict[str, Any], fit_status: str, recommended_next_action: str) -> Tuple[int, str]:
