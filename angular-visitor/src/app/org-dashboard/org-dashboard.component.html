@@ -104,7 +104,7 @@
                 <div class="empty-card">{{ allLeads().length === 0 ? '⏳ No conversations yet. When a visitor sends a message, it will appear here.' : 'No results for selected filters. (' + allLeads().length + ' total, 0 visible)' }}</div>
               }
               @for (l of leads(); track l.sid) {
-                <div class="lead-entry" [class.active]="l.sid === selectedSid" (click)="select(l.sid)">
+                <div class="lead-entry" [class.active]="l.sid === selectedSid" [class.staff-requested]="l.staffRequested" (click)="select(l.sid)">
                   <div class="lead-head">
                     <div>
                       <div class="lead-title">{{ l.name }}{{ l.industry && l.industry !== 'Unknown' ? ' · ' + l.industry : '' }}</div>

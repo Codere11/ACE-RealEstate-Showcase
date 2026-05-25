@@ -160,6 +160,18 @@ public class ChatApiController {
         return conversationService.getThread(lead).stream().map(MessageResponse::from).toList();
     }
 
+    @PostMapping("/api/public/organizations/{orgSlug}/leads/{sid}/request-staff")
+    public Map<String, Object> requestStaff(@PathVariable String orgSlug, @PathVariable String sid) {
+        Organization org = organizationRepository.findBySlugAndActiveTrue(orgSlug)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
+        Lead lead = leadService.findByOrganizationAndSid(org.getId(), sid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lead not found"));
+        lead.setStaffRequested(true);
+        leadService.touchLead(lead, "Visitor requested staff");
+        leadEventService.publish(org, sid, "lead.staff-requested", Map.of("sid", sid, "staff_requested", true));
+        return Map.of("ok", true, "sid", sid);
+    }
+
     @PostMapping("/api/organizations/{orgId}/leads/{sid}/takeover/end")
     public Map<String, Object> endTakeover(@PathVariable Long orgId, @PathVariable String sid, Authentication authentication) {
         User user = requireUser(authentication);
@@ -398,7 +410,8 @@ public class ChatApiController {
         String notes,
         Integer surveyProgress,
         boolean takeoverActive,
-        String status
+        String status,
+        boolean staffRequested
     ) {
         static LeadSummary from(Lead lead) {
             int score = lead.getQualificationScore() != null ? lead.getQualificationScore() : lead.getSurveyProgress();
@@ -421,7 +434,8 @@ public class ChatApiController {
                 lead.getQualificationReasoning(),
                 lead.getSurveyProgress(),
                 lead.isTakeoverActive(),
-                lead.getStatus().name()
+                lead.getStatus().name(),
+                lead.isStaffRequested()
             );
         }
 

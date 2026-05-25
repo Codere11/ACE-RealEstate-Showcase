@@ -32,15 +32,19 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       const org = (await r.json()).find((o: any) => o.slug === this.slug());
       if (!org) { this.error.set('Organizacija ne obstaja.'); return; }
       this.orgId = org.id;
-    } catch { this.error.set('Napaka pri povezavi.'); }
+    } catch(e) { console.error('resolveOrg failed', e); this.error.set('Napaka pri povezavi.'); }
   }
 
   async loadLeads() {
     if (!this.orgId) return;
     try {
       const r = await fetch('/api/organizations/' + this.orgId + '/leads', { credentials: 'same-origin' });
-      if (r.ok) { this.allLeads.set(await r.json()); this.applyFilters(); }
-    } catch {}
+      if (r.ok) {
+        let list = await r.json();
+        list.sort((a:any,b:any) => (b.staffRequested ? 1 : 0) - (a.staffRequested ? 1 : 0) || (b.lastSeenSec||0) - (a.lastSeenSec||0));
+        this.allLeads.set(list); this.applyFilters();
+      }
+    } catch(e) { console.error('loadLeads failed', e); }
   }
 
   applyFilters() {

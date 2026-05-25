@@ -61,6 +61,9 @@ public class Lead extends BaseEntity {
     @Column(name = "takeover_active", nullable = false)
     private boolean takeoverActive;
 
+    @Column(name = "staff_requested", nullable = false)
+    private boolean staffRequested;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "qualifier_profile", columnDefinition = "jsonb")
     private Map<String, Object> qualifierProfile;
@@ -194,6 +197,9 @@ public class Lead extends BaseEntity {
     public void setTakeoverActive(boolean takeoverActive) {
         this.takeoverActive = takeoverActive;
     }
+
+    public boolean isStaffRequested() { return staffRequested; }
+    public void setStaffRequested(boolean staffRequested) { this.staffRequested = staffRequested; }
 
     public Map<String, Object> getQualifierProfile() {
         return qualifierProfile;

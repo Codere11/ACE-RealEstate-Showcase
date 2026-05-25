@@ -148,5 +148,20 @@ export class SalonService implements OnDestroy {
   ];
   addMessage(m: ChatMessage) { this.add(m.role, m.text, m.actions); }
   getSlotsForDate(_: string) { return [{time:'09:00',available:true}]; }
-  requestStaff() { if (this.status()==='open') this.staffOffering(); else this.add('ai','Trenutno smo zaprti.'); }
+  requestStaff() {
+    if (this.status() !== 'open') { this.add('ai','Trenutno smo zaprti.'); return; }
+    if (this.sid) {
+      fetch('/api/public/organizations/' + this.getTenantSlug() + '/leads/' + this.sid + '/request-staff', { method: 'POST' }).catch(()=>{});
+    }
+    this.staffOffering();
+  }
+  private getTenantSlug(): string {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('org');
+      if (p) return p;
+      const seg = window.location.pathname.replace(/^\/+/, '').split('/')[0];
+      if (seg) return seg;
+    }
+    return 'demo';
+  }
 }

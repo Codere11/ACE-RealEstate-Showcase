@@ -52,6 +52,7 @@ a { color:inherit; }
 .lead-entry { border:1px solid #E6E2D6; border-radius:16px; background:#F8F7F3; padding:16px; display:grid; gap:12px; min-width:0; cursor:pointer; transition:border-color .15s ease,box-shadow .15s ease; }
 .lead-entry:hover { transform:translateY(-1px); }
 .lead-entry.active { border-color:#C1A46C; box-shadow:0 12px 28px rgba(193,164,108,.14); }
+.lead-entry.staff-requested { background:#f0fdf4; border-color:#86efac; }
 .lead-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
 .lead-title { font-size:18px; font-weight:800; color:#121417; overflow-wrap:anywhere; }
 .lead-subtitle,.lead-message { color:#6B7280; overflow-wrap:anywhere; }
