@@ -74,6 +74,11 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     await save_message(db, lead, ConvRole.USER, req.message)
     await db.commit()
     
+    # During takeover, AI stays silent — staff handles the conversation
+    if lead.takeover_active:
+        return {"sid": lead.sid, "reply": None, "chatMode": "open", "storyComplete": False,
+                "surveyProgress": 100, "currentStep": None, "completionTitle": None, "completionSubtitle": None}
+    
     qualifier = (await db.execute(select(Qualifier).where(Qualifier.organization_id == org.id, Qualifier.status == "live"))).scalar_one_or_none()
     
     if qualifier:
