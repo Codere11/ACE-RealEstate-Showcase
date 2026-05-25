@@ -141,7 +141,11 @@ export class SalonService implements OnDestroy {
   readonly selectedService = signal<any>(null);
   readonly selectedDate = signal<string|null>(null);
   readonly selectedSlot = signal<string|null>(null);
-  services = [{id:'nega-obraza',name:'Nega obraza',durationMin:45,priceEur:35,imageUrl:''}];
+  services = [
+    {id:'nega-obraza',name:'Nega obraza',durationMin:45,priceEur:35,imageUrl:''},
+    {id:'maska-obraza',name:'Maska obraza',durationMin:30,priceEur:25,imageUrl:''},
+    {id:'ciscenje-obraza',name:'Čiščenje obraza',durationMin:60,priceEur:50,imageUrl:''},
+  ];
   addMessage(m: ChatMessage) { this.add(m.role, m.text, m.actions); }
   getSlotsForDate(_: string) { return [{time:'09:00',available:true}]; }
   requestStaff() { if (this.status()==='open') this.staffOffering(); else this.add('ai','Trenutno smo zaprti.'); }
