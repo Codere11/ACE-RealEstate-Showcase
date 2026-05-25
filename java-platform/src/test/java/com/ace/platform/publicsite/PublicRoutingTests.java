@@ -217,7 +217,7 @@ class PublicRoutingTests {
             .thenReturn(Optional.of(organization));
         when(qualifierService.findActive(org.mockito.ArgumentMatchers.any()))
             .thenReturn(Optional.of(new com.ace.platform.qualifier.Qualifier(organization, "AI Qualifier", "ai-qualifier")));
-        when(qualifierChatService.handleVisitorMessage(organization, "sid_acme", "Hello"))
+        when(qualifierChatService.handleVisitorMessage(organization, "sid_acme", "Hello", java.util.Map.of()))
             .thenReturn(new QualifierChatService.QualifierChatResult("sid_acme", "Pozdravljeni.", "AI Qualifier"));
 
         mockMvc.perform(post("/chat/stream")

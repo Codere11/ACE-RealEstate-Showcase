@@ -52,8 +52,9 @@ public class OrganizationDashboardController {
         this.qualifierService = qualifierService;
     }
 
-    @GetMapping("/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}/dashboard")
-    public String dashboard(
+    // Handled by Angular now
+    // @GetMapping("/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}/dashboard")
+    public String _dashboard(
         @PathVariable String tenantSlug,
         @RequestParam(name = "tab", defaultValue = "leads") String tab,
         @RequestParam(name = "sid", required = false) String sid,

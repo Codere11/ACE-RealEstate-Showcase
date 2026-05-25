@@ -32,10 +32,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/", "/demo", "/*", "/*/survey/*", "/login", "/actuator/health", "/chat-events/poll", "/api/public/**", "/s/**", "/pay/**", "/css/**", "/js/**", "/images/**").permitAll()
-                .requestMatchers(HttpMethod.HEAD, "/", "/demo", "/*", "/*/survey/*", "/login", "/actuator/health", "/chat-events/poll", "/api/public/**", "/s/**", "/pay/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/", "/demo", "/*", "/admin", "/admin/dashboard", "/*/dashboard", "/*/survey/*", "/login", "/actuator/health", "/chat-events/poll", "/api/public/**", "/s/**", "/pay/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(HttpMethod.HEAD, "/", "/demo", "/*", "/admin", "/admin/dashboard", "/*/dashboard", "/*/survey/*", "/login", "/actuator/health", "/chat-events/poll", "/api/public/**", "/s/**", "/pay/**", "/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/chat", "/chat/", "/chat/stream", "/chat/stream/", "/chat/staff", "/chat/staff/", "/chat/survey/submit", "/api/public/chat", "/api/public/chat/stream", "/api/public/chat/**", "/api/payments/webhooks/stripe", "/pay/**", "/*/survey/*/send", "/api/auth/login").permitAll()
-                .requestMatchers("/admin/**").hasRole("PLATFORM_ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

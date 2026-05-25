@@ -1,0 +1,193 @@
+<div class="topbar">
+  <div class="left">
+    <div class="client-logo">{{ slug().charAt(0).toUpperCase() }}</div>
+    <div class="client-brand">
+      <span class="client-brand__eyebrow">ACE dashboard</span>
+      <strong class="client-brand__name">{{ slug() }}</strong>
+    </div>
+  </div>
+  <nav class="tabs">
+    <a [class.active]="activeTab==='leads'" (click)="activeTab='leads'">KONVERZACIJE</a>
+    <a [class.active]="activeTab==='receptor'" (click)="activeTab='receptor'">AI RECEPTOR</a>
+  </nav>
+  <div class="right"><div class="user-pill">Dashboard</div></div>
+</div>
+
+<div class="dashboard-background">
+  <div class="dashboard-container">
+    <h1 class="title">ACE Reception Services</h1>
+    <p class="subtitle">{{ slug() }} · AI Receptor aktiviran</p>
+
+    <div class="hero-strip">
+      <div class="hero-card"><strong>Organization</strong><small>{{ slug() }}</small></div>
+      <div class="hero-card"><strong>Slug</strong><small>{{ slug() }}</small></div>
+      <div class="hero-card"><strong>Status</strong><small>active</small></div>
+      <div class="hero-card"><strong>Team members</strong><small>1</small></div>
+    </div>
+
+    @if (activeTab === 'leads') {
+      <!-- LIVE PREVIEW -->
+      <div class="live-preview-stage">
+        <div class="live-preview-stage__camera">
+          <div class="live-preview-stage__overlay">
+            <div class="live-preview-stage__eyebrow">Live help</div>
+            <div class="live-preview-stage__title">Camera stage</div>
+          </div>
+        </div>
+        <div class="live-preview-stage__meta">
+          <span class="live-preview-stage__meta-label">Live help stage</span>
+          <span class="live-preview-stage__meta-value">{{ selectedSid ? 'Target: ' + selectedLeadName() + ' · ' + selectedSid : 'Open a lead to choose target.' }}</span>
+        </div>
+        <div class="live-preview-stage__actions">
+          <button class="btn ghost">Start preview</button>
+          <button class="btn primary">Go live</button>
+          <button class="btn danger">End live</button>
+        </div>
+
+        <div class="live-stage-stats">
+          <div class="live-stage-stats__item"><span class="live-stage-stats__label">Visitor SPA</span><span class="muted">localhost:8080/{{ slug() }}</span></div>
+          <div class="live-stage-stats__item"><span class="live-stage-stats__label">Live leads</span><span class="muted">{{ leadCount }}</span></div>
+          <div class="live-stage-stats__item"><span class="live-stage-stats__label">Active takeovers</span><span class="muted">{{ takeoverCount }}</span></div>
+        </div>
+      </div>
+
+      <div class="leads-grid dashboard-split dashboard-split--leads">
+        <aside class="sidebar">
+          <div class="card">
+            <h3>Filters</h3>
+            <div class="filter-grid">
+              <div class="field"><label for="searchInput">Search by lead name or SID</label><input id="searchInput" [(ngModel)]="filters.search" (input)="applyFilters()" placeholder="Type a lead name or SID…"></div>
+              <div class="field"><label for="interestFilter">Interest</label>
+                <select id="interestFilter" [(ngModel)]="filters.interest" (change)="applyFilters()">
+                  <option value="all">All interest levels</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
+                </select>
+              </div>
+              <div class="field"><label for="statusFilter">Status</label>
+                <select id="statusFilter" [(ngModel)]="filters.status" (change)="applyFilters()">
+                  <option value="all">All statuses</option><option value="SURVEY">Survey</option><option value="OPEN_CHAT">Open chat</option><option value="HUMAN_TAKEOVER">Human takeover</option>
+                </select>
+              </div>
+              <div class="field"><label for="progressFilter">Minimum survey progress</label>
+                <select id="progressFilter" [(ngModel)]="filters.minProgress" (change)="applyFilters()">
+                  <option [ngValue]="0">Any progress</option><option [ngValue]="20">20%+</option><option [ngValue]="40">40%+</option><option [ngValue]="60">60%+</option><option [ngValue]="80">80%+</option><option [ngValue]="100">100%</option>
+                </select>
+              </div>
+              <div class="checkbox-row"><label class="checkbox-pill"><input id="takeoverOnly" type="checkbox" [(ngModel)]="filters.takeoverOnly" (change)="applyFilters()"> Takeovers only</label></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Quick overview</h3>
+            <div class="stats-grid">
+              <div class="hero-card"><strong>{{ visibleCount }}</strong><small>Visible leads</small></div>
+              <div class="hero-card"><strong>{{ contactCount }}</strong><small>Contactable</small></div>
+              <div class="hero-card"><strong>{{ surveyCount }}</strong><small>Still in survey</small></div>
+              <div class="hero-card"><strong>{{ openChatCount }}</strong><small>Open chat</small></div>
+              <div class="hero-card"><strong>{{ humanCount }}</strong><small>Human takeover</small></div>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div><h3>Conversation tags</h3><p class="muted">Use one tag per line or comma-separated.</p></div>
+            <div class="field"><label for="tagsInput">Tags</label><textarea id="tagsInput" rows="6" placeholder="seller&#10;buyer&#10;hot-lead"></textarea></div>
+            <div class="actions"><button class="btn primary">Save tags</button></div>
+            <div class="tag-cloud"><span class="pill dark">No tags yet</span></div>
+          </div>
+        </aside>
+
+        <main class="stack">
+          <div class="card">
+            <h2 style="margin-bottom:8px;">Survey and chat leads</h2>
+            <p class="muted">Lead list, thread view, and manager actions in one focused operations screen.</p>
+            <div class="lead-list">
+              @if (leads().length === 0) {
+                <div class="empty-card">{{ allLeads().length === 0 ? '⏳ No conversations yet. When a visitor sends a message, it will appear here.' : 'No results for selected filters. (' + allLeads().length + ' total, 0 visible)' }}</div>
+              }
+              @for (l of leads(); track l.sid) {
+                <div class="lead-entry" [class.active]="l.sid === selectedSid" (click)="select(l.sid)">
+                  <div class="lead-head">
+                    <div>
+                      <div class="lead-title">{{ l.name }}{{ l.industry && l.industry !== 'Unknown' ? ' · ' + l.industry : '' }}</div>
+                      <div class="lead-subtitle">{{ l.status }} · SID {{ l.sid }}</div>
+                    </div>
+                    <div class="lead-meta">
+                      <span class="pill dark">{{ l.interest || 'Low' }}</span>
+                      <span class="pill dark score-pill">{{ l.score || 0 }}</span>
+                    </div>
+                  </div>
+                  <div class="lead-message">{{ l.lastMessage || 'No messages yet.' }}</div>
+                  <div class="status-row">
+                    <span class="pill">{{ l.status || 'SURVEY' }}</span>
+                    <span class="pill dark">{{ l.surveyProgress || 0 }}% complete</span>
+                    @if (l.takeoverActive) { <span class="pill success">Human takeover active</span> }
+                    @if (l.phoneText) { <span class="pill">📞 {{ l.phoneText }}</span> }
+                    @if (l.emailText) { <span class="pill">✉️ {{ l.emailText }}</span> }
+                  </div>
+                  @if (l.notes) { <div class="lead-row-note">{{ l.notes }}</div> }
+                  <div class="lead-actions">
+                    <button class="btn danger" (click)="deleteLead(l.sid); $event.stopPropagation()">Delete lead</button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="thread-panel">
+            @if (!selectedSid) {
+              <div class="empty-card">Select a lead above to inspect the thread and manage the takeover.</div>
+            } @else {
+              <div class="stack" style="height:100%;grid-template-rows:auto 1fr auto;">
+                <div class="lead-head">
+                  <div><h3 style="margin:0 0 8px;">{{ selectedLeadName() }}</h3>
+                    <div class="status-row">
+                      @if (takeoverActive()) { <span class="pill success">Human takeover active</span> }
+                      @else { <span class="pill warn">Bot-guided flow</span> }
+                    </div>
+                  </div>
+                  <div class="lead-actions">
+                    <button class="btn danger" (click)="deleteSelected()">Delete lead</button>
+                  </div>
+                </div>
+                <div class="thread">
+                  @for (m of messages(); track $index) {
+                    <div class="bubble" [class]="m.role">
+                      <div class="meta">{{ m.role === 'user' ? 'Visitor' : m.role === 'staff' ? 'Staff' : 'AI' }}</div>
+                      <div class="bubble__body">{{ m.text }}</div>
+                    </div>
+                  }
+                </div>
+                <div class="composer">
+                  <textarea [(ngModel)]="takeoverText" placeholder="Write a takeover message as the manager…" (keyup.enter)="sendTakeover()"></textarea>
+                  <div class="error-text" style="display:none;"></div>
+                  <div class="actions">
+                    <button class="btn primary" (click)="sendTakeover()">{{ takeoverActive() ? 'Send manager reply' : 'Start takeover + send message' }}</button>
+                    @if (takeoverActive()) { <button class="btn danger" (click)="endTakeover()">End takeover</button> <button class="btn ghost push-right">Send payment request</button> }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </main>
+      </div>
+    }
+
+    @if (activeTab === 'receptor') {
+      <section class="stack">
+        <div class="leads-grid dashboard-split dashboard-split--builder">
+          <aside class="sidebar">
+            <div class="card stack"><div><h3>AI Receptor</h3><p class="muted">Ustvarite, prilagodite in objavite AI Receptorja za ta salon.</p></div>
+              <div class="actions"><button class="btn primary">Nov receptor</button></div>
+              <div class="note-card"><strong>Kako deluje</strong> AI Receptor pozdravlja obiskovalce, odgovarja na vprašanja o storitvah, pomaga pri rezervaciji terminov in povezuje z osebjem.</div>
+            </div>
+            <div class="card"><h3>Receptorji</h3><p class="muted">Odprite receptorja za urejanje in objavo.</p>
+              <div class="lead-list"><div class="empty-card">Nalaganje receptorjev…</div></div>
+            </div>
+          </aside>
+          <main class="stack">
+            <div class="empty-card">Ustvarite ali izberite receptorja za konfiguracijo.</div>
+          </main>
+        </div>
+      </section>
+    }
+  </div>
+</div>

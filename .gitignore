@@ -34,3 +34,6 @@ java-platform/target/
 *.tar.gz
 ace-mobile/
 .deploy-config
+
+# Angular build output (served from Java static)
+java-platform/src/main/resources/static/

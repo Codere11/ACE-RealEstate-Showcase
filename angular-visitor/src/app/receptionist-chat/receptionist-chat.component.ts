@@ -2,12 +2,13 @@ import { Component, inject, ElementRef, AfterViewChecked, ViewChild, signal } fr
 import { FormsModule } from '@angular/forms';
 import { SalonService, ChatMessage } from '../services/salon.service';
 import { CalendarPickerComponent } from '../calendar-picker/calendar-picker.component';
-import { StaffVideoComponent } from '../staff-video/staff-video.component';
+import { HeaderComponent } from '../header/header.component';
+import { ServiceCardsComponent } from '../service-cards/service-cards.component';
 
 @Component({
   selector: 'app-receptionist-chat',
   standalone: true,
-  imports: [FormsModule, CalendarPickerComponent, StaffVideoComponent],
+  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent],
   templateUrl: './receptionist-chat.component.html',
   styleUrls: ['./receptionist-chat.component.scss'],
 })
@@ -90,6 +91,18 @@ export class ReceptionistChatComponent implements AfterViewChecked {
 
   messageClass(msg: ChatMessage): string {
     if (msg.role === 'system') return 'message-system';
+    if (msg.role === 'staff') return 'message-staff';
     return msg.role === 'ai' ? 'message-ai' : 'message-user';
+  }
+
+  avatarFor(msg: ChatMessage): string {
+    if (msg.role === 'staff') return '👩‍💼';
+    if (msg.role === 'system') return '🔔';
+    return '🤖';
+  }
+
+  rowClass(msg: ChatMessage): string {
+    if (msg.role === 'user') return 'row-user';
+    return 'row-ai';
   }
 }

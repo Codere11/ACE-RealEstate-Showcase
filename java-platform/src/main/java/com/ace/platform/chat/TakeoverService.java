@@ -34,10 +34,10 @@ public class TakeoverService {
                 "sid", updated.getSid(),
                 "reason", "human_takeover"
             ));
-            leadEventService.publish(updated.getOrganization(), updated.getSid(), "takeover.started", Map.of(
+            leadEventService.publish(updated.getOrganization(), updated.getSid(), "lead.takeover.started", Map.of(
                 "sid", updated.getSid(),
                 "manager", user != null ? user.getUsername() : "manager",
-                "active", true
+                "takeover_active", true
             ));
         }
         if (openingMessage != null && !openingMessage.isBlank()) {
@@ -49,9 +49,9 @@ public class TakeoverService {
     @Transactional
     public Lead endTakeover(Lead lead) {
         Lead updated = leadService.endTakeover(lead);
-        leadEventService.publish(updated.getOrganization(), updated.getSid(), "takeover.ended", Map.of(
+        leadEventService.publish(updated.getOrganization(), updated.getSid(), "lead.takeover.ended", Map.of(
             "sid", updated.getSid(),
-            "active", false
+            "takeover_active", false
         ));
         return updated;
     }

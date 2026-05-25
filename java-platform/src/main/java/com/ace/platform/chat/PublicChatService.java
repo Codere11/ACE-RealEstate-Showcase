@@ -51,9 +51,13 @@ public class PublicChatService {
 
         SurveyStep nextStep = nextStep(survey, userCount);
         boolean complete = nextStep == null;
+        String reply = nextStep != null ? nextStep.title() : null;
+        if (reply != null && !reply.isBlank()) {
+            conversationService.appendMessage(lead, ConversationRole.ASSISTANT, reply);
+        }
         return new ChatResult(
             lead.getSid(),
-            null,
+            reply,
             complete ? "open" : "guided",
             complete,
             progress,
@@ -74,9 +78,14 @@ public class PublicChatService {
         }
         SurveyStep nextStep = lead.isTakeoverActive() ? null : nextStep(survey, userCount);
         boolean complete = nextStep == null;
+        String reply = nextStep != null ? nextStep.title()
+            : (lead.isTakeoverActive() ? null : "Dober dan! Dobrodošli. Kako vam lahko pomagamo danes? 💆‍♀️");
+        if (reply != null && !reply.isBlank() && !lead.isTakeoverActive()) {
+            conversationService.appendMessage(lead, ConversationRole.ASSISTANT, reply);
+        }
         return new ChatResult(
             lead.getSid(),
-            null,
+            reply,
             lead.isTakeoverActive() || complete ? "open" : "guided",
             complete,
             progress,

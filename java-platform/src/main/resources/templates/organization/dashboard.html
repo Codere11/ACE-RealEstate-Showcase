@@ -1247,8 +1247,9 @@
   const root = document.getElementById('dashboard-app');
   if (!root || !root.dataset.orgId) return;
 
-  // VISIBLE PROOF THE SCRIPT RUNS
-  document.getElementById('leadList').innerHTML = '<div class="empty-card" style="background:#ecfdf5;color:#059669;">✅ Script se je zagnal. Nalagam pogovore...</div>';
+  // VISIBLE PROOF THE SCRIPT RUNS (only on leads tab)
+  const leadListEl = document.getElementById('leadList');
+  if (leadListEl) leadListEl.innerHTML = '<div class="empty-card" style="background:#ecfdf5;color:#059669;">✅ Script se je zagnal. Nalagam pogovore...</div>';
 
   const base = {
     orgId: root.dataset.orgId,
@@ -1842,11 +1843,20 @@
         const res = await fetch(`/api/organizations/${base.orgId}/leads`, { credentials: 'same-origin' });
         if (!res.ok) {
           console.error('loadLeads failed: HTTP', res.status, res.statusText);
-          els.leadList.innerHTML = '<div class="empty-card" style="color:#dc2626;">⚠️ Napaka pri nalaganju: HTTP ' + res.status + ' — ' + res.statusText + '<br><small>Preverite da ste prijavljeni (admin / test123)</small></div>';
+          if (res.status === 401 || res.status === 403) {
+            window.location.href = '/login';
+            return;
+          }
+          els.leadList.innerHTML = '<div class="empty-card" style="color:#dc2626;">⚠️ Napaka pri nalaganju: HTTP ' + res.status + ' — ' + res.statusText + '</div>';
           return;
         }
         state.leads = await res.json();
         console.log('loadLeads: loaded', state.leads.length, 'leads');
+      } catch (e) {
+        console.error('loadLeads error', e);
+        els.leadList.innerHTML = '<div class="empty-card" style="color:#dc2626;">⚠️ Napaka pri nalaganju: ' + escapeHtml(String(e)) + '</div>';
+        return;
+      }
       if (state.selectedSid && !state.leads.some(l => l.sid === state.selectedSid)) {
         state.selectedSid = '';
         state.messages = [];

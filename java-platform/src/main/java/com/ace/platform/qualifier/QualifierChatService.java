@@ -5,6 +5,8 @@ import com.ace.platform.conversation.ConversationService;
 import com.ace.platform.lead.Lead;
 import com.ace.platform.lead.LeadService;
 import com.ace.platform.organization.Organization;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,8 @@ import java.util.Map;
 
 @Service
 public class QualifierChatService {
+
+    private static final Logger log = LoggerFactory.getLogger(QualifierChatService.class);
 
     private final QualifierService qualifierService;
     private final LeadService leadService;
@@ -62,16 +66,24 @@ public class QualifierChatService {
             return new QualifierChatResult(lead.getSid(), null, "AI Receptor");
         }
 
-        PythonQualifierRuntimeClient.RuntimeResponse response = pythonQualifierRuntimeClient.evaluate(
-            new PythonQualifierRuntimeClient.RuntimeRequest(
-                lead.getSid(),
-                trimmed,
-                qualifierPayload(qualifier),
-                recentMessages(lead),
-                lead.getQualifierProfile() != null ? lead.getQualifierProfile() : Map.of(),
-                spatialContext
-            )
-        );
+        PythonQualifierRuntimeClient.RuntimeResponse response;
+        try {
+            response = pythonQualifierRuntimeClient.evaluate(
+                new PythonQualifierRuntimeClient.RuntimeRequest(
+                    lead.getSid(),
+                    trimmed,
+                    qualifierPayload(qualifier),
+                    recentMessages(lead),
+                    lead.getQualifierProfile() != null ? lead.getQualifierProfile() : Map.of(),
+                    spatialContext
+                )
+            );
+        } catch (Exception ex) {
+            log.warn("Python qualifier runtime unavailable — falling back to survey mode (sid={})", lead.getSid(), ex);
+            String fallbackReply = "Oprostite, AI sprejemnik trenutno ni na voljo. Lahko pa nadaljujeva z osnovnimi vprašanji — ekipa vas bo kontaktirala kmalu! 😊";
+            conversationService.appendMessage(lead, ConversationRole.ASSISTANT, fallbackReply);
+            return new QualifierChatResult(lead.getSid(), fallbackReply, qualifier.getName());
+        }
 
         leadService.applyQualifierResult(
             lead,

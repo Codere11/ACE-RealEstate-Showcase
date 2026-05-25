@@ -144,16 +144,16 @@ public class SurveyService {
             .orElseGet(() -> {
                 Survey survey = surveyRepository.save(new Survey(
                     organization,
-                    "Property intake survey",
+                    "Sprejemni vprašalnik",
                     "start",
-                    "Default public-facing survey for visitor qualification.",
+                    "Privzeti javni vprašalnik za obiskovalce salona.",
                     true
                 ));
-                SurveyQuestion q1 = new SurveyQuestion(survey, 1, SurveyQuestionType.SINGLE_CHOICE, "What kind of property are you interested in?", "", "", true);
-                applyOptions(q1, List.of("Buying a home", "Selling a property", "Renting", "Just exploring options"));
-                SurveyQuestion q2 = new SurveyQuestion(survey, 2, SurveyQuestionType.SHORT_TEXT, "What location or area do you have in mind?", "", "Ljubljana, Maribor, coast…", true);
-                SurveyQuestion q3 = new SurveyQuestion(survey, 3, SurveyQuestionType.SHORT_TEXT, "What budget or price range are you targeting?", "", "For example: up to 400k", true);
-                SurveyQuestion q4 = new SurveyQuestion(survey, 4, SurveyQuestionType.SHORT_TEXT, "What is your ideal timeline?", "", "For example: within 3 months", true);
+                SurveyQuestion q1 = new SurveyQuestion(survey, 1, SurveyQuestionType.SINGLE_CHOICE, "Katero storitev iščete?", "", "", true);
+                applyOptions(q1, List.of("Nega obraza", "Masaža", "Manikura", "Pedikura", "Depilacija", "Nekaj drugega"));
+                SurveyQuestion q2 = new SurveyQuestion(survey, 2, SurveyQuestionType.SHORT_TEXT, "Kdaj bi želeli obiskati salon?", "", "npr. jutri popoldne, ta teden...", true);
+                SurveyQuestion q3 = new SurveyQuestion(survey, 3, SurveyQuestionType.SHORT_TEXT, "Imate kakšne posebne želje ali vprašanja?", "", "npr. občutljiva koža, alergije...", false);
+                SurveyQuestion q4 = new SurveyQuestion(survey, 4, SurveyQuestionType.SHORT_TEXT, "Kako vas lahko kontaktiramo? E-pošta ali telefon.", "", "npr. ana@gmail.com ali 031 123 456", true);
                 surveyQuestionRepository.saveAll(List.of(q1, q2, q3, q4));
                 survey.setPublished(true);
                 survey.setPublishedAt(Instant.now());

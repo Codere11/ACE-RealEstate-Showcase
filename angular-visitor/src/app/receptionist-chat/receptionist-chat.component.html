@@ -1,8 +1,10 @@
+<app-header></app-header>
+<app-service-cards></app-service-cards>
 <section class="chat-section" id="chat-section">
   <div class="chat-card" [class.minimized]="minimized()">
-    <div class="chat-header" (click)="toggleMinimize()">
-      <span class="chat-title">AI Receptor</span>
-      <span class="chat-status" [class.online]="salon.status() === 'open'"></span>
+    <div class="chat-header" (click)="toggleMinimize()" [class.header-staff]="salon.staffState() === 'connected'">
+      <span class="chat-title">{{ salon.staffState() === 'connected' ? 'Osebje' : 'AI Receptor' }}</span>
+      <span class="chat-status" [class.online]="salon.staffState() === 'connected' || salon.status() === 'open'"></span>
       <span class="minimize-icon">{{ minimized() ? '▲' : '▼' }}</span>
     </div>
 
@@ -18,18 +20,16 @@
       }
 
       <div class="chat-messages" #chatContainer>
-        <!-- Staff video -->
-        @if (salon.staffState() !== 'idle') {
-          <app-staff-video></app-staff-video>
-        }
-
         <!-- Messages -->
         @for (msg of salon.messages(); track $index) {
-          <div class="message-row" [class]="msg.role === 'user' ? 'row-user' : 'row-ai'">
+          <div class="message-row" [class]="rowClass(msg)">
             @if (msg.role !== 'user') {
-              <div class="avatar">{{ msg.role === 'system' ? '🔔' : '🤖' }}</div>
+              <div class="avatar" [class.avatar-staff]="msg.role === 'staff'">{{ avatarFor(msg) }}</div>
             }
             <div class="message-bubble" [class]="messageClass(msg)">
+              @if (msg.role === 'staff') {
+                <div class="message-badge">Osebje</div>
+              }
               <div class="message-text">{{ msg.text }}</div>
               @if (msg.actions && msg.actions.length) {
                 <div class="message-actions">
@@ -57,7 +57,7 @@
         <input
           type="text"
           class="chat-input"
-          placeholder="Vpišite sporočilo ..."
+          [placeholder]="salon.staffState() === 'connected' ? 'Pišite osebju ...' : 'Vpišite sporočilo ...'"
           [(ngModel)]="inputText"
           (keyup.enter)="send()"
         />

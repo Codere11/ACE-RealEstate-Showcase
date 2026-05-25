@@ -2,6 +2,8 @@ package com.ace.platform.config;
 
 import com.ace.platform.organization.Organization;
 import com.ace.platform.organization.OrganizationRepository;
+import com.ace.platform.qualifier.Qualifier;
+import com.ace.platform.qualifier.QualifierRepository;
 import com.ace.platform.survey.SurveyService;
 import com.ace.platform.user.User;
 import com.ace.platform.user.UserRepository;
@@ -25,6 +27,7 @@ public class DevDataSeeder {
     ApplicationRunner seedDefaultData(
         OrganizationRepository organizationRepository,
         UserRepository userRepository,
+        QualifierRepository qualifierRepository,
         PasswordEncoder passwordEncoder,
         SurveyService surveyService,
         @Value("${ace.demo.org-name:Demo Agency}") String demoOrgName,
@@ -61,6 +64,16 @@ public class DevDataSeeder {
             });
 
             surveyService.ensureDefaultSurvey(demoOrg);
+
+            if (qualifierRepository.findByOrganizationIdAndStatus(demoOrg.getId(), "live").isEmpty()) {
+                Qualifier q = new Qualifier(demoOrg, "AI Receptor", "ai-receptor");
+                q.setSystemPrompt("Ti si AI Receptor za kozmetični salon. Toplo pozdravi obiskovalce, odgovarjaj na vprašanja o storitvah (nega obraza 45min/35€, maska obraza 30min/25€, čiščenje obraza 60min/50€), pomagaj pri izbiri tretmajev in rezerviraj termine. Bodi prijazen, profesionalen in ustrežljiv. Salon je odprt od 9:00 do 18:00.");
+                q.setAssistantStyle("prijazen, topel, profesionalen");
+                q.setStatus("live");
+                qualifierRepository.save(q);
+                log.info("Seeded default qualifier for demo org");
+            }
+
             log.info("Demo organization available at slug={} (id={})", demoOrg.getSlug(), demoOrg.getId());
         };
     }

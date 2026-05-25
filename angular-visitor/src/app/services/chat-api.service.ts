@@ -123,7 +123,8 @@ export class ChatApiService {
       .set('sid', sid)
       .set('since', String(since))
       .set('timeout', String(environment.pollingTimeout))
-      .set('limit', '50');
+      .set('limit', '50')
+      .set('tenantSlug', this.tenantSlug);
 
     return this.http
       .get<PollResult>(`${this.baseUrl}/chat-events/poll`, { params })

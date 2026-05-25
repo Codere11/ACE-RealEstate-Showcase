@@ -1,0 +1,87 @@
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-copy">
+        <div class="eyebrow">ACE platform admin</div>
+        <h1>Manage orgs fast</h1>
+        <p>Platform onboarding, org setup, and internal user access.</p>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <a class="btn primary" routerLink="/demo">Demo Salon SPA</a>
+      <a class="btn" routerLink="/demo/dashboard">Demo Dashboard</a>
+    </div>
+
+    <div class="stats">
+      <div class="tile"><strong>Organizations</strong><span>{{ orgs().length }}</span></div>
+      <div class="tile"><strong>Users</strong><span>{{ users().length }}</span></div>
+    </div>
+  </div>
+
+  @if (error()) { <div class="flash error" [innerHTML]="error()"></div> }
+
+  <div class="panel">
+    <div class="section-head">
+      <div><h2>Organizations</h2><p class="muted">Create, open, and manage organizations.</p></div>
+    </div>
+
+    @for (org of orgs(); track org.id) {
+      <div class="org-card">
+        <div class="org-head">
+          <div class="entity-title">
+            <strong>{{ org.name }}</strong>
+            <div class="entity-route"><code>http://localhost:8080/{{ org.slug }}</code></div>
+          </div>
+          <span class="badge" [class.active]="org.active" [class.inactive]="!org.active">{{ org.active ? 'active' : 'inactive' }}</span>
+        </div>
+        <div class="inline-actions">
+          <a class="btn" [routerLink]="['/', org.slug]" target="_blank">Odpri salon</a>
+          <a class="btn primary" [routerLink]="['/', org.slug, 'dashboard']">Dashboard</a>
+        </div>
+      </div>
+    }
+
+    <div class="section-head" style="margin-top:24px;">
+      <div><h3>Dodaj organizacijo</h3></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Ime</label><input [(ngModel)]="newOrgName" placeholder="Salon Lepota"></div>
+      <div class="field"><label>Slug</label><input [(ngModel)]="newOrgSlug" placeholder="salon-lepota"></div>
+    </div>
+    <div class="inline-actions">
+      <button class="btn primary" (click)="addOrg()">Ustvari organizacijo</button>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px;">
+    <div class="section-head">
+      <div><h2>Users</h2><p class="muted">Platform admins and org-scoped users.</p></div>
+    </div>
+    @for (u of users(); track u.id) {
+      <div class="org-card">
+        <strong>{{ u.username }}</strong>
+        <span class="badge role">{{ u.role }}</span>
+        <span class="muted small">{{ u.email }}</span>
+      </div>
+    }
+
+    <div class="section-head" style="margin-top:24px;">
+      <div><h3>Dodaj uporabnika</h3></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Username</label><input [(ngModel)]="newUsername"></div>
+      <div class="field"><label>Email</label><input [(ngModel)]="newEmail" type="email"></div>
+      <div class="field"><label>Geslo</label><input [(ngModel)]="newPassword" type="password"></div>
+      <div class="field"><label>Vloga</label>
+        <select [(ngModel)]="newRole">
+          <option value="PLATFORM_ADMIN">Platform Admin</option>
+          <option value="ORG_USER">Org User</option>
+        </select>
+      </div>
+    </div>
+    <div class="inline-actions">
+      <button class="btn primary" (click)="addUser()">Ustvari uporabnika</button>
+    </div>
+  </div>
+</div>

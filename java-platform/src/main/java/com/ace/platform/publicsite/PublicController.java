@@ -33,7 +33,7 @@ public class PublicController {
         this.spaAvailable = new ClassPathResource("static/index.html").exists();
     }
 
-    @GetMapping({"/", "/demo", "/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}"})
+    @GetMapping({"/", "/demo", "/admin", "/admin/dashboard", "/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}", "/{tenantSlug:[a-zA-Z0-9][a-zA-Z0-9-]*}/dashboard"})
     public String visitorRoutes(@PathVariable(required = false) String tenantSlug) {
         if (spaAvailable) {
             return "forward:/index.html";
