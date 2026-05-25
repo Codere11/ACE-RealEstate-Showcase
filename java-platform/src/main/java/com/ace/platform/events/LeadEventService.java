@@ -49,6 +49,11 @@ public class LeadEventService {
         return items.stream().map(this::toEnvelope).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> fetchNow(Long organizationId, String sid, long since, int limit) {
+        return fetch(organizationId, sid, since, limit).stream().map(this::toEnvelope).toList();
+    }
+
     private List<LeadEvent> fetch(Long organizationId, String sid, long since, int limit) {
         PageRequest page = PageRequest.of(0, Math.max(1, Math.min(limit, 500)));
         if ("*".equals(sid)) {

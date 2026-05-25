@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.nio.charset.StandardCharsets;
@@ -133,6 +134,31 @@ public class ChatApiController {
             .max(Long::compareTo)
             .orElse(since);
         return Map.of("ok", true, "events", events, "next", next);
+    }
+
+    @GetMapping("/chat-events/stream")
+    public SseEmitter streamEvents(@RequestParam String sid, @RequestParam String tenantSlug) {
+        Organization org = organizationRepository.findBySlugAndActiveTrue(tenantSlug)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        SseEmitter em = new SseEmitter(0L);
+        String s = (sid == null || sid.isBlank()) ? "*" : sid;
+        new Thread(() -> {
+            long since = 0;
+            try {
+                em.send(SseEmitter.event().comment("connected"));
+                while (true) {
+                    var events = leadEventService.fetchNow(org.getId(), s, since, 50);
+                    for (var e : events) {
+                        em.send(SseEmitter.event().data(e));
+                        since = Math.max(since, ((Number)e.get("_seq")).longValue());
+                    }
+                    Thread.sleep(500);
+                }
+            } catch (Exception ex) {
+                try { em.completeWithError(ex); } catch (Exception ignored) {}
+            }
+        }).start();
+        return em;
     }
 
     @GetMapping("/api/organizations/{orgId}/leads")

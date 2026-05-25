@@ -2,8 +2,8 @@ export const environment = {
   production: false,
   apiUrl: '',  // empty = same origin in prod, or proxied in dev
   defaultTenantSlug: 'demo',
-  pollingIntervalMs: 3000,
-  pollingTimeout: 2,
+  pollingIntervalMs: 1000,
+  pollingTimeout: 1,
   retryCount: 3,
   retryDelayMs: 1000,
 };

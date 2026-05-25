@@ -21,9 +21,24 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.slug.set(this.route.snapshot.paramMap.get('slug') || '');
     await this.resolveOrg();
-    if (this.orgId) { await this.loadLeads(); this.timer = setInterval(() => this.loadLeads(), 10000); }
+    if (this.orgId) { await this.loadLeads(); this.connectSSE(); }
   }
-  ngOnDestroy() { if (this.timer) clearInterval(this.timer); }
+  ngOnDestroy() { if (this.sse) this.sse.close(); }
+
+  private sse: EventSource | null = null;
+  private connectSSE() {
+    this.sse = new EventSource('/chat-events/stream?sid=*&tenantSlug=' + this.slug());
+    this.sse.onmessage = (e) => {
+      try {
+        const event = JSON.parse(e.data);
+        if (event.type === 'message.created' || event.type === 'lead.touched' || event.type === 'lead.takeover.started' || event.type === 'lead.takeover.ended' || event.type === 'lead.staff-requested') {
+          this.loadLeads();
+          if (this.selectedSid && event.sid === this.selectedSid) this.select(this.selectedSid);
+        }
+      } catch {}
+    };
+    this.sse.onerror = () => { this.sse?.close(); setTimeout(() => this.connectSSE(), 2000); };
+  }
 
   private async resolveOrg() {
     try {

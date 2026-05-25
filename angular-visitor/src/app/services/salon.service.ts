@@ -62,15 +62,10 @@ export class SalonService implements OnDestroy {
   // ── poll ──
 
   private poll() {
-    if (!this.sid) { this.timer = setTimeout(() => this.poll(), 3000); return; }
-    this.api.pollEvents(this.sid, this.seq).subscribe({
-      next: r => {
-        for (const e of r.events) this.handle(e);
-        this.seq = r.next;
-        this.timer = setTimeout(() => this.poll(), 3000);
-      },
-      error: () => { this.timer = setTimeout(() => this.poll(), 3000); }
-    });
+    if (!this.sid) { this.timer = setTimeout(() => this.poll(), 1000); return; }
+    const es = new EventSource('/chat-events/stream?sid=' + this.sid + '&tenantSlug=' + this.getTenantSlug());
+    es.onmessage = (e) => { try { this.handle(JSON.parse(e.data)); } catch {} };
+    es.onerror = () => { es.close(); this.timer = setTimeout(() => this.poll(), 2000); };
   }
 
   private handle(e: PollEvent) {
