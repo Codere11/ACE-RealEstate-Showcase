@@ -25,9 +25,12 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy() { if (this.sse) this.sse.close(); }
 
+  sseConnected = signal(false);
   private sse: EventSource | null = null;
   private connectSSE() {
+    this.sse?.close();
     this.sse = new EventSource('/chat-events/stream?sid=*&tenantSlug=' + this.slug());
+    this.sse.onopen = () => { this.sseConnected.set(true); };
     this.sse.onmessage = (e) => {
       try {
         const event = JSON.parse(e.data);
@@ -37,7 +40,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
         }
       } catch {}
     };
-    this.sse.onerror = () => { this.sse?.close(); setTimeout(() => this.connectSSE(), 2000); };
+    this.sse.onerror = () => { this.sseConnected.set(false); this.sse?.close(); setTimeout(() => this.connectSSE(), 2000); };
   }
 
   private async resolveOrg() {

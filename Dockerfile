@@ -1,3 +1,10 @@
+FROM node:22-alpine AS angular-build
+WORKDIR /app/angular-visitor
+COPY angular-visitor/package.json angular-visitor/package-lock.json ./
+RUN npm ci
+COPY angular-visitor/ .
+RUN npx ng build --configuration=production
+
 FROM eclipse-temurin:21-jdk AS java-build
 WORKDIR /workspace/java-platform
 
@@ -6,6 +13,7 @@ COPY java-platform/mvnw java-platform/pom.xml ./
 RUN chmod +x mvnw && ./mvnw -q -DskipTests dependency:go-offline
 
 COPY java-platform/src ./src
+COPY --from=angular-build /app/angular-visitor/dist/angular-visitor/browser/ src/main/resources/static/
 RUN ./mvnw -q -DskipTests package
 
 FROM ubuntu:24.04
