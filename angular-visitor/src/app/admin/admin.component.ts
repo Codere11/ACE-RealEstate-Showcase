@@ -23,7 +23,7 @@ export class AdminComponent implements OnInit {
     try {
       const [o, u] = await Promise.all([firstValueFrom(this.api.getOrgs()), firstValueFrom(this.api.getUsers())]);
       this.orgs.set(o); this.users.set(u);
-    } catch { this.error.set('Prijava je potekla. <a href="/login">Prijavite se</a>.'); }
+    } catch(e: any) { this.error.set((e?.status === 401 ? 'Prijava je potekla.' : 'Napaka: ' + (e?.message || 'neznano')) + ' <a href="/login">Prijavite se</a>.'); }
   }
 
   async addOrg() {

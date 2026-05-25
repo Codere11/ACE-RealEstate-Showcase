@@ -1,0 +1,282 @@
+# ACE Reception Services — Python Backend Rewrite Plan
+# 2026-05-25
+
+================================================================================
+WHAT STAYS, WHAT GOES
+================================================================================
+
+STAYS:
+  - Angular SPA (unchanged — talks to API, doesn't care if backend is Java or Python)
+  - Python AI runtime (app/qualification/graph.py — unchanged)
+  - PostgreSQL schema (same tables, same relationships)
+  - All Angular components, services, routes (zero changes needed)
+
+GOES:
+  - Java Spring Boot (2020 lines)
+  - Spring Security + session auth → JWT auth
+  - Spring Data JPA → SQLAlchemy
+  - Flyway migrations → Alembic
+  - SseEmitter + raw threads → FastAPI WebSocket
+  - Thymeleaf templates → already replaced by Angular
+
+================================================================================
+DATABASE MODELS (SQLAlchemy, async)
+================================================================================
+
+Organization: id, name, slug, active, created_at, updated_at
+User: id, organization_id (FK), username, email, password_hash, role (PLATFORM_ADMIN|ORG_USER), active
+Lead: id, organization_id (FK), sid, status (SURVEY|OPEN_CHAT|HUMAN_TAKEOVER|CLOSED),
+      takeover_active, staff_requested, assigned_user_id (FK), last_message_preview,
+      last_message_at, qualification_score, qualification_band, confidence_overall,
+      qualifier_profile (JSON), qualifier_missing_fields (JSON), qualifier_reasoning,
+      takeover_eligible, video_offer_eligible, survey_progress, created_at, updated_at
+
+ConversationMessage: id, organization_id (FK), lead_id (FK),
+                     role (USER|ASSISTANT|STAFF), text, created_at
+
+LeadEvent: id (auto-increment = _seq), organization_id (FK), sid,
+           event_type, payload_json (JSON), created_at
+
+Qualifier: id, organization_id (FK), name, slug, status (draft|live|archived),
+           system_prompt, assistant_style, field_schema (JSON), ...
+
+Survey: id, organization_id (FK), title, slug, published, active
+SurveyQuestion: id, survey_id (FK), order_index, question_type, title, placeholder, required
+SurveyQuestionOption: id, question_id (FK), order_index, label, value
+
+================================================================================
+API ENDPOINTS (FastAPI, exact same paths Angular expects)
+================================================================================
+
+PUBLIC (no auth):
+  POST /chat                              → AI chat or survey fallback
+  GET  /chat-events/stream                → NOT USED (replaced by WebSocket)
+  GET  /api/public/organizations/{slug}/leads/{sid}/messages
+  POST /api/public/organizations/{slug}/leads/{sid}/request-staff
+  GET  /api/public/organizations/{slug}/qualifier-active
+  POST /login                             → returns JWT token
+
+AUTHENTICATED (JWT required):
+  POST /chat/staff                        → staff takeover message
+  GET  /api/organizations/{orgId}/leads   → lead list with staffRequested
+  GET  /api/organizations/{orgId}/leads/{sid}/messages
+  POST /api/organizations/{orgId}/leads/{sid}/takeover/end
+  DELETE /api/organizations/{orgId}/leads/{sid}
+  GET  /api/admin/organizations
+  POST /api/admin/organizations
+  GET  /api/admin/users
+  POST /api/admin/users
+
+WEBSOCKET:
+  WS /ws/{slug}                           → real-time events for all visitors + dashboard
+    Client sends: {"type":"subscribe", "sid":"*"} for dashboard
+    Client sends: {"type":"subscribe", "sid":"abc123"} for visitor
+    Server sends: {"type":"lead.takeover.started", "sid":"...", "payload":{...}}
+    Server sends: {"type":"message.created", ...}
+    Server sends: {"type":"lead.touched", ...}
+
+STATIC:
+  GET /{path}                             → Angular SPA (StaticFiles mount)
+  All Angular routes (/, /admin, /{slug}, /{slug}/dashboard) → index.html
+
+================================================================================
+WEBSOCKET — HOW IT WORKS
+================================================================================
+
+One WebSocket endpoint: /ws/{slug}
+
+Flow:
+  1. Client connects to ws://localhost:8000/ws/demo
+  2. Server resolves org by slug, accepts connection
+  3. Client sends {"type":"subscribe", "sid":"*"} or {"sid":"abc123"}
+  4. Server adds client to in-memory set for that sid
+  5. When an event is published (e.g., message.created):
+     → Server iterates subscribers for that sid AND for "*"
+     → Sends event JSON to each subscriber
+  6. Client receives event, processes it (same handle() logic)
+  7. On disconnect: remove from subscriber set
+
+No threads. No polling. No SSE emitter lifecycle issues. No @Transactional.
+Just: event published → loop over subscribers → websocket.send_json(event)
+
+Event publishing function (called by all endpoints):
+  async def publish_event(org_id, sid, event_type, payload):
+      event = {"type": event_type, "sid": sid, "payload": payload}
+      # Store in lead_events table (for replay on reconnect)
+      db_event = LeadEvent(organization_id=org_id, sid=sid,
+                           event_type=event_type, payload_json=payload)
+      db.add(db_event); await db.commit()
+      event["_seq"] = db_event.id
+      
+      # Send to WebSocket subscribers
+      for ws in subscribers.get(sid, []):
+          await ws.send_json(event)
+      for ws in subscribers.get("*", []):
+          await ws.send_json(event)
+
+Angular changes (minimal):
+  salon.service.ts:
+    - Replace SSE EventSource with WebSocket:
+      ws = new WebSocket('ws://localhost:8000/ws/' + slug)
+      ws.onopen = () => ws.send(JSON.stringify({type:'subscribe', sid: this.sid}))
+      ws.onmessage = (e) => { const evt = JSON.parse(e.data); this.zone.run(() => this.onEvent(evt)); }
+  
+  org-dashboard.component.ts:
+    - Same: WebSocket subscribe with sid='*'
+
+================================================================================
+AUTH FLOW
+================================================================================
+
+  1. Angular login page → POST /login {username, password}
+  2. Server verifies → returns {"token": "jwt..."}
+  3. Angular stores in localStorage
+  4. All authenticated requests include: Authorization: Bearer jwt...
+  5. FastAPI dependency: get_current_user(token) → returns User or 401
+  6. Admin endpoints check user.role == 'PLATFORM_ADMIN'
+
+Public endpoints skip auth dependency.
+
+================================================================================
+MULTI-TENANCY
+================================================================================
+
+  FastAPI middleware extracts slug from URL path or query param:
+    - /api/organizations/1/leads → org_id = 1 (from path)
+    - /api/public/organizations/demo/leads/abc/messages → slug = "demo"
+    - WebSocket /ws/demo → slug = "demo"
+
+  Request handler resolves org:
+    org = await db.query(Organization).filter_by(slug=slug, active=True).first()
+    if not org: raise HTTPException(404)
+
+  This replaces TenantRouteService (28 lines of Java) with 5 lines of Python.
+
+================================================================================
+CHAT FLOW
+================================================================================
+
+  POST /chat {sid, message, tenant_slug}:
+    1. Resolve org by slug
+    2. Get or create Lead (generate sid if not provided)
+    3. Save user message: ConversationMessage(lead, USER, message)
+    4. publish_event(org.id, lead.sid, "message.created", {role:"user", text:message})
+    
+    5. Check for active qualifier:
+       qualifier = await db.query(Qualifier).filter_by(org_id=org.id, status='live').first()
+       
+    6. If qualifier:
+         Call Python AI runtime (app.qualification.graph.run_qualification_graph)
+         → returns {reply, profile, qualification_score, ...}
+         Save assistant message
+         publish_event(message.created, assistant)
+         publish_event(lead.qualified, ...)
+         Return {sid: lead.sid, reply: response.reply, ...}
+       
+    7. If no qualifier:
+         Use survey flow (PublicChatService equivalent)
+         Return next survey question as reply
+    
+    8. publish_event(lead.touched, {lastMessage, status, ...})
+
+================================================================================
+TAKEOVER FLOW
+================================================================================
+
+  POST /chat/staff {orgId, sid, text} (AUTHENTICATED):
+    1. Verify user has access to org
+    2. Find lead by org_id + sid
+    3. Set lead.takeover_active = True, lead.status = HUMAN_TAKEOVER
+    4. publish_event(lead.takeover.started, {sid, manager, takeover_active: True})
+    5. Save staff message: ConversationMessage(lead, STAFF, text)
+    6. publish_event(message.created, {role:"staff", text})
+    7. publish_event(lead.touched, ...)
+    8. Return {ok: true, takeover: {active: true, ...}}
+
+  POST .../takeover/end (AUTHENTICATED):
+    1. Set lead.takeover_active = False, lead.status = OPEN_CHAT
+    2. publish_event(lead.takeover.ended, {sid, takeover_active: False})
+
+================================================================================
+SEEDING
+================================================================================
+
+  On first startup (if DB is empty):
+    1. Create demo org (slug="demo", name="Demo Agency")
+    2. Create admin user (username="admin", password="test123", role=PLATFORM_ADMIN)
+    3. Create default qualifier (name="AI Receptor", status="live",
+       system_prompt="Ti si AI Receptor za kozmetični salon...")
+    4. Create default survey (Slovenian beauty salon questions)
+
+================================================================================
+FILE STRUCTURE
+================================================================================
+
+  backend/
+    main.py              — FastAPI app, middleware, WebSocket, static mount
+    models.py            — SQLAlchemy models (all tables)
+    schemas.py           — Pydantic request/response schemas
+    auth.py              — JWT creation/verification, get_current_user dependency
+    chat.py              — POST /chat handler, qualifier integration, survey fallback
+    takeover.py          — POST /chat/staff, POST .../end
+    leads.py             — GET leads, GET messages, DELETE lead, request-staff
+    admin.py             — GET/POST organizations, GET/POST users
+    events.py            — publish_event(), WebSocket subscriber management
+    seed.py              — DevDataSeeder equivalent
+    database.py          — async SQLAlchemy engine, session factory
+    alembic/             — migrations (ported from Flyway)
+    requirements.txt
+
+  Angular:
+    salon.service.ts     — WebSocket replaces SSE (10 line change)
+    org-dashboard.component.ts — WebSocket replaces SSE (10 line change)
+    chat-api.service.ts  — baseUrl points to Python (or same-origin if proxied)
+
+================================================================================
+ANGULAR CHANGES (minimal — 2 files, ~20 lines each)
+================================================================================
+
+  salon.service.ts — openSSE() → openWS():
+    private openWS() {
+      const ws = new WebSocket('ws://' + location.host + '/ws/' + this.getTenantSlug());
+      ws.onopen = () => ws.send(JSON.stringify({type:'subscribe', sid: this.sid}));
+      ws.onmessage = (e) => {
+        const evt = JSON.parse(e.data);
+        this.zone.run(() => this.onEvent(evt));
+      };
+      ws.onclose = () => setTimeout(() => this.openWS(), 2000);
+    }
+
+  org-dashboard.component.ts — connectSSE() → connectWS():
+    Same pattern, but subscribes with sid='*'
+
+  chat-api.service.ts — baseUrl:
+    Change from '' (same-origin) to '' (empty = same-origin, proxied by FastAPI)
+
+================================================================================
+COMPLETE FILE COUNT
+================================================================================
+
+  Python backend: ~12 files, ~800 lines total
+  Angular changes: ~40 lines in 2 files
+  Deleted: ~2000 lines of Java + ~3000 lines of Thymeleaf HTML
+
+================================================================================
+VERIFICATION CHECKLIST
+================================================================================
+
+  □ UC1:  Visitor opens /demo → AI chat works
+  □ UC2:  Staff sends takeover → visitor sees staff message
+  □ UC3:  Visitor sends during takeover → AI silent
+  □ UC4:  Staff ends takeover → AI resumes
+  □ UC5:  Visitor clicks "Prosim osebje" → lead green in dashboard
+  □ UC6:  Dashboard loads leads → sorted, filtered
+  □ UC7:  Select lead → thread renders
+  □ UC8:  Send takeover message → works
+  □ UC9:  End takeover → works
+  □ UC10: Delete lead → works
+  □ UC11: Filter leads → works
+  □ UC12: Multi-tenant → new orgs work
+  □ UC13: Admin CRUD → orgs and users
+  □ UC14: WebSocket reconnect → transparent
+  □ UC15: JWT expiry → redirect to login

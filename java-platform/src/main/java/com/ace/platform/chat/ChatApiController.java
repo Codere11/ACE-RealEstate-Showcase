@@ -145,7 +145,7 @@ public class ChatApiController {
         new Thread(() -> {
             long since = 0;
             try {
-                em.send(SseEmitter.event().comment("connected"));
+                Thread.sleep(100);
                 while (true) {
                     var events = leadEventService.fetchNow(org.getId(), s, since, 50);
                     for (var e : events) {

@@ -3,7 +3,7 @@
 <section class="chat-section" id="chat-section">
   <div class="chat-card" [class.minimized]="minimized()">
     <div class="chat-header" (click)="toggleMinimize()" [class.header-staff]="salon.staffState() === 'connected'">
-      <span class="chat-title">{{ salon.staffState() === 'connected' ? 'Osebje' : 'AI Receptor' }}</span>
+      <span class="chat-title">{{ salon.staffState() === 'connected' ? 'Osebje' : salon.staffState() === 'offering' ? 'Osebje na voljo' : 'AI Receptor' }}</span>
       <span class="chat-status" [class.online]="salon.staffState() === 'connected' || salon.status() === 'open'"></span>
       <span class="minimize-icon">{{ minimized() ? '▲' : '▼' }}</span>
     </div>
@@ -19,9 +19,10 @@
         </div>
       }
 
+      <div style="color:red;font-size:10px;text-align:center;">MESSAGES: {{ salon.messages().length }}</div>
       <div class="chat-messages" #chatContainer>
         <!-- Messages -->
-        @for (msg of salon.messages(); track $index) {
+        @for (msg of salon.messages(); track msg.id || $index) {
           <div class="message-row" [class]="rowClass(msg)">
             @if (msg.role !== 'user') {
               <div class="avatar" [class.avatar-staff]="msg.role === 'staff'">{{ avatarFor(msg) }}</div>

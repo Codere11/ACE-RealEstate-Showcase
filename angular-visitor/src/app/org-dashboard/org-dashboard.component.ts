@@ -1,6 +1,8 @@
 import { Component, signal, OnInit, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { OrgDashboardService } from '../services/org-dashboard.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   standalone: true,
@@ -10,68 +12,49 @@ import { ActivatedRoute } from '@angular/router';
 })
 export class OrgDashboardComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
+  private api = inject(OrgDashboardService);
+
   slug = signal(''); orgId = 0; error = signal('');
   leads = signal<any[]>([]); allLeads = signal<any[]>([]);
   messages = signal<any[]>([]);
   selectedSid = ''; takeoverActive = signal(false); takeoverText = '';
   activeTab = 'leads';
   filters = { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false };
-  private timer: any;
+
+  private timer: any = null;
 
   async ngOnInit() {
     this.slug.set(this.route.snapshot.paramMap.get('slug') || '');
     await this.resolveOrg();
-    if (this.orgId) { await this.loadLeads(); this.connectSSE(); }
+    if (this.orgId) { await this.loadLeads(); this.timer = setInterval(() => { this.loadLeads(); if (this.selectedSid) this.select(this.selectedSid); }, 1000); }
   }
-  ngOnDestroy() { if (this.sse) this.sse.close(); }
-
-  sseConnected = signal(false);
-  private sse: EventSource | null = null;
-  private connectSSE() {
-    this.sse?.close();
-    this.sse = new EventSource('/chat-events/stream?sid=*&tenantSlug=' + this.slug());
-    this.sse.onopen = () => { this.sseConnected.set(true); };
-    this.sse.onmessage = (e) => {
-      try {
-        const event = JSON.parse(e.data);
-        if (event.type === 'message.created' || event.type === 'lead.touched' || event.type === 'lead.takeover.started' || event.type === 'lead.takeover.ended' || event.type === 'lead.staff-requested') {
-          this.loadLeads();
-          if (this.selectedSid && event.sid === this.selectedSid) this.select(this.selectedSid);
-        }
-      } catch {}
-    };
-    this.sse.onerror = () => { this.sseConnected.set(false); this.sse?.close(); setTimeout(() => this.connectSSE(), 2000); };
-  }
+  ngOnDestroy() { if (this.timer) clearInterval(this.timer); }
 
   private async resolveOrg() {
     try {
-      const r = await fetch('/api/admin/organizations', { credentials: 'same-origin' });
-      if (r.status === 401) { window.location.href = '/login'; return; }
-      const org = (await r.json()).find((o: any) => o.slug === this.slug());
+      const orgs = await firstValueFrom(this.api.getOrgs());
+      const org = orgs.find((o: any) => o.slug === this.slug());
       if (!org) { this.error.set('Organizacija ne obstaja.'); return; }
       this.orgId = org.id;
-    } catch(e) { console.error('resolveOrg failed', e); this.error.set('Napaka pri povezavi.'); }
+    } catch { this.error.set('Napaka pri povezavi.'); }
   }
 
   async loadLeads() {
     if (!this.orgId) return;
     try {
-      const r = await fetch('/api/organizations/' + this.orgId + '/leads', { credentials: 'same-origin' });
-      if (r.ok) {
-        let list = await r.json();
-        list.sort((a:any,b:any) => (b.staffRequested ? 1 : 0) - (a.staffRequested ? 1 : 0) || (b.lastSeenSec||0) - (a.lastSeenSec||0));
-        this.allLeads.set(list); this.applyFilters();
-      }
-    } catch(e) { console.error('loadLeads failed', e); }
+      let list = await firstValueFrom(this.api.getLeads(this.orgId));
+      list.sort((a: any, b: any) => (b.staffRequested ? 1 : 0) - (a.staffRequested ? 1 : 0) || (b.lastSeenSec || 0) - (a.lastSeenSec || 0));
+      this.allLeads.set(list); this.applyFilters();
+    } catch(e: any) { console.error(e); if (e?.status === 401) this.error.set('Prijava je potekla. <a href="/login">Prijavite se</a>.'); }
   }
 
   applyFilters() {
     let list = this.allLeads();
     const q = this.filters.search.toLowerCase();
-    if (q) list = list.filter(l => (l.name||'').toLowerCase().includes(q) || (l.sid||'').toLowerCase().includes(q));
-    if (this.filters.interest !== 'all') list = list.filter(l => (l.interest||'') === this.filters.interest);
+    if (q) list = list.filter(l => (l.name || '').toLowerCase().includes(q) || (l.sid || '').toLowerCase().includes(q));
+    if (this.filters.interest !== 'all') list = list.filter(l => (l.interest || '') === this.filters.interest);
     if (this.filters.status !== 'all') list = list.filter(l => l.status === this.filters.status);
-    if (this.filters.minProgress > 0) list = list.filter(l => (l.surveyProgress||0) >= this.filters.minProgress);
+    if (this.filters.minProgress > 0) list = list.filter(l => (l.surveyProgress || 0) >= this.filters.minProgress);
     if (this.filters.takeoverOnly) list = list.filter(l => l.takeoverActive);
     this.leads.set(list);
   }
@@ -81,43 +64,37 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     const lead = this.allLeads().find(l => l.sid === sid);
     this.takeoverActive.set(lead?.takeoverActive || false);
     try {
-      const r = await fetch('/api/organizations/' + this.orgId + '/leads/' + sid + '/messages', { credentials: 'same-origin' });
-      if (r.ok) this.messages.set(await r.json());
+      this.messages.set(await firstValueFrom(this.api.getMessages(this.orgId, sid)));
     } catch {}
   }
 
   async sendTakeover() {
     if (!this.selectedSid || !this.takeoverText.trim()) return;
     try {
-      const r = await fetch('/chat/staff', { method: 'POST', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgId: this.orgId, sid: this.selectedSid, text: this.takeoverText })
-      });
-      if (r.ok) { this.takeoverText = ''; this.takeoverActive.set(true); await this.loadLeads(); await this.select(this.selectedSid); }
+      await firstValueFrom(this.api.sendTakeover(this.orgId, this.selectedSid, this.takeoverText));
+      this.takeoverText = ''; this.takeoverActive.set(true);
+      await this.loadLeads(); await this.select(this.selectedSid);
     } catch {}
   }
 
   async endTakeover() {
     if (!this.selectedSid) return;
     try {
-      await fetch('/api/organizations/' + this.orgId + '/leads/' + this.selectedSid + '/takeover/end', { method: 'POST', credentials: 'same-origin' });
+      await firstValueFrom(this.api.endTakeover(this.orgId, this.selectedSid));
       this.takeoverActive.set(false); await this.loadLeads(); await this.select(this.selectedSid);
     } catch {}
-  }
-
-  async deleteSelected() {
-    if (!this.selectedSid || !confirm('Delete this lead?')) return;
-    await this.deleteLead(this.selectedSid);
   }
 
   async deleteLead(sid: string) {
     if (!confirm('Delete this lead?')) return;
     try {
-      await fetch('/api/organizations/' + this.orgId + '/leads/' + sid, { method: 'DELETE', credentials: 'same-origin' });
+      await firstValueFrom(this.api.deleteLead(this.orgId, sid));
       if (sid === this.selectedSid) { this.selectedSid = ''; this.messages.set([]); this.takeoverActive.set(false); }
       await this.loadLeads();
     } catch {}
   }
+
+  async deleteSelected() { await this.deleteLead(this.selectedSid); }
 
   selectedLeadName() { return this.allLeads().find(l => l.sid === this.selectedSid)?.name || 'Visitor'; }
   get visibleCount() { return this.leads().length; }

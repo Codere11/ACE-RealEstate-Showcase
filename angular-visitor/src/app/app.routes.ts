@@ -2,8 +2,10 @@ import { Routes } from '@angular/router';
 import { AdminComponent } from './admin/admin.component';
 import { OrgDashboardComponent } from './org-dashboard/org-dashboard.component';
 import { ReceptionistChatComponent } from './receptionist-chat/receptionist-chat.component';
+import { LoginComponent } from './login/login.component';
 
 export const routes: Routes = [
+  { path: 'login', component: LoginComponent },
   { path: 'admin', component: AdminComponent },
   { path: 'admin/dashboard', component: AdminComponent },
   { path: ':slug/dashboard', component: OrgDashboardComponent },

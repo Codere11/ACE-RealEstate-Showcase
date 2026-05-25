@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/styles.scss"],
+  "sourcesContent": ["* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nhtml {\n  scroll-behavior: smooth;\n}\n\nbody {\n  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #f5f3ff;\n  color: #2e1065;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\nbutton {\n  font-family: inherit;\n}\n\ninput {\n  font-family: inherit;\n}\n"],
+  "mappings": ";AAAA;AACE,UAAA;AACA,WAAA;AACA,cAAA;;AAGF;AACE,mBAAA;;AAGF;AACE;IAAA,OAAA;IAAA,aAAA;IAAA,kBAAA;IAAA,UAAA;IAAA,MAAA;IAAA;AACA,cAAA;AACA,SAAA;AACA,0BAAA;AACA,2BAAA;;AAGF;AACE,eAAA;;AAGF;AACE,eAAA;;",
+  "names": []
+}
