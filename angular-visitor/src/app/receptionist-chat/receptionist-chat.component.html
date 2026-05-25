@@ -19,10 +19,9 @@
         </div>
       }
 
-      <div style="color:red;font-size:10px;text-align:center;">MESSAGES: {{ salon.messages().length }}</div>
       <div class="chat-messages" #chatContainer>
         <!-- Messages -->
-        @for (msg of salon.messages(); track msg.id || $index) {
+        @for (msg of salon.messages(); track $index) {
           <div class="message-row" [class]="rowClass(msg)">
             @if (msg.role !== 'user') {
               <div class="avatar" [class.avatar-staff]="msg.role === 'staff'">{{ avatarFor(msg) }}</div>

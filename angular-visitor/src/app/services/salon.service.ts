@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, OnDestroy, ApplicationRef } from '@angular/core';
+import { Injectable, signal, inject, OnDestroy, NgZone } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ChatApiService, PollEvent } from './chat-api.service';
 
@@ -12,9 +12,8 @@ function nextId(): string { return 'm' + (++_msgId); }
 
 @Injectable({ providedIn: 'root' })
 export class SalonService implements OnDestroy {
-  // BUILD: v1 — staff message setTimeout + appRef.tick fix
   private api = inject(ChatApiService);
-  private appRef = inject(ApplicationRef);
+  private zone = inject(NgZone);
 
   readonly staffState = signal<StaffState>('idle');
   readonly messages = signal<ChatMessage[]>([]);
@@ -80,7 +79,7 @@ export class SalonService implements OnDestroy {
   private doPoll() {
     if (!this.sid) return;
     this.api.pollEvents(this.sid, this.seq).subscribe({
-      next: r => { for (const e of r.events) this.onEvent(e); this.seq = r.next; },
+      next: r => { this.zone.run(() => { for (const e of r.events) this.onEvent(e); this.seq = r.next; }); },
       error: () => {}
     });
     this.timer = setTimeout(() => this.doPoll(), 1000);
@@ -99,10 +98,7 @@ export class SalonService implements OnDestroy {
         if (!p?.text || p.role === 'user') break;
         if (p.role === 'staff') {
           this.staffState.set('connected');
-          if (!this.messages().some(m => m.role === 'staff' && m.text === p.text)) {
-            const txt = p.text;
-            setTimeout(() => { this.addMsg('staff', txt); this.appRef.tick(); }, 0);
-          }
+          this.addMsg('staff', p.text);
         } else if (p.role === 'assistant' && this.staffState() === 'idle') {
           if (!this.messages().some(m => m.text === p.text)) this.addMsg('ai', p.text);
         }

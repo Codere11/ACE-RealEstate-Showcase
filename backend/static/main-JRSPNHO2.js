@@ -46785,9 +46785,8 @@ function nextId() {
   return "m" + ++_msgId;
 }
 var SalonService = class _SalonService {
-  // BUILD: v1 — staff message setTimeout + appRef.tick fix
   api = inject(ChatApiService);
-  appRef = inject(ApplicationRef);
+  zone = inject(NgZone);
   staffState = signal("idle");
   messages = signal([]);
   connectionStatus = signal("connecting");
@@ -46864,9 +46863,11 @@ var SalonService = class _SalonService {
       return;
     this.api.pollEvents(this.sid, this.seq).subscribe({
       next: (r) => {
-        for (const e of r.events)
-          this.onEvent(e);
-        this.seq = r.next;
+        this.zone.run(() => {
+          for (const e of r.events)
+            this.onEvent(e);
+          this.seq = r.next;
+        });
       },
       error: () => {
       }
@@ -46888,13 +46889,7 @@ var SalonService = class _SalonService {
           break;
         if (p.role === "staff") {
           this.staffState.set("connected");
-          if (!this.messages().some((m) => m.role === "staff" && m.text === p.text)) {
-            const txt = p.text;
-            setTimeout(() => {
-              this.addMsg("staff", txt);
-              this.appRef.tick();
-            }, 0);
-          }
+          this.addMsg("staff", p.text);
         } else if (p.role === "assistant" && this.staffState() === "idle") {
           if (!this.messages().some((m) => m.text === p.text))
             this.addMsg("ai", p.text);
@@ -47475,8 +47470,7 @@ var ServiceCardsComponent = class _ServiceCardsComponent {
 
 // src/app/receptionist-chat/receptionist-chat.component.ts
 var _c02 = ["chatContainer"];
-var _forTrack05 = ($index, $item) => $item.id || $index;
-var _forTrack1 = ($index, $item) => $item.label;
+var _forTrack05 = ($index, $item) => $item.label;
 function ReceptionistChatComponent_Conditional_10_Conditional_0_Template(rf, ctx) {
   if (rf & 1) {
     \u0275\u0275elementStart(0, "div", 7);
@@ -47489,7 +47483,7 @@ function ReceptionistChatComponent_Conditional_10_Conditional_1_Template(rf, ctx
     const _r2 = \u0275\u0275getCurrentView();
     \u0275\u0275elementStart(0, "div", 8);
     \u0275\u0275text(1);
-    \u0275\u0275elementStart(2, "button", 15);
+    \u0275\u0275elementStart(2, "button", 14);
     \u0275\u0275listener("click", function ReceptionistChatComponent_Conditional_10_Conditional_1_Template_button_click_2_listener() {
       \u0275\u0275restoreView(_r2);
       const ctx_r2 = \u0275\u0275nextContext(2);
@@ -47504,9 +47498,9 @@ function ReceptionistChatComponent_Conditional_10_Conditional_1_Template(rf, ctx
     \u0275\u0275textInterpolate1(" \u26A0\uFE0F ", ctx_r2.salon.errorMessage() || "Povezava ni uspela.", " ");
   }
 }
-function ReceptionistChatComponent_Conditional_10_For_7_Conditional_1_Template(rf, ctx) {
+function ReceptionistChatComponent_Conditional_10_For_5_Conditional_1_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 22);
+    \u0275\u0275elementStart(0, "div", 21);
     \u0275\u0275text(1);
     \u0275\u0275elementEnd();
   }
@@ -47518,18 +47512,18 @@ function ReceptionistChatComponent_Conditional_10_For_7_Conditional_1_Template(r
     \u0275\u0275textInterpolate(ctx_r2.avatarFor(msg_r4));
   }
 }
-function ReceptionistChatComponent_Conditional_10_For_7_Conditional_3_Template(rf, ctx) {
+function ReceptionistChatComponent_Conditional_10_For_5_Conditional_3_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 19);
+    \u0275\u0275elementStart(0, "div", 18);
     \u0275\u0275text(1, "Osebje");
     \u0275\u0275elementEnd();
   }
 }
-function ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_For_2_Template(rf, ctx) {
+function ReceptionistChatComponent_Conditional_10_For_5_Conditional_6_For_2_Template(rf, ctx) {
   if (rf & 1) {
     const _r5 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "button", 24);
-    \u0275\u0275listener("click", function ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_For_2_Template_button_click_0_listener() {
+    \u0275\u0275elementStart(0, "button", 23);
+    \u0275\u0275listener("click", function ReceptionistChatComponent_Conditional_10_For_5_Conditional_6_For_2_Template_button_click_0_listener() {
       const action_r6 = \u0275\u0275restoreView(_r5).$implicit;
       const ctx_r2 = \u0275\u0275nextContext(4);
       return \u0275\u0275resetView(ctx_r2.onAction(action_r6.type));
@@ -47543,10 +47537,10 @@ function ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_For_2_Temp
     \u0275\u0275textInterpolate1(" ", action_r6.label, " ");
   }
 }
-function ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_Template(rf, ctx) {
+function ReceptionistChatComponent_Conditional_10_For_5_Conditional_6_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 21);
-    \u0275\u0275repeaterCreate(1, ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_For_2_Template, 2, 1, "button", 23, _forTrack1);
+    \u0275\u0275elementStart(0, "div", 20);
+    \u0275\u0275repeaterCreate(1, ReceptionistChatComponent_Conditional_10_For_5_Conditional_6_For_2_Template, 2, 1, "button", 22, _forTrack05);
     \u0275\u0275elementEnd();
   }
   if (rf & 2) {
@@ -47555,16 +47549,16 @@ function ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_Template(r
     \u0275\u0275repeater(msg_r4.actions);
   }
 }
-function ReceptionistChatComponent_Conditional_10_For_7_Template(rf, ctx) {
+function ReceptionistChatComponent_Conditional_10_For_5_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 16);
-    \u0275\u0275template(1, ReceptionistChatComponent_Conditional_10_For_7_Conditional_1_Template, 2, 3, "div", 17);
-    \u0275\u0275elementStart(2, "div", 18);
-    \u0275\u0275template(3, ReceptionistChatComponent_Conditional_10_For_7_Conditional_3_Template, 2, 0, "div", 19);
-    \u0275\u0275elementStart(4, "div", 20);
+    \u0275\u0275elementStart(0, "div", 15);
+    \u0275\u0275template(1, ReceptionistChatComponent_Conditional_10_For_5_Conditional_1_Template, 2, 3, "div", 16);
+    \u0275\u0275elementStart(2, "div", 17);
+    \u0275\u0275template(3, ReceptionistChatComponent_Conditional_10_For_5_Conditional_3_Template, 2, 0, "div", 18);
+    \u0275\u0275elementStart(4, "div", 19);
     \u0275\u0275text(5);
     \u0275\u0275elementEnd();
-    \u0275\u0275template(6, ReceptionistChatComponent_Conditional_10_For_7_Conditional_6_Template, 3, 0, "div", 21);
+    \u0275\u0275template(6, ReceptionistChatComponent_Conditional_10_For_5_Conditional_6_Template, 3, 0, "div", 20);
     \u0275\u0275elementEnd()();
   }
   if (rf & 2) {
@@ -47583,15 +47577,15 @@ function ReceptionistChatComponent_Conditional_10_For_7_Template(rf, ctx) {
     \u0275\u0275conditional(msg_r4.actions && msg_r4.actions.length ? 6 : -1);
   }
 }
-function ReceptionistChatComponent_Conditional_10_Conditional_8_Template(rf, ctx) {
+function ReceptionistChatComponent_Conditional_10_Conditional_6_Template(rf, ctx) {
   if (rf & 1) {
     const _r7 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "app-calendar-picker", 25);
-    \u0275\u0275listener("slotSelected", function ReceptionistChatComponent_Conditional_10_Conditional_8_Template_app_calendar_picker_slotSelected_0_listener($event) {
+    \u0275\u0275elementStart(0, "app-calendar-picker", 24);
+    \u0275\u0275listener("slotSelected", function ReceptionistChatComponent_Conditional_10_Conditional_6_Template_app_calendar_picker_slotSelected_0_listener($event) {
       \u0275\u0275restoreView(_r7);
       const ctx_r2 = \u0275\u0275nextContext(2);
       return \u0275\u0275resetView(ctx_r2.onSlotSelected($event));
-    })("close", function ReceptionistChatComponent_Conditional_10_Conditional_8_Template_app_calendar_picker_close_0_listener() {
+    })("close", function ReceptionistChatComponent_Conditional_10_Conditional_6_Template_app_calendar_picker_close_0_listener() {
       \u0275\u0275restoreView(_r7);
       const ctx_r2 = \u0275\u0275nextContext(2);
       return \u0275\u0275resetView(ctx_r2.onCalendarClose());
@@ -47603,44 +47597,39 @@ function ReceptionistChatComponent_Conditional_10_Template(rf, ctx) {
   if (rf & 1) {
     const _r1 = \u0275\u0275getCurrentView();
     \u0275\u0275template(0, ReceptionistChatComponent_Conditional_10_Conditional_0_Template, 2, 0, "div", 7)(1, ReceptionistChatComponent_Conditional_10_Conditional_1_Template, 4, 1, "div", 8);
-    \u0275\u0275elementStart(2, "div", 9);
-    \u0275\u0275text(3);
+    \u0275\u0275elementStart(2, "div", 9, 0);
+    \u0275\u0275repeaterCreate(4, ReceptionistChatComponent_Conditional_10_For_5_Template, 7, 8, "div", 10, \u0275\u0275repeaterTrackByIndex);
+    \u0275\u0275template(6, ReceptionistChatComponent_Conditional_10_Conditional_6_Template, 1, 0, "app-calendar-picker");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(4, "div", 10, 0);
-    \u0275\u0275repeaterCreate(6, ReceptionistChatComponent_Conditional_10_For_7_Template, 7, 8, "div", 11, _forTrack05);
-    \u0275\u0275template(8, ReceptionistChatComponent_Conditional_10_Conditional_8_Template, 1, 0, "app-calendar-picker");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(9, "div", 12)(10, "input", 13);
-    \u0275\u0275twoWayListener("ngModelChange", function ReceptionistChatComponent_Conditional_10_Template_input_ngModelChange_10_listener($event) {
+    \u0275\u0275elementStart(7, "div", 11)(8, "input", 12);
+    \u0275\u0275twoWayListener("ngModelChange", function ReceptionistChatComponent_Conditional_10_Template_input_ngModelChange_8_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r2 = \u0275\u0275nextContext();
       \u0275\u0275twoWayBindingSet(ctx_r2.inputText, $event) || (ctx_r2.inputText = $event);
       return \u0275\u0275resetView($event);
     });
-    \u0275\u0275listener("keyup.enter", function ReceptionistChatComponent_Conditional_10_Template_input_keyup_enter_10_listener() {
+    \u0275\u0275listener("keyup.enter", function ReceptionistChatComponent_Conditional_10_Template_input_keyup_enter_8_listener() {
       \u0275\u0275restoreView(_r1);
       const ctx_r2 = \u0275\u0275nextContext();
       return \u0275\u0275resetView(ctx_r2.send());
     });
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(11, "button", 14);
-    \u0275\u0275listener("click", function ReceptionistChatComponent_Conditional_10_Template_button_click_11_listener() {
+    \u0275\u0275elementStart(9, "button", 13);
+    \u0275\u0275listener("click", function ReceptionistChatComponent_Conditional_10_Template_button_click_9_listener() {
       \u0275\u0275restoreView(_r1);
       const ctx_r2 = \u0275\u0275nextContext();
       return \u0275\u0275resetView(ctx_r2.send());
     });
-    \u0275\u0275text(12, " Po\u0161lji ");
+    \u0275\u0275text(10, " Po\u0161lji ");
     \u0275\u0275elementEnd()();
   }
   if (rf & 2) {
     const ctx_r2 = \u0275\u0275nextContext();
     \u0275\u0275conditional(ctx_r2.salon.connectionStatus() === "connecting" ? 0 : ctx_r2.salon.connectionStatus() === "error" ? 1 : -1);
-    \u0275\u0275advance(3);
-    \u0275\u0275textInterpolate1("MESSAGES: ", ctx_r2.salon.messages().length, "");
-    \u0275\u0275advance(3);
+    \u0275\u0275advance(4);
     \u0275\u0275repeater(ctx_r2.salon.messages());
     \u0275\u0275advance(2);
-    \u0275\u0275conditional(ctx_r2.showCalendar() ? 8 : -1);
+    \u0275\u0275conditional(ctx_r2.showCalendar() ? 6 : -1);
     \u0275\u0275advance(2);
     \u0275\u0275property("placeholder", ctx_r2.salon.staffState() === "connected" ? "Pi\u0161ite osebju ..." : "Vpi\u0161ite sporo\u010Dilo ...");
     \u0275\u0275twoWayProperty("ngModel", ctx_r2.inputText);
@@ -47748,7 +47737,7 @@ Vas lahko \u0161e s \u010Dim drugim pomagam? \u263A\uFE0F`
       let _t;
       \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.chatContainer = _t.first);
     }
-  }, decls: 11, vars: 9, consts: [["chatContainer", ""], ["id", "chat-section", 1, "chat-section"], [1, "chat-card"], [1, "chat-header", 3, "click"], [1, "chat-title"], [1, "chat-status"], [1, "minimize-icon"], [1, "connection-banner", "connecting"], [1, "connection-banner", "error"], [2, "color", "red", "font-size", "10px", "text-align", "center"], [1, "chat-messages"], [1, "message-row", 3, "class"], [1, "chat-input-row"], ["type", "text", 1, "chat-input", 3, "ngModelChange", "keyup.enter", "placeholder", "ngModel"], [1, "send-btn", 3, "click", "disabled"], [1, "retry-btn", 3, "click"], [1, "message-row"], [1, "avatar", 3, "avatar-staff"], [1, "message-bubble"], [1, "message-badge"], [1, "message-text"], [1, "message-actions"], [1, "avatar"], [1, "action-btn"], [1, "action-btn", 3, "click"], [3, "slotSelected", "close"]], template: function ReceptionistChatComponent_Template(rf, ctx) {
+  }, decls: 11, vars: 9, consts: [["chatContainer", ""], ["id", "chat-section", 1, "chat-section"], [1, "chat-card"], [1, "chat-header", 3, "click"], [1, "chat-title"], [1, "chat-status"], [1, "minimize-icon"], [1, "connection-banner", "connecting"], [1, "connection-banner", "error"], [1, "chat-messages"], [1, "message-row", 3, "class"], [1, "chat-input-row"], ["type", "text", 1, "chat-input", 3, "ngModelChange", "keyup.enter", "placeholder", "ngModel"], [1, "send-btn", 3, "click", "disabled"], [1, "retry-btn", 3, "click"], [1, "message-row"], [1, "avatar", 3, "avatar-staff"], [1, "message-bubble"], [1, "message-badge"], [1, "message-text"], [1, "message-actions"], [1, "avatar"], [1, "action-btn"], [1, "action-btn", 3, "click"], [3, "slotSelected", "close"]], template: function ReceptionistChatComponent_Template(rf, ctx) {
     if (rf & 1) {
       \u0275\u0275element(0, "app-header")(1, "app-service-cards");
       \u0275\u0275elementStart(2, "section", 1)(3, "div", 2)(4, "div", 3);
@@ -47762,7 +47751,7 @@ Vas lahko \u0161e s \u010Dim drugim pomagam? \u263A\uFE0F`
       \u0275\u0275elementStart(8, "span", 6);
       \u0275\u0275text(9);
       \u0275\u0275elementEnd()();
-      \u0275\u0275template(10, ReceptionistChatComponent_Conditional_10_Template, 13, 6);
+      \u0275\u0275template(10, ReceptionistChatComponent_Conditional_10_Template, 11, 5);
       \u0275\u0275elementEnd()();
     }
     if (rf & 2) {
@@ -47805,10 +47794,9 @@ Vas lahko \u0161e s \u010Dim drugim pomagam? \u263A\uFE0F`
         </div>
       }
 
-      <div style="color:red;font-size:10px;text-align:center;">MESSAGES: {{ salon.messages().length }}</div>
       <div class="chat-messages" #chatContainer>
         <!-- Messages -->
-        @for (msg of salon.messages(); track msg.id || $index) {
+        @for (msg of salon.messages(); track $index) {
           <div class="message-row" [class]="rowClass(msg)">
             @if (msg.role !== 'user') {
               <div class="avatar" [class.avatar-staff]="msg.role === 'staff'">{{ avatarFor(msg) }}</div>
@@ -48077,4 +48065,4 @@ bootstrapApplication(AppComponent, appConfig).catch((err) => console.error(err))
    * found in the LICENSE file at https://angular.dev/license
    *)
 */
-//# sourceMappingURL=main-NHNKR552.js.map
+//# sourceMappingURL=main-JRSPNHO2.js.map
