@@ -1,8 +1,9 @@
+import json as _json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
-from models import Organization, Lead, ConversationMessage, Qualifier, ConvRole, LeadStatus, new_sid
+from models import Organization, Lead, ConversationMessage, Qualifier, LeadEvent, ConvRole, LeadStatus, new_sid
 from auth import get_current_user, get_platform_admin, User
 from events import publish_event
 from pydantic import BaseModel
@@ -149,7 +150,6 @@ async def poll_events(sid: str, since: int = 0, timeout: float = 1, limit: int =
         events = (await db.execute(select(LeadEvent).where(LeadEvent.organization_id == org.id, LeadEvent.id > since).order_by(LeadEvent.id).limit(limit))).scalars().all()
     else:
         events = (await db.execute(select(LeadEvent).where(LeadEvent.organization_id == org.id, LeadEvent.sid == sid, LeadEvent.id > since).order_by(LeadEvent.id).limit(limit))).scalars().all()
-    import json as _json
     result = [{"type": e.event_type, "sid": e.sid, "payload": (_json.loads(e.payload_json) if isinstance(e.payload_json, str) else e.payload_json), "_seq": e.id} for e in events]
     next_seq = max([e.id for e in events], default=since)
     return {"ok": True, "events": result, "next": next_seq}
@@ -245,7 +245,7 @@ async def end_live(org_id: int, req: LiveSessionRequest, user: User = Depends(ge
     return {"ok": True, "sid": req.sid}
 
 @router.get("/api/public/organizations/{slug}/live-session")
-async def public_live_state(slug: str, sid: str, db: AsyncSession = Depends(get_db)):
+async def public_live_state(slug: str, sid: str = Query(...), db: AsyncSession = Depends(get_db)):
     from livekit_token import visitor_token, room_name as _rn, ws_url as _ws
     # Check if there's an active live session by looking for recent live_session.started event without ended
     from sqlalchemy import desc
@@ -260,7 +260,7 @@ async def public_live_state(slug: str, sid: str, db: AsyncSession = Depends(get_
     if events and events[0].event_type == "live_session.started":
         active = True
         p = events[0].payload_json
-        if isinstance(p, str): p = json.loads(p)
+        if isinstance(p, str): p = _json.loads(p)
         manager_name = p.get("managerDisplayName", "")
     
     org = await get_org_by_slug(db, slug)

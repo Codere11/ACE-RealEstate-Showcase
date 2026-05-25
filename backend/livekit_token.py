@@ -1,4 +1,5 @@
 import os, time, json
+from datetime import timedelta
 from livekit import api as lkapi
 
 LIVEKIT_URL = os.getenv("ACE_LIVEKIT_WS_URL", "ws://localhost:7880")
@@ -14,7 +15,7 @@ def manager_token(org_slug: str, sid: str, user_id: int, display_name: str) -> s
         .with_name(display_name) \
         .with_grants(lkapi.VideoGrants(room_join=True, room=room_name(org_slug, sid),
                                         can_publish=True, can_subscribe=True)) \
-        .with_ttl(3600) \
+        .with_ttl(timedelta(hours=1)) \
         .to_jwt()
     return token
 
@@ -24,7 +25,7 @@ def visitor_token(org_slug: str, sid: str) -> str:
         .with_name("Visitor") \
         .with_grants(lkapi.VideoGrants(room_join=True, room=room_name(org_slug, sid),
                                         can_publish=False, can_subscribe=True)) \
-        .with_ttl(3600) \
+        .with_ttl(timedelta(hours=1)) \
         .to_jwt()
     return token
 
