@@ -4,11 +4,12 @@ import { SalonService, ChatMessage } from '../services/salon.service';
 import { CalendarPickerComponent } from '../calendar-picker/calendar-picker.component';
 import { HeaderComponent } from '../header/header.component';
 import { ServiceCardsComponent } from '../service-cards/service-cards.component';
+import { StaffVideoComponent } from '../staff-video/staff-video.component';
 
 @Component({
   selector: 'app-receptionist-chat',
   standalone: true,
-  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent],
+  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent, StaffVideoComponent],
   templateUrl: './receptionist-chat.component.html',
   styleUrls: ['./receptionist-chat.component.scss'],
 })

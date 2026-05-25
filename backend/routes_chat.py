@@ -222,6 +222,59 @@ async def delete_lead(org_id: int, sid: str, user: User = Depends(get_current_us
     await db.commit()
     return {"ok": True, "sid": sid}
 
+# ══════ LIVE SESSIONS (CAMERA) ══════
+class LiveSessionRequest(BaseModel):
+    sid: str
+
+@router.post("/api/organizations/{org_id}/live-sessions/go-live")
+async def go_live(org_id: int, req: LiveSessionRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await check_org_access(user, org_id)
+    org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one()
+    from livekit_token import room_name as _rn, manager_token
+    token = manager_token(org.slug, req.sid, user.id, user.username)
+    await publish_event(org_id, req.sid, "live_session.started", {
+        "sid": req.sid, "status": "live", "roomName": _rn(org.slug, req.sid),
+        "managerDisplayName": user.username
+    })
+    return {"ok": True, "sid": req.sid, "roomName": _rn(org.slug, req.sid), "token": token, "wsUrl": ws_url()}
+
+@router.post("/api/organizations/{org_id}/live-sessions/end")
+async def end_live(org_id: int, req: LiveSessionRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await check_org_access(user, org_id)
+    await publish_event(org_id, req.sid, "live_session.ended", {"sid": req.sid, "status": "ended"})
+    return {"ok": True, "sid": req.sid}
+
+@router.get("/api/public/organizations/{slug}/live-session")
+async def public_live_state(slug: str, sid: str, db: AsyncSession = Depends(get_db)):
+    from livekit_token import visitor_token, room_name as _rn, ws_url as _ws
+    # Check if there's an active live session by looking for recent live_session.started event without ended
+    from sqlalchemy import desc
+    events = (await db.execute(
+        select(LeadEvent).where(
+            LeadEvent.sid == sid,
+            LeadEvent.event_type.in_(["live_session.started", "live_session.ended"])
+        ).order_by(desc(LeadEvent.id)).limit(1)
+    )).scalars().all()
+    active = False
+    manager_name = ""
+    if events and events[0].event_type == "live_session.started":
+        active = True
+        p = events[0].payload_json
+        if isinstance(p, str): p = json.loads(p)
+        manager_name = p.get("managerDisplayName", "")
+    
+    org = await get_org_by_slug(db, slug)
+    token = visitor_token(slug, sid) if active else None
+    return {
+        "sid": sid, "status": "live" if active else "idle",
+        "managerDisplayName": manager_name,
+        "roomName": _rn(slug, sid) if active else None,
+        "wsUrl": _ws() if active else None,
+        "token": token
+    }
+
+from livekit_token import ws_url
+
 # ══════ LOGIN ══════
 from fastapi import Form
 from auth import verify_password, create_token
