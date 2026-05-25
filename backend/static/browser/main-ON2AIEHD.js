@@ -46785,8 +46785,10 @@ function nextId() {
   return "m" + ++_msgId;
 }
 var SalonService = class _SalonService {
+  onStaffMessage = null;
   api = inject(ChatApiService);
   zone = inject(NgZone);
+  appRef = inject(ApplicationRef);
   staffState = signal("idle");
   messages = signal([]);
   connectionStatus = signal("connecting");
@@ -46890,6 +46892,9 @@ var SalonService = class _SalonService {
         if (p.role === "staff") {
           this.staffState.set("connected");
           this.addMsg("staff", p.text);
+          this.appRef.tick();
+          if (this.onStaffMessage)
+            this.onStaffMessage();
         } else if (p.role === "assistant" && this.staffState() === "idle") {
           if (!this.messages().some((m) => m.text === p.text))
             this.addMsg("ai", p.text);
@@ -47639,7 +47644,11 @@ function ReceptionistChatComponent_Conditional_10_Template(rf, ctx) {
 }
 var ReceptionistChatComponent = class _ReceptionistChatComponent {
   salon = inject(SalonService);
+  cdr = inject(ChangeDetectorRef);
   inputText = "";
+  constructor() {
+    this.salon.onStaffMessage = () => this.cdr.detectChanges();
+  }
   showCalendar = signal(false);
   minimized = signal(false);
   chatContainer;
@@ -47844,7 +47853,7 @@ Vas lahko \u0161e s \u010Dim drugim pomagam? \u263A\uFE0F`
   </div>
 </section>
 `, styles: ["/* src/app/receptionist-chat/receptionist-chat.component.scss */\n.chat-section {\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  z-index: 50;\n  padding: 0 2rem 1.5rem;\n  max-width: 720px;\n  margin: 0 auto;\n}\n.chat-card {\n  background: white;\n  border-radius: 20px;\n  box-shadow: 0 4px 24px rgba(124, 58, 237, 0.15);\n  overflow: hidden;\n  display: flex;\n  flex-direction: column;\n  height: 400px;\n}\n.chat-card.minimized {\n  height: auto;\n}\n.chat-header {\n  display: flex;\n  align-items: center;\n  gap: 0.6rem;\n  padding: 0.9rem 1.25rem;\n  background:\n    linear-gradient(\n      135deg,\n      #7c3aed,\n      #8b5cf6);\n  color: white;\n  cursor: pointer;\n  -webkit-user-select: none;\n  user-select: none;\n  transition: background 0.4s;\n}\n.chat-header.header-staff {\n  background:\n    linear-gradient(\n      135deg,\n      #d97706,\n      #f59e0b);\n}\n.chat-title {\n  font-weight: 700;\n  font-size: 0.95rem;\n}\n.chat-status {\n  width: 10px;\n  height: 10px;\n  border-radius: 50%;\n  background: #a5d6a7;\n  opacity: 0.5;\n  margin-left: auto;\n}\n.chat-status.online {\n  opacity: 1;\n  box-shadow: 0 0 8px rgba(165, 214, 167, 0.6);\n}\n.minimize-icon {\n  font-size: 0.75rem;\n  opacity: 0.7;\n}\n.connection-banner {\n  padding: 0.6rem 1.25rem;\n  font-size: 0.82rem;\n  font-weight: 500;\n  text-align: center;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.75rem;\n}\n.connection-banner.connecting {\n  background: #fef3c7;\n  color: #92400e;\n}\n.connection-banner.error {\n  background: #fef2f2;\n  color: #dc2626;\n}\n.retry-btn {\n  padding: 0.25rem 0.75rem;\n  border: none;\n  border-radius: 6px;\n  background: #dc2626;\n  color: white;\n  font-size: 0.78rem;\n  font-weight: 600;\n  cursor: pointer;\n}\n.retry-btn:hover {\n  background: #b91c1c;\n}\n.chat-messages {\n  flex: 1;\n  overflow-y: auto;\n  padding: 1.25rem;\n  display: flex;\n  flex-direction: column;\n  gap: 0.85rem;\n  background: #f5f3ff;\n}\n.message-row {\n  display: flex;\n  gap: 0.5rem;\n  align-items: flex-end;\n}\n.row-user {\n  justify-content: flex-end;\n}\n.row-ai {\n  justify-content: flex-start;\n}\n.avatar {\n  width: 32px;\n  height: 32px;\n  border-radius: 50%;\n  background: #ede9fe;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 0.9rem;\n  flex-shrink: 0;\n}\n.avatar-staff {\n  background: #fef3c7;\n  border: 2px solid #f59e0b;\n}\n.message-bubble {\n  max-width: 80%;\n  padding: 0.65rem 0.85rem;\n  border-radius: 14px;\n  font-size: 0.85rem;\n  line-height: 1.55;\n  white-space: pre-line;\n}\n.message-ai {\n  background: #ede9fe;\n  color: #2e1065;\n  border-bottom-left-radius: 4px;\n}\n.message-system {\n  background: #fff7ed;\n  color: #7c2d12;\n  border: 1px solid #fed7aa;\n  border-bottom-left-radius: 4px;\n}\n.message-staff {\n  background: #fffbeb;\n  color: #78350f;\n  border: 1.5px solid #fcd34d;\n  border-bottom-left-radius: 4px;\n}\n.message-badge {\n  font-size: 0.65rem;\n  font-weight: 800;\n  text-transform: uppercase;\n  letter-spacing: 0.05em;\n  color: #92400e;\n  margin-bottom: 4px;\n}\n.message-user {\n  background:\n    linear-gradient(\n      135deg,\n      #7c3aed,\n      #8b5cf6);\n  color: white;\n  border-bottom-right-radius: 4px;\n}\n.message-text {\n  margin-bottom: 0.4rem;\n}\n.message-text:last-child {\n  margin-bottom: 0;\n}\n.message-actions {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 0.4rem;\n  margin-top: 0.5rem;\n}\n.action-btn {\n  padding: 0.45rem 0.9rem;\n  border: none;\n  border-radius: 10px;\n  font-size: 0.78rem;\n  font-weight: 600;\n  cursor: pointer;\n  transition: opacity 0.2s;\n  background: white;\n  color: #4c1d95;\n  border: 1.5px solid #ddd6fe;\n}\n.action-btn:hover {\n  background: #ede9fe;\n}\n.row-user .action-btn {\n  background: rgba(255, 255, 255, 0.2);\n  color: white;\n  border: 1.5px solid rgba(255, 255, 255, 0.3);\n}\n.row-user .action-btn:hover {\n  background: rgba(255, 255, 255, 0.3);\n}\n.chat-input-row {\n  display: flex;\n  padding: 0.75rem 1.25rem;\n  gap: 0.6rem;\n  border-top: 1px solid #ede9fe;\n  background: white;\n}\n.chat-input {\n  flex: 1;\n  padding: 0.7rem 1rem;\n  border: 1.5px solid #ddd6fe;\n  border-radius: 12px;\n  font-size: 0.85rem;\n  outline: none;\n  font-family: inherit;\n  transition: border-color 0.2s;\n}\n.chat-input:focus {\n  border-color: #7c3aed;\n}\n.chat-input::placeholder {\n  color: #a78bfa;\n}\n.send-btn {\n  padding: 0 1.2rem;\n  height: 44px;\n  border: none;\n  border-radius: 12px;\n  background:\n    linear-gradient(\n      135deg,\n      #7c3aed,\n      #8b5cf6);\n  color: white;\n  font-size: 0.85rem;\n  font-weight: 600;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: opacity 0.2s;\n  white-space: nowrap;\n}\n.send-btn:hover:not(:disabled) {\n  opacity: 0.9;\n}\n.send-btn:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n/*# sourceMappingURL=receptionist-chat.component-PFKR4HPR.css.map */\n"] }]
-  }], null, { chatContainer: [{
+  }], () => [], { chatContainer: [{
     type: ViewChild,
     args: ["chatContainer"]
   }] });
@@ -48065,4 +48074,4 @@ bootstrapApplication(AppComponent, appConfig).catch((err) => console.error(err))
    * found in the LICENSE file at https://angular.dev/license
    *)
 */
-//# sourceMappingURL=main-JRSPNHO2.js.map
+//# sourceMappingURL=main-ON2AIEHD.js.map

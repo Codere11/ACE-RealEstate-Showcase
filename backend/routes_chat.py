@@ -144,7 +144,8 @@ async def poll_events(sid: str, since: int = 0, timeout: float = 1, limit: int =
         events = (await db.execute(select(LeadEvent).where(LeadEvent.organization_id == org.id, LeadEvent.id > since).order_by(LeadEvent.id).limit(limit))).scalars().all()
     else:
         events = (await db.execute(select(LeadEvent).where(LeadEvent.organization_id == org.id, LeadEvent.sid == sid, LeadEvent.id > since).order_by(LeadEvent.id).limit(limit))).scalars().all()
-    result = [{"type": e.event_type, "sid": e.sid, "payload": e.payload_json, "_seq": e.id} for e in events]
+    import json as _json
+    result = [{"type": e.event_type, "sid": e.sid, "payload": (_json.loads(e.payload_json) if isinstance(e.payload_json, str) else e.payload_json), "_seq": e.id} for e in events]
     next_seq = max([e.id for e in events], default=since)
     return {"ok": True, "events": result, "next": next_seq}
 

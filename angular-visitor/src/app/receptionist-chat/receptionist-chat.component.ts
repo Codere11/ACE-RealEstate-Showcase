@@ -1,4 +1,4 @@
-import { Component, inject, ElementRef, AfterViewChecked, ViewChild, signal } from '@angular/core';
+import { Component, inject, ElementRef, AfterViewChecked, ViewChild, signal, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SalonService, ChatMessage } from '../services/salon.service';
 import { CalendarPickerComponent } from '../calendar-picker/calendar-picker.component';
@@ -14,7 +14,12 @@ import { ServiceCardsComponent } from '../service-cards/service-cards.component'
 })
 export class ReceptionistChatComponent implements AfterViewChecked {
   readonly salon = inject(SalonService);
+  private cdr = inject(ChangeDetectorRef);
   inputText = '';
+
+  constructor() {
+    this.salon.onStaffMessage = () => this.cdr.detectChanges();
+  }
   showCalendar = signal(false);
   minimized = signal(false);
 

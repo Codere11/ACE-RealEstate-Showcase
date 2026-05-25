@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, OnDestroy, NgZone } from '@angular/core';
+import { Injectable, signal, inject, OnDestroy, NgZone, ApplicationRef } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ChatApiService, PollEvent } from './chat-api.service';
 
@@ -12,8 +12,10 @@ function nextId(): string { return 'm' + (++_msgId); }
 
 @Injectable({ providedIn: 'root' })
 export class SalonService implements OnDestroy {
+  onStaffMessage: (() => void) | null = null;
   private api = inject(ChatApiService);
   private zone = inject(NgZone);
+  private appRef = inject(ApplicationRef);
 
   readonly staffState = signal<StaffState>('idle');
   readonly messages = signal<ChatMessage[]>([]);
@@ -99,6 +101,8 @@ export class SalonService implements OnDestroy {
         if (p.role === 'staff') {
           this.staffState.set('connected');
           this.addMsg('staff', p.text);
+          this.appRef.tick();
+          if (this.onStaffMessage) this.onStaffMessage();
         } else if (p.role === 'assistant' && this.staffState() === 'idle') {
           if (!this.messages().some(m => m.text === p.text)) this.addMsg('ai', p.text);
         }
