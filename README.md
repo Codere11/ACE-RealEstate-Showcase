@@ -36,6 +36,7 @@ On first run, auto-seeds: demo org, admin user (`admin` / `test123`), AI Recepto
 - **3 beauty services** — Nega obraza (45min/35€), Maska obraza (30min/25€), Čiščenje obraza (60min/50€)
 - **Appointment booking** — Calendar picker with available slots
 - **Staff takeover** — Human joins conversation with live video fade-in
+- **Booking timeline** — Day/week view with booking cards, status tracking, walk-in creation
 - **Camera handoff** — One-way LiveKit video (staff publishes, visitor views)
 - **Multi-tenant** — Organizations with configurable AI qualifiers
 

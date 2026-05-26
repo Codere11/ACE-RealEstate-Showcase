@@ -59,16 +59,18 @@ ACE-RealEstate/
 ├── angular-visitor/           ★ FRONTEND — Angular 19 SPA
 │   ├── src/app/
 │   │   ├── receptionist-chat/   Main chat widget (header, messages, input, actions)
-│   │   ├── staff-video/         LiveKit video overlay (fade-in, V ŽIVO badge)
+│   │   ├── staff-video/         LiveKit video overlay (16:9, 2.4s fade-in, retry/reconnect)
 │   │   ├── service-cards/       Service browsing cards
 │   │   ├── calendar-picker/     Appointment date/time picker
 │   │   ├── header/              Status bar (open/closed, salon name)
 │   │   ├── admin/               Admin panel (orgs, users)
-│   │   ├── org-dashboard/       Per-org dashboard
+│   │   ├── org-dashboard/       Per-org dashboard (3 tabs: KONVERZACIJE, AI RECEPTOR, REZERVACIJE)
 │   │   ├── login/               Login page
 │   │   └── services/
-│   │       ├── salon.service.ts     Core state: messages, staffState, send, poll
-│   │       └── chat-api.service.ts  HTTP layer: /chat, /chat-events/poll, /leads/.../messages
+│   │       ├── salon.service.ts       Core state: messages, staffState, send, poll, live events
+│   │       ├── chat-api.service.ts    HTTP layer: /chat, /chat-events/poll, /leads/.../messages
+│   │       ├── org-dashboard.service.ts  Staff API: leads, messages, takeover, goLive/endLive
+│   │       └── admin.service.ts       Admin API: orgs, users
 │   └── proxy.conf.json         Dev proxy → port 8000 (backend)
 │
 ├── docker-compose-simple.yml   PostgreSQL + LiveKit
@@ -280,12 +282,17 @@ Tenant slug is resolved by:
 - **SalonService** (`salon.service.ts`) — Central state: messages signal, staffState signal, connectionStatus, open/closed status. Handles send, poll, event processing, staff state transitions.
 - **ChatApiService** (`chat-api.service.ts`) — HTTP layer with retry logic. Calls `/chat`, `/chat-events/poll`, `/api/public/organizations/{slug}/leads/{sid}/messages`.
 
+### OrgDashboardComponent (3 tabs)
+- **KONVERZACIJE** — Lead list with filters, thread view, staff takeover (text + live camera)
+- **AI RECEPTOR** — Qualifier configuration editor
+- **REZERVACIJE** — Booking timeline (day/week view), booking cards with status actions, "Nova rezervacija" modal, filters, stats
+
 ### StaffVideoComponent
-- Injects SalonService
 - Polls live-session endpoint every 3s when staff takeover is active
 - Uses `livekit-client` npm package to connect to LiveKit room
 - Renders remote video in `<video id="livekit-video">`
-- CSS: fixed-position overlay, centered, 4:3 aspect, fade-in animation
+- CSS: fixed top-center, 16:9 widescreen, 2.4s fade-in with retry/reconnect
+- Auto-disconnects on `live_session.ended` event
 
 ## Qualifier System
 
@@ -367,13 +374,13 @@ The working, production-ready stack is:
 
 | Layer | Files | Lines |
 |---|---|---|
-| Server | `backend/main.py`, `routes_chat.py`, `routes_admin.py` | ~420 |
+| Server | `backend/main.py`, `routes_chat.py`, `routes_admin.py` | ~440 |
 | Models | `backend/models.py` | ~110 |
 | Auth | `backend/auth.py` | ~55 |
 | Events | `backend/events.py` | ~26 |
-| LiveKit | `backend/livekit_token.py` | ~33 |
+| LiveKit | `backend/livekit_token.py` | ~40 |
 | AI Graph | `app/qualification/graph.py`, `state.py`, `prompts.py`, `tools.py`, `runtime_context.py` | ~550 |
 | LLM Client | `app/services/llm_service.py` | ~130 |
-| Frontend | `angular-visitor/src/app/` (all .ts, .html, .scss) | ~1200 |
+| Frontend | `angular-visitor/src/app/` (all .ts, .html, .scss) | ~2,000 |
 
-**Total: ~2,500 lines of meaningful code.**
+**Total: ~3,300 lines of meaningful code.**
