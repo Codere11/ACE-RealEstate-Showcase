@@ -9,6 +9,7 @@
   <nav class="tabs">
     <a [class.active]="activeTab==='leads'" (click)="activeTab='leads'">KONVERZACIJE</a>
     <a [class.active]="activeTab==='receptor'" (click)="activeTab='receptor'">AI RECEPTOR</a>
+    <a [class.active]="activeTab==='rezervacije'" (click)="activeTab='rezervacije'">REZERVACIJE</a>
   </nav>
   <div class="right"><div class="user-pill">Dashboard</div></div>
 </div>
@@ -201,6 +202,227 @@
           </main>
         </div>
       </section>
+    }
+
+    @if (activeTab === 'rezervacije') {
+      <!-- TODAY SUMMARY -->
+      <div class="hero-strip">
+        <div class="hero-card"><strong>📅 Rezervacij</strong><small>{{ bookingStats.count }}</small></div>
+        <div class="hero-card"><strong>🕐 Skupni čas</strong><small>{{ (bookingStats.totalMin / 60) | number:'1.0-1' }}h {{ bookingStats.totalMin % 60 }}min</small></div>
+        <div class="hero-card"><strong>💶 Prihodek</strong><small>{{ bookingStats.totalEur }}€</small></div>
+        <div class="hero-card"><strong>✅ Potrjenih</strong><small>{{ bookingStats.confirmed }}</small></div>
+        <div class="hero-card"><strong>❌ Odpovedanih</strong><small>{{ bookingStats.cancelled }}</small></div>
+      </div>
+
+      <div class="leads-grid dashboard-split dashboard-split--leads">
+        <aside class="sidebar">
+          <div class="card">
+            <h3>Filtri</h3>
+            <div class="filter-grid">
+              <div class="field"><label for="bookingSearch">Išči po imenu</label><input id="bookingSearch" [(ngModel)]="bookingFilters.search" placeholder="Ime stranke…"></div>
+              <div class="field"><label for="bookingService">Storitev</label>
+                <select id="bookingService" [(ngModel)]="bookingFilters.service">
+                  <option value="all">Vse storitve</option>
+                  @for (s of allServices; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+                </select>
+              </div>
+              <div class="field"><label for="bookingStatus">Status</label>
+                <select id="bookingStatus" [(ngModel)]="bookingFilters.status">
+                  <option value="all">Vsi statusi</option>
+                  <option value="confirmed">Potrjeno</option>
+                  <option value="in_progress">V teku</option>
+                  <option value="completed">Končano</option>
+                  <option value="no_show">Ni prišel/-a</option>
+                  <option value="cancelled">Odpovedano</option>
+                </select>
+              </div>
+              <div class="checkbox-row">
+                <label class="checkbox-pill"><input type="checkbox" [(ngModel)]="bookingFilters.hideCompleted"> Skrij končane</label>
+                <label class="checkbox-pill"><input type="checkbox" [(ngModel)]="bookingFilters.hideCancelled"> Skrij odpovedane</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Pregled tedna</h3>
+            <div class="stats-grid">
+              <div class="hero-card"><strong>{{ weekStats.count }}</strong><small>Vseh</small></div>
+              <div class="hero-card"><strong>{{ weekStats.confirmed }}</strong><small>Potrjenih</small></div>
+              <div class="hero-card"><strong>{{ weekStats.inProgress }}</strong><small>V teku</small></div>
+              <div class="hero-card"><strong>{{ weekStats.completed }}</strong><small>Končanih</small></div>
+              <div class="hero-card"><strong>{{ weekStats.noShow }}</strong><small>Ni prišlo</small></div>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div><h3>Hitre akcije</h3></div>
+            <button class="btn primary" (click)="showNewBooking = true">+ Nova rezervacija</button>
+          </div>
+        </aside>
+
+        <main class="stack">
+          <!-- DATE HEADER -->
+          <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="btn" (click)="prevDay()">← Prej</button>
+              <button class="btn" (click)="goToday()">Danes</button>
+              <button class="btn" (click)="nextDay()">Naprej →</button>
+              <strong style="font-size:1.1rem;">{{ bookingDate() | date:'EEEE, d. MMMM y' }}</strong>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn" [class.primary]="bookingView() === 'day'" (click)="bookingView.set('day')">Dan</button>
+              <button class="btn" [class.primary]="bookingView() === 'week'" (click)="bookingView.set('week')">Teden</button>
+            </div>
+          </div>
+
+          @if (bookingView() === 'day') {
+            <!-- DAY TIMELINE -->
+            <div class="booking-timeline">
+              @for (time of timeSlots; track time) {
+                @if (time === '12:00') {
+                  <div class="booking-row break-row">
+                    <span class="booking-time">12:00</span>
+                    <div class="booking-slot-break"></div>
+                  </div>
+                } @else {
+                  @let booking = getBookingAt(time);
+                  @if (booking) {
+                    <div class="booking-row" (click)="selectBooking(booking)">
+                      <span class="booking-time">{{ time }}</span>
+                      <div class="booking-card" [class.selected]="selectedBooking?.id === booking.id">
+                        <div class="booking-card-top">
+                          <span class="booking-dot">{{ bookingDot(booking.status) }}</span>
+                          <strong>{{ booking.customerName }}</strong>
+                          @if (booking.isRegular) { <span class="pill success" style="font-size:10px;padding:2px 6px;">⭐ Redna</span> }
+                        </div>
+                        <span class="booking-service">{{ booking.serviceName }} · {{ booking.durationMin }} min · {{ booking.priceEur }}€</span>
+                        @if (booking.customerPhone) { <span class="booking-phone">📞 {{ booking.customerPhone }}</span> }
+                        <span class="pill" [class]="statusPillClass(booking.status)">{{ statusLabel(booking.status) }}</span>
+                        <div class="booking-actions">
+                          @if (booking.status === 'confirmed') {
+                            <button class="btn" (click)="booking.status='in_progress'; $event.stopPropagation()">▶ Začni</button>
+                          }
+                          @if (booking.status === 'in_progress') {
+                            <button class="btn success" (click)="booking.status='completed'; $event.stopPropagation()">✅ Končano</button>
+                          }
+                          @if (booking.status === 'confirmed' || booking.status === 'in_progress') {
+                            <button class="btn danger" (click)="booking.status='cancelled'; $event.stopPropagation()">Odpovej</button>
+                            <button class="btn" (click)="booking.status='no_show'; $event.stopPropagation()">Ni prišel/-a</button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="booking-row free-row" (click)="newBooking.time = time; newBooking.date = bookingDate(); showNewBooking = true">
+                      <span class="booking-time">{{ time }}</span>
+                      <div class="booking-slot-empty"></div>
+                    </div>
+                  }
+                }
+              }
+            </div>
+
+            <!-- BOOKING DETAIL PANEL -->
+            @if (selectedBooking) {
+              <div class="thread-panel">
+                <div class="stack" style="height:100%;">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <h3 style="margin:0;">{{ selectedBooking.customerName }}</h3>
+                      <span class="pill" [class]="statusPillClass(selectedBooking.status)">{{ statusLabel(selectedBooking.status) }}</span>
+                    </div>
+                  </div>
+                  <div class="note-card">
+                    <div style="display:grid;gap:8px;">
+                      <span>💆‍♀️ <strong>{{ selectedBooking.serviceName }}</strong> · {{ selectedBooking.durationMin }} min · {{ selectedBooking.priceEur }}€</span>
+                      <span>📅 {{ selectedBooking.bookingDate | date:'EEEE, d. MMMM y' }} · {{ selectedBooking.bookingTime }}</span>
+                      @if (selectedBooking.customerPhone) { <span>📞 {{ selectedBooking.customerPhone }}</span> }
+                      @if (selectedBooking.isRegular) { <span>⭐ Redna stranka · {{ selectedBooking.visitCount }} obiskov</span> }
+                      @if (selectedBooking.notes) { <span>📝 {{ selectedBooking.notes }}</span> }
+                    </div>
+                  </div>
+                  <div class="actions">
+                    @if (selectedBooking.status === 'confirmed') {
+                      <button class="btn primary" (click)="selectedBooking.status='in_progress'">▶ Začni</button>
+                    }
+                    @if (selectedBooking.status === 'in_progress') {
+                      <button class="btn primary" (click)="selectedBooking.status='completed'">✅ Označi kot končano</button>
+                    }
+                    @if (selectedBooking.status === 'confirmed' || selectedBooking.status === 'in_progress') {
+                      <button class="btn danger" (click)="selectedBooking.status='cancelled'">Odpovej</button>
+                      <button class="btn" (click)="selectedBooking.status='no_show'">Ni prišel/-a</button>
+                    }
+                    <button class="btn" (click)="selectedBooking = null">Zapri</button>
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <!-- WEEK VIEW -->
+            <div class="card" style="overflow-x:auto;">
+              <table class="week-table">
+                <thead>
+                  <tr>
+                    <th>Ura</th>
+                    @for (d of weekDays(); track d) {
+                      <th [class.today-col]="d === todayStr()">{{ weekDayLabel(d) }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (time of timeSlots; track time) {
+                    <tr>
+                      <td class="week-time">{{ time }}</td>
+                      @for (d of weekDays(); track d) {
+                        @let wb = getWeekBooking(d, time);
+                        <td [class.has-booking]="wb" [class.today-col]="d === todayStr()">
+                          @if (wb) {
+                            <span class="week-dot" [title]="wb.customerName + ' — ' + wb.serviceName">{{ bookingDot(wb.status) }}</span>
+                            <span class="week-name">{{ wb.customerName.split(' ')[0] }}</span>
+                          }
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </main>
+      </div>
+
+      <!-- NEW BOOKING MODAL -->
+      @if (showNewBooking) {
+        <div class="modal-overlay" (click)="showNewBooking = false">
+          <div class="modal-card" (click)="$event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h3 style="margin:0;">Nova rezervacija</h3>
+              <button class="btn" (click)="showNewBooking = false">✕</button>
+            </div>
+            <div class="filter-grid">
+              <div class="field"><label>Ime in priimek</label><input [(ngModel)]="newBooking.name" placeholder="Ime stranke…"></div>
+              <div class="field"><label>Telefon</label><input [(ngModel)]="newBooking.phone" placeholder="Telefon…"></div>
+              <div class="field"><label>Storitev</label>
+                <select [(ngModel)]="newBooking.service">
+                  @for (s of allServices; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+                </select>
+              </div>
+              <div class="field"><label>Datum</label><input type="date" [(ngModel)]="newBooking.date"></div>
+              <div class="field"><label>Ura</label>
+                <select [(ngModel)]="newBooking.time">
+                  <option value="">Izberi uro…</option>
+                  @for (t of freeSlots; track t) { <option [value]="t">{{ t }}</option> }
+                </select>
+              </div>
+              <div class="field"><label>Opombe</label><input [(ngModel)]="newBooking.notes" placeholder="Opombe…"></div>
+            </div>
+            <div class="actions" style="margin-top:16px;justify-content:flex-end;">
+              <button class="btn" (click)="showNewBooking = false">Prekliči</button>
+              <button class="btn primary" (click)="showNewBooking = false">💾 Shrani</button>
+            </div>
+          </div>
+        </div>
+      }
     }
   </div>
 </div>

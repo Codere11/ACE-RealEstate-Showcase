@@ -1,201 +1,234 @@
 ================================================================================
-    ACE RECEPTION SERVICES — Visitor Page (Beauty Salon Demo)
+    ACE RECEPTION SERVICES — Organisation Dashboard: REZERVACIJE Tab
 ================================================================================
 
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│  [LOGO]  Lepota & Sprostitev                                     ☀ Odprto   │
-│          Kozmeticni salon                                         09:00-18:00 │
+│ TOPBAR (sticky, dark glass, gold accent border-bottom)                        │
+├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐                                     │
-│  │  NA SLIKI│  │  NA SLIKI│  │  NA SLIKI│     ← AI-generated photos         │
-│  │  (AI img)│  │  (AI img)│  │  (AI img)│                                    │
-│  │         │  │         │  │         │                                     │
-│  │ NEGA    │  │ MASKA   │  │ CISCENJE │                                     │
-│  │ OBRAZA  │  │ OBRAZA  │  │ OBRAZA   │                                     │
-│  │ 45 min  │  │ 30 min  │  │ 60 min   │                                     │
-│  │ 35 €    │  │ 25 €    │  │ 50 €    │                                     │
-│  │         │  │         │  │         │                                     │
-│  │[REZERVIRAJ]│[REZERVIRAJ]│[REZERVIRAJ]│                                   │
-│  └─────────┘  └─────────┘  └─────────┘                                     │
+│  ┌──┐ ACE dashboard           ┌────────────┐ ┌───────────┐ ┌─────────────┐  │
+│  │ D│ demo                    │KONVERZACIJE│ │AI RECEPTOR│ │ REZERVACIJE │  │
+│  └──┘                        └────────────┘ └───────────┘ └─────────────┘  │
+│                                               (gold = active tab)     🧑‍💼    │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ DASHBOARD CONTAINER (white card, 24px radius, gold border, max-w 1280px)      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│                     ACE Reception Services                                   │
+│                     demo · AI Receptor aktiviran                              │
+│                                                                              │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
+│  │ ORGANIZATION │ │ SLUG         │ │ STATUS       │ │ TEAM MEMBERS │         │
+│  │ demo         │ │ demo         │ │ active       │ │ 1            │         │
+│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘         │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐    │
+│  │ TODAY:  6 bookings  ·  4h 30m  ·  €185  ·  4 confirmed  ·  0 cancelled│    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─ LEFT SIDEBAR (320px) ─┐  ┌─ MAIN CONTENT ────────────────────────────┐  │
+│  │                        │  │                                           │  │
+│  │ ┌──────────────────┐   │  │ ┌─────────────────────────────────────┐   │  │
+│  │ │ Filters          │   │  │ │ 📅 Sreda, 21. maj 2026              │   │  │
+│  │ │                  │   │  │ │            [← Prej] [Danes] [Naprej→]│   │  │
+│  │ │ Išči po imenu... │   │  │ └─────────────────────────────────────┘   │  │
+│  │ │ [____________]   │   │  │                                           │  │
+│  │ │                  │   │  │ ┌── 09:00 ─────────────────────────────┐  │  │
+│  │ │ Storitev         │   │  │ │                                       │  │  │
+│  │ │ [Vse storitve ▼] │   │  │ │  ● 09:00 — Ana Horvat                │  │  │
+│  │ │                  │   │  │ │    Nega obraza · 45 min · 35 €       │  │  │
+│  │ │ Status           │   │  │ │    📞 040 123 456                    │  │  │
+│  │ │ [Vsi statusi  ▼] │   │  │ │    ✅ Potrjeno                       │  │  │
+│  │ │                  │   │  │ │    [Odpovej] [Končano] [Ni prišel]   │  │  │
+│  │ │ ☐ Skrij končane  │   │  │ │                                       │  │  │
+│  │ │ ☐ Skrij odpoved. │   │  │ └───────────────────────────────────────┘  │  │
+│  │ └──────────────────┘   │  │                                           │  │
+│  │                        │  │ ┌── 10:00 ─────────────────────────────┐  │  │
+│  │ ┌──────────────────┐   │  │ │                                       │  │  │
+│  │ │ Quick overview    │   │  │ │  ◉ 10:00 — Maja Novak               │  │  │
+│  │ │                  │   │  │ │    Čiščenje obraza · 60 min · 50 €   │  │  │
+│  │ │  6  This week    │   │  │ │    📞 051 789 012                    │  │  │
+│  │ │  4  Confirmed    │   │  │ │    ▶ V teku                          │  │  │
+│  │ │  1  In progress  │   │  │ │    [Končano] [Ni prišel]             │  │  │
+│  │ │  1  Completed    │   │  │ │                                       │  │  │
+│  │ │  0  No-show      │   │  │ └───────────────────────────────────────┘  │  │
+│  │ └──────────────────┘   │  │                                           │  │
+│  │                        │  │ ┌── 11:00 ─────────────────────────────┐  │  │
+│  │ ┌──────────────────┐   │  │ │                                       │  │  │
+│  │ │ Quick actions     │   │  │ │          P R O S T O                 │  │  │
+│  │ │                  │   │  │ │     [+ Dodaj rezervacijo]             │  │  │
+│  │ │ [+ Nova rezerv.] │   │  │ │                                       │  │  │
+│  │ │                  │   │  │ └───────────────────────────────────────┘  │  │
+│  │ └──────────────────┘   │  │                                           │  │
+│  │                        │  │ ┌── 12:00 ─────────────────────────────┐  │  │
+│  │                        │  │ │               ODMOR                   │  │  │
+│  │                        │  │ └───────────────────────────────────────┘  │  │
+│  │                        │  │                                           │  │
+│  │                        │  │ ┌── 13:00 ─────────────────────────────┐  │  │
+│  │                        │  │ │                                       │  │  │
+│  │                        │  │ │  ○ 13:00 — Petra Kovač               │  │  │
+│  │                        │  │ │    Maska obraza · 30 min · 25 €      │  │  │
+│  │                        │  │ │    ✅ Končano  ·  ⭐ Redna stranka    │  │  │
+│  │                        │  │ │    Obisk #4                           │  │  │
+│  │                        │  │ │                                       │  │  │
+│  │                        │  │ └───────────────────────────────────────┘  │  │
+│  │                        │  │                                           │  │
+│  │                        │  │ ┌── 14:00 ─────────────────────────────┐  │  │
+│  │                        │  │ │          P R O S T O                 │  │  │
+│  │                        │  │ │     [+ Dodaj rezervacijo]             │  │  │
+│  │                        │  │ └───────────────────────────────────────┘  │  │
+│  │                        │  │                                           │  │
+│  │                        │  │          ... 15:00 — 18:00 ...            │  │
+│  │                        │  │                                           │  │
+│  └────────────────────────┘  └───────────────────────────────────────────┘  │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
+│  BOOKING DETAIL EXPANDED (when clicking a booking row)                        │
+├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│                         👋  Zivjo! Sem tvoj virtualni receptor.              │
+│  ┌── DETAIL PANEL (replaces thread panel on right) ───────────────────────┐  │
+│  │                                                                        │  │
+│  │  ANA HORVAT                                          ✅ Potrjeno       │  │
+│  │  ──────────────────────────────────────────────────────────────────── │  │
+│  │                                                                        │  │
+│  │  💆‍♀️ Nega obraza  ·  45 min  ·  35€                                    │  │
+│  │  📅 Sreda, 21. maj 2026  ·  09:00 – 09:45                              │  │
+│  │  📞 040 123 456                                                        │  │
+│  │  ✉️ ana.horvat@gmail.com                                               │  │
+│  │                                                                        │  │
+│  │  ── ZGODOVINA STRANKE ──                                              │  │
+│  │  ⭐ Redna stranka  ·  3 obiski                                         │  │
+│  │  14.4. Nega obraza  ·  28.3. Čiščenje  ·  10.3. Maska                │  │
+│  │                                                                        │  │
+│  │  ── OPOMBE ──                                                          │  │
+│  │  "Občutljiva koža, uporabi nežnejši piling."                          │  │
+│  │                                                                        │  │
+│  │  ── POVEZANO ──                                                        │  │
+│  │  📋 Odpri chat (sid_ana2105, 12 sporočil)                             │  │
+│  │                                                                        │  │
+│  │  ──────────────────────────────────────────────────────────────────── │  │
+│  │  [Odpovej]   [Označi končano]   [Ni prišel/-a]   [Uredi]              │  │
+│  │                                                                        │  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  "NOVA REZERVACIJA" MODAL (matches existing card style, gold primary button)  │
+├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐    │
 │  │                                                                      │    │
-│  │  🟢 AI RECEPTOR                                                      │    │
-│  │  ──────────────────────────────────────────────────────────────────  │    │
+│  │  ✕                                                    NOVA REZERVACIJA│    │
+│  │  ─────────────────────────────────────────────────────────────────── │    │
 │  │                                                                      │    │
-│  │  Dober dan! Dobrodosli v Lepota & Sprostitev. 💆‍♀️                   │    │
+│  │  Ime in priimek   [________________________________]                 │    │
 │  │                                                                      │    │
-│  │  Trenutno smo ODPRTI — ce zelite, vas lahko povezem s clovekom.     │    │
+│  │  Telefon          [________________________________]                 │    │
 │  │                                                                      │    │
-│  │  Pri nas lahko izbirate med:                                         │    │
-│  │  • Nega obraza (45 min, 35 €)                                        │    │
-│  │  • Maska obraza (30 min, 25 €)                                       │    │
-│  │  • Ciscenje obraza (60 min, 50 €)                                    │    │
+│  │  Storitev         [▼ Nega obraza (45 min, 35€)    ]                 │    │
 │  │                                                                      │    │
-│  │  Kako vam lahko pomagam danes?                                       │    │
+│  │  Datum            [▼ 21. 5. 2026                  ]                 │    │
 │  │                                                                      │    │
-│  │  ──────────────────────────────────────────────────────────────────  │    │
-│  │  [✏️ Vpisite sporocilo ...                        ] [📤 Poslji]       │    │
+│  │  Ura              [▼ 11:00                        ]                 │    │
 │  │                                                                      │    │
-│  │  ┌──────────────────────────┐  ┌────────────────────────────────┐    │    │
-│  │  │     🎥 Prosim osebje     │  │     📅 Rezerviraj termin       │    │    │
-│  │  └──────────────────────────┘  └────────────────────────────────┘    │    │
+│  │  Opombe           [________________________________]                 │    │
+│  │                                                                      │    │
+│  │  ─────────────────────────────────────────────────────────────────── │  │
+│  │                                       [Prekliči]  [💾 Shrani]        │  │
+│  │                                         (danger)    (primary/gold)   │  │
 │  └──────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                        STAFF JOINING — FADE IN SEQUENCE                       │
+│  WEEK OVERVIEW (toggle next to date header)                                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│   [STAFF clicks "Join" in dashboard]                                         │
-│                                                                              │
-│   ┌──────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                      │   │
-│   │  🟢 AI RECEPTOR                                                      │   │
-│   │  ──────────────────────────────────────────────────────────────────  │   │
-│   │                                                                      │   │
-│   │  Ena od nasih strokovnjakinj je na voljo, da se vam pridruzi.       │   │
-│   │  Zelite, da se poveze z vami?                                        │   │
-│   │                                                                      │   │
-│   │       ┌──────────────────┐    ┌──────────────────────┐               │   │
-│   │       │   ✅ Sprejmi      │    │   ❌ Ne, hvala       │               │   │
-│   │       └──────────────────┘    └──────────────────────┘               │   │
-│   │                                                                      │   │
-│   └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│   [Visitor clicks ✅ Sprejmi]                                                │
-│                                                                              │
-│   ┌──────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                      │   │
-│   │  ┌─────────────────────────┐                                         │   │
-│   │  │                         │   🟢 AI RECEPTOR                        │   │
-│   │  │     ⬛ (fade in)         │   ──────────────────────────────────    │   │
-│   │  │     ⬛ slowly...         │                                         │   │
-│   │  │     🧑‍💼 Maja             │   Maja se vam pridruzuje...             │   │
-│   │  │     Kozmeticarka        │                                         │   │
-│   │  │                         │   Zivjo! Sem Maja, kako vam lahko      │   │
-│   │  └─────────────────────────┘   pomagam danes? ☺️                    │   │
-│   │                                                                      │   │
-│   └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                        CLOSED STATE (after hours)                             │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────────────────────────────────────────────────────────────────────┐│
-│  │ [LOGO]  Lepota & Sprostitev                                🌙 Zaprto    ││
-│  │         Kozmeticni salon                                 Odprti 09:00   ││
-│  └──────────────────────────────────────────────────────────────────────────┘│
-│                                                                              │
-│   ┌──────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                      │   │
-│   │  🟢 AI RECEPTOR                                                      │   │
-│   │  ──────────────────────────────────────────────────────────────────  │   │
-│   │                                                                      │   │
-│   │  Dober vecer! 👋                                                     │   │
-│   │                                                                      │   │
-│   │  Trenutno smo ZAPRTI, a jaz sem tukaj, da vam pomagam pri osnovnih  │   │
-│   │  stvareh — vprasanja o storitvah, cenah, ali pa kar rezervacija      │   │
-│   │  termina za jutri! 📅                                                │   │
-│   │                                                                      │   │
-│   │  Kako vam lahko pomagam?                                             │   │
-│   │                                                                      │   │
-│   │  ──────────────────────────────────────────────────────────────────  │   │
-│   │  [✏️ Vpisite sporocilo ...                        ] [📤 Poslji]       │   │
-│   │                                                                      │   │
-│   │  ┌────────────────────────────────────────────────────────────────┐  │   │
-│   │  │                 📅 Rezerviraj termin za jutri                  │  │   │
-│   │  └────────────────────────────────────────────────────────────────┘  │   │
-│   └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                        CALENDAR / APPOINTMENT PICKER                          │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   ┌──────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                      │   │
-│   │  🟢 AI RECEPTOR                                                      │   │
-│   │  ──────────────────────────────────────────────────────────────────  │   │
-│   │                                                                      │   │
-│   │  Odlicno! Izberite termin, ki vam najbolj ustreza:                   │   │
-│   │                                                                      │   │
-│   │  ┌─────────────────────────────────────────────────────────────┐     │   │
-│   │  │                        MAJ 2026                              │     │   │
-│   │  │  PO   TO   SR   CE   PE   SO   NE                           │     │   │
-│   │  │                 1    2    3    4                             │     │   │
-│   │  │   5    6    7    8    9   10   11                            │     │   │
-│   │  │  12   13   14   15   16   17   18                            │     │   │
-│   │  │  19   20   21   22  [23]  24   25                            │     │   │
-│   │  │  26   27   28   29   30   31                                 │     │   │
-│   │  └─────────────────────────────────────────────────────────────┘     │   │
-│   │                                                                      │   │
-│   │  Izbrani datum: 23. maj 2026 (petek)                                 │   │
-│   │                                                                      │   │
-│   │  Mozni termini:                                                      │   │
-│   │  ┌──────────────────────────────────────────────────────────────┐    │   │
-│   │  │  ○ 09:00 — Nega obraza (45 min, 35 €)     [Izberi]           │    │   │
-│   │  │  ○ 10:00 — Nega obraza (45 min, 35 €)     [Izberi]           │    │   │
-│   │  │  ○ 11:00 — Nega obraza (45 min, 35 €)     [Izberi]           │    │   │
-│   │  │  ● 12:00 — Zasedeno                                        │    │   │
-│   │  │  ○ 13:00 — Nega obraza (45 min, 35 €)     [Izberi]           │    │   │
-│   │  │  ○ 15:00 — Nega obraza (45 min, 35 €)     [Izberi]           │    │   │
-│   │  └──────────────────────────────────────────────────────────────┘    │   │
-│   │                                                                      │   │
-│   └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│   [Visitor selects a time slot]                                              │
-│                                                                              │
-│   ┌──────────────────────────────────────────────────────────────────────┐   │
-│   │                                                                      │   │
-│   │  🟢 AI RECEPTOR                                                      │   │
-│   │  ──────────────────────────────────────────────────────────────────  │   │
-│   │                                                                      │   │
-│   │  Super! Vas termin je potrjen:                                       │   │
-│   │                                                                      │   │
-│   │  📅 Petek, 23. maj 2026 ob 09:00                                    │   │
-│   │  💆‍♀️ Nega obraza (45 min)                                           │   │
-│   │  💶 35 €                                                            │   │
-│   │                                                                      │   │
-│   │  Vas lahko se s cim drugim pomagam? ☺️                              │   │
-│   │                                                                      │   │
-│   └──────────────────────────────────────────────────────────────────────┘   │
+│  ┌─ REPLACES TIMELINE WHEN TOGGLED ──────────────────────────────────────┐   │
+│  │                                                                       │   │
+│  │  📅 Teden 19.–25. maj          [Dan] [Teden]                         │   │
+│  │                                                                       │   │
+│  │  URA     PO 19.    TO 20.    SR 21.    ČE 22.    PE 23.    SO 24.   │   │
+│  │  ──────────────────────────────────────────────────────────────────── │   │
+│  │  09:00   ──────    ● Ana     ● Ana     ○ Polona  ○ Petra   ──────   │   │
+│  │  10:00   ──────    ● Ana     ◉ Maja    ○ Peter   ──────   ──────   │   │
+│  │  11:00   ──────    ● Nina    ──────    ──────    ● Sara   ──────   │   │
+│  │  12:00   ODMOR     ODMOR     ODMOR     ODMOR     ODMOR    ──────   │   │
+│  │  13:00   ──────    ──────    ○ Petra    ──────    ● Luka   ──────   │   │
+│  │  14:00   ──────    ──────    ──────    ──────    ──────   ──────   │   │
+│  │  15:00   ──────    ○ Maja    ○ Nina     ──────    ──────   ──────   │   │
+│  │                                                                       │   │
+│  └───────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 
 ================================================================================
-    KEY INTERACTIONS SUMMARY
+    DESIGN RULES (matching existing org-dashboard design system)
 ================================================================================
 
-  PAGE ELEMENTS                    BEHAVIOR
+  ELEMENT                  STYLE
   ──────────────────────────────────────────────────────────────────────────
-  Header (logo + hours)            Live open/closed status, updates in real-time
-  Service cards (×3)               AI-generated photos, name, duration, price
-                                   "Rezerviraj" button jumps to calendar
-  AI Receptor chat widget          Middle-bottom, always visible
-                                   Collapsible? Or persistent bar at bottom
-  Chat input                       Free text + send button
-  [🎥 Prosim osebje] button        Visitor requests human staff (open hours only)
-  [📅 Rezerviraj termin] button    Opens calendar picker inline in chat
-  Accept/Deny prompt               Appears when staff wants to join
-  Staff video rectangle            Black → slow fade-in to staff camera
-                                   Premium feel, not jarring
-  Calendar picker                  Embedded in chat flow, not a separate page
+  Topbar tabs              Dark pill (#171A1F), gold (#C1A46C) when active
+  Container                White card, 24px radius, gold border #E6E2D6
+  Hero strip cards         White bg, 18px radius, border #E6E2D6, subtle shadow
+  Sidebar cards            Same as hero strip — #FFF, 18px radius, border
+  Today summary bar        Same hero-strip grid of .hero-card items (inline)
+  Booking timeline rows    White card (.card), border #E6E2D6, 16px radius
+  Prosto slot              Dashed border empty-card style (#D7D0C0), centered
+  [+ Dodaj rezervacijo]    .btn.ghost style — dark pill button
+  Odmor block              muted text, centered, light bg
+  Status pill colors        potrjeno = gold (#F3E8C9), v-teku = gold pulse,
+                            končano = green (#E8F6EC), no-show = red,
+                            odpovedano = grey/strikethrough
+  Action buttons           inline .btn, compact
+  Primary action           .btn.primary = gold bg, dark text
+  Danger action            .btn.danger = white bg, red border/text
+  Detail panel             Same as existing thread-panel — sticky, white card,
+                            rounded, gold border when focused
+  Modal                    Centered overlay, white card, same border/radius
+  Customer name pill       Standout bold (#121417), 18px
+  Week toggle              [Dan] [Teden] — tab-style pill toggle in date header
+  Customer history         .note-card style — light bg, border, rounded
+
+================================================================================
+    STATUS FLOW (clicking status badge cycles / detail panel action buttons)
+================================================================================
+
+  Potrjeno ──▶ V teku ──▶ Končano
+      │            │
+      ├──▶ Ni prišel/-a
+      └──▶ Odpovedano
+
+================================================================================
+    DATA MODEL (backend)
+================================================================================
+
+  bookings table:
+    id              SERIAL PK
+    organization_id FK → organizations
+    lead_id         FK → leads (nullable, for AI-booked)
+    customer_name   VARCHAR(160)
+    customer_phone  VARCHAR(30)
+    customer_email  VARCHAR(160)
+    service_id      VARCHAR(40)   ('nega-obraza'|'maska-obraza'|'ciscenje-obraza')
+    booking_date    DATE
+    booking_time    TIME
+    duration_min    INTEGER
+    price_eur       INTEGER
+    status          VARCHAR(20)   ('confirmed'|'in_progress'|'completed'|'no_show'|'cancelled')
+    notes           TEXT
+    created_at      TIMESTAMPTZ
+    updated_at      TIMESTAMPTZ
 
 ================================================================================

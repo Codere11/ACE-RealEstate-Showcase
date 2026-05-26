@@ -1,5 +1,6 @@
 import { Component, signal, OnInit, OnDestroy, inject, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe, DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { OrgDashboardService } from '../services/org-dashboard.service';
 import { firstValueFrom } from 'rxjs';
@@ -7,7 +8,7 @@ import { Room, RoomEvent, LocalVideoTrack, RemoteParticipant, RemoteTrack, Remot
 
 @Component({
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DecimalPipe, DatePipe],
   templateUrl: './org-dashboard.component.html',
   styleUrl: './org-dashboard.component.scss',
 })
@@ -22,6 +23,24 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   selectedSid = ''; takeoverActive = signal(false); takeoverText = '';
   activeTab = 'leads';
   filters = { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false };
+
+  // Rezervacije tab state
+  bookingFilters = { search: '', service: 'all', status: 'all', hideCompleted: false, hideCancelled: false };
+  selectedBooking: any = null;
+  bookingView = signal<'day' | 'week'>('day');
+  bookingDate = signal<string>(new Date().toISOString().slice(0, 10));
+  showNewBooking = false;
+  newBooking = { name: '', phone: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
+
+  // Mock bookings for UI preview
+  mockBookings = signal<any[]>([
+    { id: 1, customerName: 'Ana Horvat', customerPhone: '040 123 456', serviceId: 'nega-obraza', serviceName: 'Nega obraza', durationMin: 45, priceEur: 35, bookingDate: new Date().toISOString().slice(0, 10), bookingTime: '09:00', status: 'confirmed', notes: '' },
+    { id: 2, customerName: 'Maja Novak', customerPhone: '051 789 012', serviceId: 'ciscenje-obraza', serviceName: 'Čiščenje obraza', durationMin: 60, priceEur: 50, bookingDate: new Date().toISOString().slice(0, 10), bookingTime: '10:00', status: 'in_progress', notes: '' },
+    { id: 3, customerName: 'Petra Kovač', customerPhone: '031 456 789', serviceId: 'maska-obraza', serviceName: 'Maska obraza', durationMin: 30, priceEur: 25, bookingDate: new Date().toISOString().slice(0, 10), bookingTime: '13:00', status: 'completed', notes: 'Občutljiva koža, uporabi nežnejši piling.', visitCount: 4, isRegular: true },
+    { id: 4, customerName: 'Nina Zupan', customerPhone: '070 111 222', serviceId: 'nega-obraza', serviceName: 'Nega obraza', durationMin: 45, priceEur: 35, bookingDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10), bookingTime: '09:00', status: 'confirmed', notes: '' },
+    { id: 5, customerName: 'Peter Horvat', customerPhone: '041 333 444', serviceId: 'ciscenje-obraza', serviceName: 'Čiščenje obraza', durationMin: 60, priceEur: 50, bookingDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10), bookingTime: '11:00', status: 'confirmed', notes: '' },
+    { id: 6, customerName: 'Sara Bizjak', customerPhone: '040 555 666', serviceId: 'nega-obraza', serviceName: 'Nega obraza', durationMin: 45, priceEur: 35, bookingDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), bookingTime: '15:00', status: 'confirmed', notes: 'Prvič pri nas.' },
+  ]);
 
   // Live/camera state
   liveActive = signal(false);
@@ -165,6 +184,46 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async deleteSelected() { await this.deleteLead(this.selectedSid); }
 
   selectedLeadName() { return this.allLeads().find(l => l.sid === this.selectedSid)?.name || 'Visitor'; }
+
+  // ══════ REZERVACIJE HELPERS ══════
+
+  get todaysBookings() { const d = this.bookingDate(); return this.mockBookings().filter(b => b.bookingDate === d); }
+  get filteredBookings() {
+    let list = this.todaysBookings;
+    const q = this.bookingFilters.search.toLowerCase();
+    if (q) list = list.filter(b => b.customerName.toLowerCase().includes(q));
+    if (this.bookingFilters.service !== 'all') list = list.filter(b => b.serviceId === this.bookingFilters.service);
+    if (this.bookingFilters.status !== 'all') list = list.filter(b => b.status === this.bookingFilters.status);
+    if (this.bookingFilters.hideCompleted) list = list.filter(b => b.status !== 'completed');
+    if (this.bookingFilters.hideCancelled) list = list.filter(b => b.status !== 'cancelled');
+    return list.sort((a, b) => a.bookingTime.localeCompare(b.bookingTime));
+  }
+  get bookingStats() {
+    const all = this.mockBookings().filter(b => b.bookingDate === this.bookingDate());
+    return { count: all.length, totalMin: all.reduce((s, b) => s + b.durationMin, 0), totalEur: all.filter(b => b.status !== 'cancelled').reduce((s, b) => s + b.priceEur, 0), confirmed: all.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, cancelled: all.filter(b => b.status === 'cancelled').length };
+  }
+  get weekStats() { return { count: this.mockBookings().length, confirmed: this.mockBookings().filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, inProgress: this.mockBookings().filter(b => b.status === 'in_progress').length, completed: this.mockBookings().filter(b => b.status === 'completed').length, noShow: this.mockBookings().filter(b => b.status === 'no_show').length }; }
+  get allServices() { return [{ id: 'nega-obraza', name: 'Nega obraza (45 min, 35€)' }, { id: 'maska-obraza', name: 'Maska obraza (30 min, 25€)' }, { id: 'ciscenje-obraza', name: 'Čiščenje obraza (60 min, 50€)' }]; }
+  timeSlots = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
+  get freeSlots() { const taken = this.todaysBookings.map(b => b.bookingTime); return this.timeSlots.filter(t => !taken.includes(t) && t !== '12:00'); }
+
+  getBookingAt(time: string) { return this.todaysBookings.find(b => b.bookingTime === time); }
+  statusLabel(s: string) { const m: any = { confirmed: 'Potrjeno', in_progress: 'V teku', completed: 'Končano', no_show: 'Ni prišel/-a', cancelled: 'Odpovedano' }; return m[s] || s; }
+  statusPillClass(s: string) { const m: any = { confirmed: '', in_progress: 'warn', completed: 'success', no_show: 'dark', cancelled: 'dark' }; return m[s] || 'dark'; }
+  bookingDot(s: string) { const m: any = { confirmed: '●', in_progress: '◉', completed: '○', no_show: '✕', cancelled: '—' }; return m[s] || '●'; }
+
+  selectBooking(b: any) { this.selectedBooking = this.selectedBooking?.id === b.id ? null : b; }
+  weekDays() { const [y,m,day] = this.bookingDate().split('-').map(Number); const d = new Date(Date.UTC(y, m-1, day)); const dow = d.getUTCDay(); const mon = new Date(Date.UTC(y, m-1, day - (dow === 0 ? 6 : dow - 1))); return Array.from({ length: 6 }, (_, i) => { const dt = new Date(mon); dt.setUTCDate(mon.getUTCDate() + i); return dt.toISOString().slice(0, 10); }); }
+  weekDayLabel(d: string) { const [y,m,day] = d.split('-').map(Number); const dt = new Date(Date.UTC(y, m-1, day)); const n = ['PO','TO','SR','ČE','PE','SO'][dt.getUTCDay() - 1] || '??'; return n + ' ' + String(day) + '.'; }
+  getWeekBooking(date: string, time: string) { return this.mockBookings().find(b => b.bookingDate === date && b.bookingTime === time); }
+
+  addDays(dateStr: string, n: number) { const [y,m,d] = dateStr.split('-').map(Number); const dt = new Date(Date.UTC(y, m-1, d + n)); return dt.toISOString().slice(0, 10); }
+  prevDay() { this.bookingDate.set(this.addDays(this.bookingDate(), -1)); this.selectedBooking = null; }
+  nextDay() { this.bookingDate.set(this.addDays(this.bookingDate(), 1)); this.selectedBooking = null; }
+  goToday() { this.bookingDate.set(new Date().toISOString().slice(0, 10)); this.selectedBooking = null; }
+  toggleBookingView() { this.bookingView.set(this.bookingView() === 'day' ? 'week' : 'day'); }
+  todayStr() { return new Date().toISOString().slice(0, 10); }
+
   get visibleCount() { return this.leads().length; }
   get leadCount() { return this.allLeads().length; }
   get takeoverCount() { return this.allLeads().filter(l => l.takeoverActive).length; }

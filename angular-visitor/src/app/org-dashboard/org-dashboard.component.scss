@@ -102,6 +102,45 @@ a { color:inherit; }
 .push-right { margin-left:auto; }
 .dashboard-split--builder { grid-template-columns:minmax(280px,320px) minmax(0,1fr); }
 
+/* ── Booking Timeline ── */
+.booking-timeline { display:grid; gap:6px; }
+.booking-row { display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start; }
+.booking-row.free-row { cursor:pointer; }
+.booking-slot-empty { height:48px; border-radius:12px; border:1px dashed transparent; background:transparent; transition:border-color .15s ease, background .15s ease; }
+.booking-row.free-row:hover .booking-slot-empty { border-color:#D7D0C0; background:rgba(193,164,108,.04); }
+.booking-row.break-row { cursor:default; }
+.booking-row.break-row .booking-time { color:#9CA3AF; }
+.booking-slot-break { height:1px; margin:6px 0; background:transparent; border-top:1px dashed #E6E2D6; position:relative; }
+.booking-slot-break::after { content:'ODMOR 12:00–13:00'; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#F8F7F3; padding:2px 12px; border-radius:999px; font-size:10px; color:#9CA3AF; font-weight:600; white-space:nowrap; }
+.booking-time { font-size:12px; font-weight:700; color:#6B7280; padding-top:10px; text-align:right; }
+.booking-card { background:#FFF; border:1px solid #E6E2D6; border-radius:16px; padding:14px 16px; display:grid; gap:8px; box-shadow:0 6px 16px rgba(18,20,23,.04); transition:border-color .15s ease; cursor:pointer; }
+.booking-card:hover { border-color:#C1A46C; }
+.booking-card.selected { border-color:#C1A46C; box-shadow:0 12px 28px rgba(193,164,108,.14); }
+.booking-card-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.booking-dot { font-size:14px; }
+.booking-service { font-size:13px; color:#6B7280; }
+.booking-phone { font-size:12px; color:#9CA3AF; }
+.booking-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.booking-actions .btn { min-height:34px; padding:6px 12px; font-size:12px; }
+.booking-card .pill { font-size:11px; padding:3px 8px; }
+.btn.success { background:#E8F6EC; color:#166534; border-color:#BBF7D0; }
+
+/* ── Modal ── */
+.modal-overlay { position:fixed; inset:0; z-index:200; background:rgba(5,6,7,.6); backdrop-filter:blur(4px); display:grid; place-items:center; padding:20px; }
+.modal-card { background:#FFF; border:1px solid #E6E2D6; border-radius:24px; padding:24px; width:min(100%,440px); box-shadow:0 28px 60px rgba(0,0,0,.35); max-height:90vh; overflow-y:auto; }
+
+/* ── Week Table ── */
+.week-table { width:100%; border-collapse:collapse; font-size:13px; }
+.week-table th,.week-table td { padding:6px 8px; text-align:center; border:1px solid #F0EDE4; min-width:64px; }
+.week-table th { background:#F8F7F3; font-weight:700; color:#374151; font-size:11px; }
+.week-table td { height:36px; }
+.week-table td.has-booking { background:#FFF; }
+.week-table td.today-col { background:#FDF8F0; }
+.week-table th.today-col { background:#FDF8F0; color:#C1A46C; }
+.week-time { font-weight:700; color:#6B7280; font-size:11px; width:48px; }
+.week-dot { font-size:13px; cursor:default; }
+.week-name { display:block; font-size:10px; color:#374151; font-weight:600; margin-top:1px; }
+
 .empty-card { padding:22px; text-align:center; color:#6B7280; border:1px dashed #D7D0C0; border-radius:16px; background:#FFF; }
 .error-text { color:#8B1E1E; font-weight:700; padding:12px; }
 
