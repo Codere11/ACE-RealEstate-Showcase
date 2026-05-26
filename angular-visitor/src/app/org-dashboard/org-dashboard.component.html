@@ -211,7 +211,7 @@
         <div class="hero-card"><strong>🕐 Skupni čas</strong><small>{{ (bookingStats.totalMin / 60) | number:'1.0-1' }}h {{ bookingStats.totalMin % 60 }}min</small></div>
         <div class="hero-card"><strong>💶 Prihodek</strong><small>{{ bookingStats.totalEur }}€</small></div>
         <div class="hero-card"><strong>✅ Potrjenih</strong><small>{{ bookingStats.confirmed }}</small></div>
-        <div class="hero-card"><strong>❌ Odpovedanih</strong><small>{{ bookingStats.cancelled }}</small></div>
+        <div class="hero-card"><strong>✔️ Končanih</strong><small>{{ weekStats.completed }}</small></div>
       </div>
 
       <div class="leads-grid dashboard-split dashboard-split--leads">
@@ -233,12 +233,10 @@
                   <option value="in_progress">V teku</option>
                   <option value="completed">Končano</option>
                   <option value="no_show">Ni prišel/-a</option>
-                  <option value="cancelled">Odpovedano</option>
                 </select>
               </div>
               <div class="checkbox-row">
                 <label class="checkbox-pill"><input type="checkbox" [(ngModel)]="bookingFilters.hideCompleted"> Skrij končane</label>
-                <label class="checkbox-pill"><input type="checkbox" [(ngModel)]="bookingFilters.hideCancelled"> Skrij odpovedane</label>
               </div>
             </div>
           </div>
@@ -287,35 +285,80 @@
                 } @else {
                   @let booking = getBookingAt(time);
                   @if (booking) {
-                    <div class="booking-row" (click)="selectBooking(booking)">
+                    <div class="booking-row">
                       <span class="booking-time">{{ time }}</span>
-                      <div class="booking-card" [class.selected]="selectedBooking?.id === booking.id">
-                        <div class="booking-card-top">
-                          <span class="booking-dot">{{ bookingDot(booking.status) }}</span>
-                          <strong>{{ booking.customerName }}</strong>
-                          @if (booking.isRegular) { <span class="pill success" style="font-size:10px;padding:2px 6px;">⭐ Redna</span> }
+                        <!-- VIEW MODE -->
+                        <div class="booking-card" [class.selected]="selectedBooking?.id === booking.id" (click)="selectBooking(booking)"
+                             (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event, time); $event.stopPropagation()">
+                          <div class="booking-card-top">
+                            <span class="drag-handle" draggable="true" (dragstart)="onDragStart($event, booking)" title="Povleci za premik"><span class="drag-line"></span></span>
+                            <span class="pill" [class]="statusPillClass(booking.status)">{{ statusLabel(booking.status) }}</span>
+                            @if (booking.isRegular) { <span class="pill success" style="font-size:10px;padding:2px 6px;">⭐ Redna</span> }
+                          </div>
+                          <!-- Name -->
+                          @if (editField?.bookingId === booking.id && editField?.field === 'name') {
+                            <input class="inline-edit" [(ngModel)]="editValue" (blur)="saveEditField()" (keyup.enter)="saveEditField()" (keyup.escape)="cancelEditField()" autofocus>
+                          } @else {
+                            <strong class="editable" (click)="startEditField(booking, 'name', $event)">{{ booking.customerName }}</strong>
+                          }
+                          <!-- Service -->
+                          @if (editField?.bookingId === booking.id && editField?.field === 'service') {
+                            <select class="inline-edit" [(ngModel)]="editValue" (blur)="saveEditField()" (change)="saveEditField()">
+                              @for (s of allServices; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+                            </select>
+                          } @else {
+                            <span class="booking-service editable" (click)="startEditField(booking, 'service', $event); editValue = booking.serviceId">{{ booking.serviceName }} · {{ booking.durationMin }} min · {{ booking.priceEur }}€</span>
+                          }
+                          <!-- Phone -->
+                          @if (editField?.bookingId === booking.id && editField?.field === 'phone') {
+                            <input class="inline-edit" [(ngModel)]="editValue" (blur)="saveEditField()" (keyup.enter)="saveEditField()" (keyup.escape)="cancelEditField()" autofocus placeholder="Telefon…">
+                          } @else {
+                            @if (booking.customerPhone) {
+                              <span class="booking-phone editable" (click)="startEditField(booking, 'phone', $event)">📞 {{ booking.customerPhone }}</span>
+                            } @else {
+                              <span class="booking-phone editable muted-add" (click)="startEditField(booking, 'phone', $event)">+ dodaj telefon</span>
+                            }
+                          }
+                          <!-- Email -->
+                          @if (editField?.bookingId === booking.id && editField?.field === 'email') {
+                            <input class="inline-edit" [(ngModel)]="editValue" (blur)="saveEditField()" (keyup.enter)="saveEditField()" (keyup.escape)="cancelEditField()" autofocus placeholder="Email…">
+                          } @else {
+                            @if (booking.customerEmail) {
+                              <span class="booking-phone editable" (click)="startEditField(booking, 'email', $event)">✉️ {{ booking.customerEmail }}</span>
+                            } @else {
+                              <span class="booking-phone editable muted-add" (click)="startEditField(booking, 'email', $event)">+ dodaj email</span>
+                            }
+                          }
+                          <!-- Time -->
+                          @if (editField?.bookingId === booking.id && editField?.field === 'time') {
+                            <select class="inline-edit" [(ngModel)]="editValue" (blur)="saveEditField()" (change)="saveEditField()">
+                              @for (t of timeSlots; track t) { @if (t !== '12:00') { <option [value]="t">{{ t }}</option> } }
+                            </select>
+                          } @else {
+                            <span class="booking-time-inline editable" (click)="startEditField(booking, 'time', $event); editValue = booking.bookingTime">🕐 {{ booking.bookingTime }}</span>
+                          }
+                          <div class="booking-actions">
+                            @if (booking.status === 'confirmed') {
+                              <button class="btn" (click)="booking.status='in_progress'; $event.stopPropagation()">▶ Začni</button>
+                            }
+                            @if (booking.status === 'in_progress') {
+                              <button class="btn success" (click)="booking.status='completed'; $event.stopPropagation()">✅ Končano</button>
+                            }
+                            @if (booking.status === 'confirmed' || booking.status === 'in_progress') {
+                              <button class="btn danger" (click)="deleteBooking(booking); $event.stopPropagation()">Odpovej</button>
+                              <button class="btn" (click)="booking.status='no_show'; $event.stopPropagation()">Ni prišel/-a</button>
+                            }
+                          </div>
                         </div>
-                        <span class="booking-service">{{ booking.serviceName }} · {{ booking.durationMin }} min · {{ booking.priceEur }}€</span>
-                        @if (booking.customerPhone) { <span class="booking-phone">📞 {{ booking.customerPhone }}</span> }
-                        <span class="pill" [class]="statusPillClass(booking.status)">{{ statusLabel(booking.status) }}</span>
-                        <div class="booking-actions">
-                          @if (booking.status === 'confirmed') {
-                            <button class="btn" (click)="booking.status='in_progress'; $event.stopPropagation()">▶ Začni</button>
-                          }
-                          @if (booking.status === 'in_progress') {
-                            <button class="btn success" (click)="booking.status='completed'; $event.stopPropagation()">✅ Končano</button>
-                          }
-                          @if (booking.status === 'confirmed' || booking.status === 'in_progress') {
-                            <button class="btn danger" (click)="booking.status='cancelled'; $event.stopPropagation()">Odpovej</button>
-                            <button class="btn" (click)="booking.status='no_show'; $event.stopPropagation()">Ni prišel/-a</button>
-                          }
-                        </div>
-                      </div>
                     </div>
                   } @else {
-                    <div class="booking-row free-row" (click)="newBooking.time = time; newBooking.date = bookingDate(); showNewBooking = true">
+                    <div class="booking-row free-row"
+                         (dragover)="onDragOver($event)"
+                         (dragleave)="onDragLeave($event)"
+                         (drop)="onDrop($event, time)"
+                         (click)="newBooking.time = time; newBooking.date = bookingDate(); showNewBooking = true">
                       <span class="booking-time">{{ time }}</span>
-                      <div class="booking-slot-empty"></div>
+                      <div class="booking-slot-empty" [class.drag-over]="false"></div>
                     </div>
                   }
                 }
@@ -323,7 +366,7 @@
             </div>
 
             <!-- BOOKING DETAIL PANEL -->
-            @if (selectedBooking) {
+            @if (selectedBooking && editingBookingId !== selectedBooking.id) {
               <div class="thread-panel">
                 <div class="stack" style="height:100%;">
                   <div>
@@ -337,22 +380,14 @@
                       <span>💆‍♀️ <strong>{{ selectedBooking.serviceName }}</strong> · {{ selectedBooking.durationMin }} min · {{ selectedBooking.priceEur }}€</span>
                       <span>📅 {{ selectedBooking.bookingDate | date:'EEEE, d. MMMM y' }} · {{ selectedBooking.bookingTime }}</span>
                       @if (selectedBooking.customerPhone) { <span>📞 {{ selectedBooking.customerPhone }}</span> }
+                      @if (selectedBooking.customerEmail) { <span>✉️ {{ selectedBooking.customerEmail }}</span> }
                       @if (selectedBooking.isRegular) { <span>⭐ Redna stranka · {{ selectedBooking.visitCount }} obiskov</span> }
                       @if (selectedBooking.notes) { <span>📝 {{ selectedBooking.notes }}</span> }
                     </div>
                   </div>
                   <div class="actions">
-                    @if (selectedBooking.status === 'confirmed') {
-                      <button class="btn primary" (click)="selectedBooking.status='in_progress'">▶ Začni</button>
-                    }
-                    @if (selectedBooking.status === 'in_progress') {
-                      <button class="btn primary" (click)="selectedBooking.status='completed'">✅ Označi kot končano</button>
-                    }
-                    @if (selectedBooking.status === 'confirmed' || selectedBooking.status === 'in_progress') {
-                      <button class="btn danger" (click)="selectedBooking.status='cancelled'">Odpovej</button>
-                      <button class="btn" (click)="selectedBooking.status='no_show'">Ni prišel/-a</button>
-                    }
-                    <button class="btn" (click)="selectedBooking = null">Zapri</button>
+                    <button class="btn primary" (click)="startEdit(selectedBooking)">✏️ Uredi</button>
+                    <button class="btn danger" (click)="deleteBooking(selectedBooking)">🗑 Prekliči</button>
                   </div>
                 </div>
               </div>
@@ -400,15 +435,17 @@
               <button class="btn" (click)="showNewBooking = false">✕</button>
             </div>
             <div class="filter-grid">
-              <div class="field"><label>Ime in priimek</label><input [(ngModel)]="newBooking.name" placeholder="Ime stranke…"></div>
-              <div class="field"><label>Telefon</label><input [(ngModel)]="newBooking.phone" placeholder="Telefon…"></div>
+              <div class="field"><label>Ime in priimek *</label><input [(ngModel)]="newBooking.name" placeholder="Obvezno"></div>
+              <div class="field"><label>Telefon</label><input [(ngModel)]="newBooking.phone" placeholder="Vsaj en kontakt je obvezen"></div>
+              <div class="field"><label>Email</label><input [(ngModel)]="newBooking.email" placeholder="Vsaj en kontakt je obvezen"></div>
+              @if (newBookingError) { <div class="error-text">{{ newBookingError }}</div> }
               <div class="field"><label>Storitev</label>
                 <select [(ngModel)]="newBooking.service">
                   @for (s of allServices; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
                 </select>
               </div>
               <div class="field"><label>Datum</label><input type="date" [(ngModel)]="newBooking.date"></div>
-              <div class="field"><label>Ura</label>
+              <div class="field"><label>Ura *</label>
                 <select [(ngModel)]="newBooking.time">
                   <option value="">Izberi uro…</option>
                   @for (t of freeSlots; track t) { <option [value]="t">{{ t }}</option> }
@@ -417,8 +454,8 @@
               <div class="field"><label>Opombe</label><input [(ngModel)]="newBooking.notes" placeholder="Opombe…"></div>
             </div>
             <div class="actions" style="margin-top:16px;justify-content:flex-end;">
-              <button class="btn" (click)="showNewBooking = false">Prekliči</button>
-              <button class="btn primary" (click)="showNewBooking = false">💾 Shrani</button>
+              <button class="btn" (click)="showNewBooking = false; newBookingError = ''">Prekliči</button>
+              <button class="btn primary" (click)="addBooking()" [disabled]="!newBookingValid">💾 Shrani</button>
             </div>
           </div>
         </div>

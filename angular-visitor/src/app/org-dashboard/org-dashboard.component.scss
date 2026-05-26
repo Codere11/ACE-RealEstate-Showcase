@@ -108,6 +108,13 @@ a { color:inherit; }
 .booking-row.free-row { cursor:pointer; }
 .booking-slot-empty { height:48px; border-radius:12px; border:1px dashed transparent; background:transparent; transition:border-color .15s ease, background .15s ease; }
 .booking-row.free-row:hover .booking-slot-empty { border-color:#D7D0C0; background:rgba(193,164,108,.04); }
+.booking-slot-empty.drag-hover, .booking-card.drag-hover { border-color:#C1A46C !important; background:rgba(193,164,108,.12) !important; }
+.drag-handle { cursor:grab; width:12px; height:14px; display:inline-flex; flex-direction:column; justify-content:space-between; vertical-align:middle; margin-right:4px; padding:2px 0; position:relative; top:-1px; }
+.drag-handle::before, .drag-handle::after { content:''; display:block; height:2px; background:#9CA3AF; border-radius:1px; }
+.drag-handle .drag-line { display:block; height:2px; background:#9CA3AF; border-radius:1px; }
+.drag-handle:active { cursor:grabbing; }
+.drag-handle:active::before, .drag-handle:active::after, .drag-handle:active .drag-line { background:#C1A46C; }
+.booking-row.editing .booking-card { border-color:#C1A46C; box-shadow:0 12px 28px rgba(193,164,108,.18); }
 .booking-row.break-row { cursor:default; }
 .booking-row.break-row .booking-time { color:#9CA3AF; }
 .booking-slot-break { height:1px; margin:6px 0; background:transparent; border-top:1px dashed #E6E2D6; position:relative; }
@@ -120,6 +127,12 @@ a { color:inherit; }
 .booking-dot { font-size:14px; }
 .booking-service { font-size:13px; color:#6B7280; }
 .booking-phone { font-size:12px; color:#9CA3AF; }
+.inline-edit { font:inherit; font-size:13px; border:1px solid #C1A46C; border-radius:8px; padding:4px 8px; background:#FFFEF9; width:100%; box-sizing:border-box; outline:none; }
+select.inline-edit { width:100%; }
+.editable { cursor:text; border-radius:4px; padding:2px 4px; margin:-2px -4px; transition:background .12s; }
+.editable:hover { background:rgba(193,164,108,.12); }
+.muted-add { color:#9CA3AF; font-style:italic; }
+.booking-time-inline { font-size:12px; color:#6B7280; font-weight:500; }
 .booking-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
 .booking-actions .btn { min-height:34px; padding:6px 12px; font-size:12px; }
 .booking-card .pill { font-size:11px; padding:3px 8px; }

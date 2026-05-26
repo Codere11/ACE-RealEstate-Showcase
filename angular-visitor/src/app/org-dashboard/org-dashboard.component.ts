@@ -25,12 +25,17 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   filters = { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false };
 
   // Rezervacije tab state
-  bookingFilters = { search: '', service: 'all', status: 'all', hideCompleted: false, hideCancelled: false };
+  bookingFilters = { search: '', service: 'all', status: 'all', hideCompleted: false };
   selectedBooking: any = null;
+  editingBookingId: number | null = null;
+  editingBooking: any = null;
+  editField: { bookingId: number, field: string } | null = null;
+  editValue = '';
   bookingView = signal<'day' | 'week'>('day');
   bookingDate = signal<string>(new Date().toISOString().slice(0, 10));
   showNewBooking = false;
-  newBooking = { name: '', phone: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
+  newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
+  newBookingError = '';
 
   // Mock bookings for UI preview
   mockBookings = signal<any[]>([
@@ -195,12 +200,11 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     if (this.bookingFilters.service !== 'all') list = list.filter(b => b.serviceId === this.bookingFilters.service);
     if (this.bookingFilters.status !== 'all') list = list.filter(b => b.status === this.bookingFilters.status);
     if (this.bookingFilters.hideCompleted) list = list.filter(b => b.status !== 'completed');
-    if (this.bookingFilters.hideCancelled) list = list.filter(b => b.status !== 'cancelled');
     return list.sort((a, b) => a.bookingTime.localeCompare(b.bookingTime));
   }
   get bookingStats() {
     const all = this.mockBookings().filter(b => b.bookingDate === this.bookingDate());
-    return { count: all.length, totalMin: all.reduce((s, b) => s + b.durationMin, 0), totalEur: all.filter(b => b.status !== 'cancelled').reduce((s, b) => s + b.priceEur, 0), confirmed: all.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, cancelled: all.filter(b => b.status === 'cancelled').length };
+    return { count: all.length, totalMin: all.reduce((s, b) => s + b.durationMin, 0), totalEur: all.filter(b => b.status !== 'cancelled').reduce((s, b) => s + b.priceEur, 0), confirmed: all.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, cancelled: 0 };
   }
   get weekStats() { return { count: this.mockBookings().length, confirmed: this.mockBookings().filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, inProgress: this.mockBookings().filter(b => b.status === 'in_progress').length, completed: this.mockBookings().filter(b => b.status === 'completed').length, noShow: this.mockBookings().filter(b => b.status === 'no_show').length }; }
   get allServices() { return [{ id: 'nega-obraza', name: 'Nega obraza (45 min, 35€)' }, { id: 'maska-obraza', name: 'Maska obraza (30 min, 25€)' }, { id: 'ciscenje-obraza', name: 'Čiščenje obraza (60 min, 50€)' }]; }
@@ -212,7 +216,44 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   statusPillClass(s: string) { const m: any = { confirmed: '', in_progress: 'warn', completed: 'success', no_show: 'dark', cancelled: 'dark' }; return m[s] || 'dark'; }
   bookingDot(s: string) { const m: any = { confirmed: '●', in_progress: '◉', completed: '○', no_show: '✕', cancelled: '—' }; return m[s] || '●'; }
 
-  selectBooking(b: any) { this.selectedBooking = this.selectedBooking?.id === b.id ? null : b; }
+  selectBooking(b: any) { if (this.editingBookingId === b.id) return; this.selectedBooking = this.selectedBooking?.id === b.id ? null : b; this.cancelEdit(); }
+  startEdit(b: any) { this.editingBookingId = b.id; this.editingBooking = { ...b }; }
+  saveEdit() {
+    if (!this.editingBooking) return;
+    const b = this.mockBookings().find(x => x.id === this.editingBookingId);
+    if (b) { Object.assign(b, this.editingBooking); this.mockBookings.set([...this.mockBookings()]); }
+    this.cancelEdit();
+  }
+  cancelEdit() { this.editingBookingId = null; this.editingBooking = null; }
+
+  // Inline field editing
+  startEditField(b: any, field: string, event: Event) {
+    event.stopPropagation();
+    this.editField = { bookingId: b.id, field };
+    this.editValue = (b as any)['customer' + (field === 'name' ? 'Name' : field === 'phone' ? 'Phone' : field === 'email' ? 'Email' : field === 'notes' ? 'Notes' : '')] || (b as any)[field] || '';
+  }
+  saveEditField() {
+    if (!this.editField) return;
+    const b = this.mockBookings().find(x => x.id === this.editField!.bookingId);
+    if (!b) { this.editField = null; return; }
+    const f = this.editField.field;
+    if (f === 'name') b.customerName = this.editValue;
+    else if (f === 'phone') b.customerPhone = this.editValue;
+    else if (f === 'email') b.customerEmail = this.editValue;
+    else if (f === 'notes') b.notes = this.editValue;
+    else if (f === 'time') b.bookingTime = this.editValue;
+    else if (f === 'service') { b.serviceId = this.editValue; this.onEditServiceChangeInline(b); }
+    this.mockBookings.set([...this.mockBookings()]);
+    this.editField = null;
+  }
+  cancelEditField() { this.editField = null; }
+  onEditServiceChangeInline(b: any) {
+    const sid = b.serviceId;
+    b.serviceName = sid === 'nega-obraza' ? 'Nega obraza' : sid === 'maska-obraza' ? 'Maska obraza' : 'Čiščenje obraza';
+    b.durationMin = sid === 'nega-obraza' ? 45 : sid === 'maska-obraza' ? 30 : 60;
+    b.priceEur = sid === 'nega-obraza' ? 35 : sid === 'maska-obraza' ? 25 : 50;
+  }
+  deleteBooking(b: any) { this.mockBookings.set(this.mockBookings().filter(x => x.id !== b.id)); this.selectedBooking = null; this.cancelEdit(); }
   weekDays() { const [y,m,day] = this.bookingDate().split('-').map(Number); const d = new Date(Date.UTC(y, m-1, day)); const dow = d.getUTCDay(); const mon = new Date(Date.UTC(y, m-1, day - (dow === 0 ? 6 : dow - 1))); return Array.from({ length: 6 }, (_, i) => { const dt = new Date(mon); dt.setUTCDate(mon.getUTCDate() + i); return dt.toISOString().slice(0, 10); }); }
   weekDayLabel(d: string) { const [y,m,day] = d.split('-').map(Number); const dt = new Date(Date.UTC(y, m-1, day)); const n = ['PO','TO','SR','ČE','PE','SO'][dt.getUTCDay() - 1] || '??'; return n + ' ' + String(day) + '.'; }
   getWeekBooking(date: string, time: string) { return this.mockBookings().find(b => b.bookingDate === date && b.bookingTime === time); }
@@ -223,6 +264,54 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   goToday() { this.bookingDate.set(new Date().toISOString().slice(0, 10)); this.selectedBooking = null; }
   toggleBookingView() { this.bookingView.set(this.bookingView() === 'day' ? 'week' : 'day'); }
   todayStr() { return new Date().toISOString().slice(0, 10); }
+
+  // ══════ DRAG & DROP ══════
+
+  onDragStart(e: DragEvent, b: any) { e.dataTransfer!.setData('text/plain', String(b.id)); e.dataTransfer!.effectAllowed = 'move'; (e.target as HTMLElement).closest('.booking-card')?.classList.add('dragging'); }
+  onDragEnd(e: DragEvent) { document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); }
+  onDragOver(e: DragEvent) { e.preventDefault(); e.dataTransfer!.dropEffect = 'move'; const t = e.currentTarget as HTMLElement; (t.querySelector('.booking-slot-empty') || t.closest('.booking-card') || t).classList.add('drag-hover'); }
+  onDragLeave(e: DragEvent) { const t = e.currentTarget as HTMLElement; (t.querySelector('.booking-slot-empty') || t.closest('.booking-card') || t).classList.remove('drag-hover'); }
+  onDrop(e: DragEvent, time: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).querySelector('.booking-slot-empty')?.classList.remove('drag-hover');
+    (e.currentTarget as HTMLElement).closest('.booking-card')?.classList.remove('drag-hover');
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    const id = parseInt(e.dataTransfer!.getData('text/plain'));
+    const dragged = this.mockBookings().find(x => x.id === id);
+    if (!dragged) return;
+    const existing = this.getBookingAt(time);
+    if (existing && existing.id !== id) {
+      // Swap: move existing to dragged's slot
+      existing.bookingTime = dragged.bookingTime;
+    }
+    dragged.bookingTime = time;
+    this.mockBookings.set([...this.mockBookings()]);
+  }
+
+  // ══════ NEW BOOKING ══════
+
+  get newBookingValid() { return this.newBooking.name.trim() && this.newBooking.time && (this.newBooking.phone.trim() || this.newBooking.email.trim()); }
+  addBooking() {
+    if (!this.newBookingValid) { this.newBookingError = 'Ime, ura in vsaj en kontakt (telefon ali email) so obvezni.'; return; }
+    const svc = this.allServices.find(s => s.id === this.newBooking.service)!;
+    const b: any = {
+      id: Date.now(), customerName: this.newBooking.name.trim(), customerPhone: this.newBooking.phone.trim(), customerEmail: this.newBooking.email.trim(),
+      serviceId: svc.id, serviceName: svc.name.replace(/ \(.*/, ''), durationMin: svc.id === 'nega-obraza' ? 45 : svc.id === 'maska-obraza' ? 30 : 60,
+      priceEur: svc.id === 'nega-obraza' ? 35 : svc.id === 'maska-obraza' ? 25 : 50,
+      bookingDate: this.newBooking.date, bookingTime: this.newBooking.time, status: 'confirmed', notes: this.newBooking.notes
+    };
+    this.mockBookings.set([...this.mockBookings(), b]);
+    this.showNewBooking = false; this.newBookingError = '';
+    this.newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
+  }
+  onEditServiceChange() {
+    if (!this.editingBooking) return;
+    const sid = this.editingBooking.serviceId;
+    this.editingBooking.serviceName = sid === 'nega-obraza' ? 'Nega obraza' : sid === 'maska-obraza' ? 'Maska obraza' : 'Čiščenje obraza';
+    this.editingBooking.durationMin = sid === 'nega-obraza' ? 45 : sid === 'maska-obraza' ? 30 : 60;
+    this.editingBooking.priceEur = sid === 'nega-obraza' ? 35 : sid === 'maska-obraza' ? 25 : 50;
+  }
 
   get visibleCount() { return this.leads().length; }
   get leadCount() { return this.allLeads().length; }
