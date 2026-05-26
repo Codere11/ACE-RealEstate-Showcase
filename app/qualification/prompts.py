@@ -64,19 +64,29 @@ Bodi koristen, ne vsiljiv. 2-4 stavke."""
 
 
 AVAILABILITY_PROMPT = """Stranka želi rezervirati termin.
-Povej katere termine imaš na voljo (iz orodja).
-Vprašaj kateri čas ji ustreza.
-Bodi konkreten in veder. 2-3 stavke + seznam terminov."""
+
+MORAŠ narediti točno to po vrsti:
+1. Pokliči salon_check_contact. Če vrne ok:false — vljudno prosi za kontakt (telefon ali email). NE nadaljuj.
+2. Če kontakt obstaja — pokliči salon_check_availability za datum ki ga stranka želi.
+3. Naštej proste termine. Vprašaj kateri čas ustreza.
+
+Bodi naraven, nežen, ne robotski. 2-4 stavke."""
 
 
-BOOKING_PROMPT = """Stranka je izbrala termin. Potrdi rezervacijo.
-Povej: storitev, datum, uro, ceno.
-Zahvali se in povej da so veseli njenega obiska.
-Toplo, kratko — 2-3 stavke."""
+BOOKING_PROMPT = """Stranka je izbrala termin. 
+
+PRAVILA:
+1. Pokliči salon_check_contact. Če kontakt manjka — NE rezerviraj. Prosi za kontakt.
+2. Pokliči salon_book_appointment s točnimi podatki (storitev_id, datum, ura, ime_stranke).
+3. Če orodje vrne napako (termin zaseden) — povej stranki in ponudi alternative.
+4. Če orodje potrdi — povej: storitev, datum, uro, ceno. Zahvali se.
+
+Toplo, profesionalno, kratko — 2-3 stavke."""
 
 
 HANDOFF_PROMPT = """Stranka želi govoriti z osebjem.
-Povej da boš povezal/a z osebjem.
+Pokliči salon_check_contact — če kontakt manjka, ga vljudno prosi.
+Pokliči salon_request_staff za povezavo.
 Če je salon zaprt — povej da osebje trenutno ni na voljo in ponudi rezervacijo za naslednji delovni dan.
 Bodi razumevajoč. 1-2 stavki."""
 

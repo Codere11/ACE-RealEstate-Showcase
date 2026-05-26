@@ -24,6 +24,9 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   activeTab = 'leads';
   filters = { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false };
 
+  // Rezervacije tab state — loaded from API
+  bookings = signal<any[]>([]);
+
   // Rezervacije tab state
   bookingFilters = { search: '', service: 'all', status: 'all', hideCompleted: false };
   selectedBooking: any = null;
@@ -36,16 +39,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   showNewBooking = false;
   newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
   newBookingError = '';
-
-  // Mock bookings for UI preview
-  mockBookings = signal<any[]>([
-    { id: 1, customerName: 'Ana Horvat', customerPhone: '040 123 456', serviceId: 'nega-obraza', serviceName: 'Nega obraza', durationMin: 45, priceEur: 35, bookingDate: new Date().toISOString().slice(0, 10), bookingTime: '09:00', status: 'confirmed', notes: '' },
-    { id: 2, customerName: 'Maja Novak', customerPhone: '051 789 012', serviceId: 'ciscenje-obraza', serviceName: 'Čiščenje obraza', durationMin: 60, priceEur: 50, bookingDate: new Date().toISOString().slice(0, 10), bookingTime: '10:00', status: 'in_progress', notes: '' },
-    { id: 3, customerName: 'Petra Kovač', customerPhone: '031 456 789', serviceId: 'maska-obraza', serviceName: 'Maska obraza', durationMin: 30, priceEur: 25, bookingDate: new Date().toISOString().slice(0, 10), bookingTime: '13:00', status: 'completed', notes: 'Občutljiva koža, uporabi nežnejši piling.', visitCount: 4, isRegular: true },
-    { id: 4, customerName: 'Nina Zupan', customerPhone: '070 111 222', serviceId: 'nega-obraza', serviceName: 'Nega obraza', durationMin: 45, priceEur: 35, bookingDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10), bookingTime: '09:00', status: 'confirmed', notes: '' },
-    { id: 5, customerName: 'Peter Horvat', customerPhone: '041 333 444', serviceId: 'ciscenje-obraza', serviceName: 'Čiščenje obraza', durationMin: 60, priceEur: 50, bookingDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10), bookingTime: '11:00', status: 'confirmed', notes: '' },
-    { id: 6, customerName: 'Sara Bizjak', customerPhone: '040 555 666', serviceId: 'nega-obraza', serviceName: 'Nega obraza', durationMin: 45, priceEur: 35, bookingDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), bookingTime: '15:00', status: 'confirmed', notes: 'Prvič pri nas.' },
-  ]);
+  bookingsLoading = false;
 
   // Live/camera state
   liveActive = signal(false);
@@ -59,7 +53,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.slug.set(this.route.snapshot.paramMap.get('slug') || '');
     await this.resolveOrg();
-    if (this.orgId) { await this.loadLeads(); this.timer = setInterval(() => { this.loadLeads(); if (this.selectedSid) this.select(this.selectedSid); }, 1000); }
+    if (this.orgId) { await this.loadLeads(); await this.loadBookings(); this.timer = setInterval(() => { this.loadLeads(); if (this.selectedSid) this.select(this.selectedSid); }, 1000); }
   }
   ngOnDestroy() { if (this.timer) clearInterval(this.timer); this.disconnectLive(); }
 
@@ -140,6 +134,21 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     } catch(e: any) { console.error(e); if (e?.status === 401) this.error.set('Prijava je potekla. <a href="/login">Prijavite se</a>.'); }
   }
 
+  async loadBookings() {
+    if (!this.orgId) return;
+    this.bookingsLoading = true;
+    try {
+      const list = await firstValueFrom(this.api.getBookings(this.orgId));
+      this.bookings.set(list.map((b: any) => ({
+        ...b, status: b.status || 'confirmed', customerName: b.customerName || '',
+        customerPhone: b.customerPhone || '', customerEmail: b.customerEmail || '',
+        serviceId: b.serviceId, serviceName: b.serviceName, durationMin: b.durationMin, priceEur: b.priceEur,
+        bookingDate: b.bookingDate, bookingTime: b.bookingTime, notes: b.notes || ''
+      })));
+    } catch(e: any) { console.error('loadBookings:', e); }
+    this.bookingsLoading = false;
+  }
+
   applyFilters() {
     let list = this.allLeads();
     const q = this.filters.search.toLowerCase();
@@ -192,7 +201,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
 
   // ══════ REZERVACIJE HELPERS ══════
 
-  get todaysBookings() { const d = this.bookingDate(); return this.mockBookings().filter(b => b.bookingDate === d); }
+  get todaysBookings() { const d = this.bookingDate(); return this.bookings().filter(b => b.bookingDate === d); }
   get filteredBookings() {
     let list = this.todaysBookings;
     const q = this.bookingFilters.search.toLowerCase();
@@ -203,10 +212,10 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     return list.sort((a, b) => a.bookingTime.localeCompare(b.bookingTime));
   }
   get bookingStats() {
-    const all = this.mockBookings().filter(b => b.bookingDate === this.bookingDate());
+    const all = this.bookings().filter(b => b.bookingDate === this.bookingDate());
     return { count: all.length, totalMin: all.reduce((s, b) => s + b.durationMin, 0), totalEur: all.filter(b => b.status !== 'cancelled').reduce((s, b) => s + b.priceEur, 0), confirmed: all.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, cancelled: 0 };
   }
-  get weekStats() { return { count: this.mockBookings().length, confirmed: this.mockBookings().filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, inProgress: this.mockBookings().filter(b => b.status === 'in_progress').length, completed: this.mockBookings().filter(b => b.status === 'completed').length, noShow: this.mockBookings().filter(b => b.status === 'no_show').length }; }
+  get weekStats() { return { count: this.bookings().length, confirmed: this.bookings().filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, inProgress: this.bookings().filter(b => b.status === 'in_progress').length, completed: this.bookings().filter(b => b.status === 'completed').length, noShow: this.bookings().filter(b => b.status === 'no_show').length }; }
   get allServices() { return [{ id: 'nega-obraza', name: 'Nega obraza (45 min, 35€)' }, { id: 'maska-obraza', name: 'Maska obraza (30 min, 25€)' }, { id: 'ciscenje-obraza', name: 'Čiščenje obraza (60 min, 50€)' }]; }
   timeSlots = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
   get freeSlots() { const taken = this.todaysBookings.map(b => b.bookingTime); return this.timeSlots.filter(t => !taken.includes(t) && t !== '12:00'); }
@@ -220,8 +229,8 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   startEdit(b: any) { this.editingBookingId = b.id; this.editingBooking = { ...b }; }
   saveEdit() {
     if (!this.editingBooking) return;
-    const b = this.mockBookings().find(x => x.id === this.editingBookingId);
-    if (b) { Object.assign(b, this.editingBooking); this.mockBookings.set([...this.mockBookings()]); }
+    const b = this.bookings().find(x => x.id === this.editingBookingId);
+    if (b) { Object.assign(b, this.editingBooking); this.bookings.set([...this.bookings()]); }
     this.cancelEdit();
   }
   cancelEdit() { this.editingBookingId = null; this.editingBooking = null; }
@@ -234,7 +243,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   }
   saveEditField() {
     if (!this.editField) return;
-    const b = this.mockBookings().find(x => x.id === this.editField!.bookingId);
+    const b = this.bookings().find(x => x.id === this.editField!.bookingId);
     if (!b) { this.editField = null; return; }
     const f = this.editField.field;
     if (f === 'name') b.customerName = this.editValue;
@@ -243,7 +252,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     else if (f === 'notes') b.notes = this.editValue;
     else if (f === 'time') b.bookingTime = this.editValue;
     else if (f === 'service') { b.serviceId = this.editValue; this.onEditServiceChangeInline(b); }
-    this.mockBookings.set([...this.mockBookings()]);
+    this.bookings.set([...this.bookings()]);
     this.editField = null;
   }
   cancelEditField() { this.editField = null; }
@@ -253,10 +262,10 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     b.durationMin = sid === 'nega-obraza' ? 45 : sid === 'maska-obraza' ? 30 : 60;
     b.priceEur = sid === 'nega-obraza' ? 35 : sid === 'maska-obraza' ? 25 : 50;
   }
-  deleteBooking(b: any) { this.mockBookings.set(this.mockBookings().filter(x => x.id !== b.id)); this.selectedBooking = null; this.cancelEdit(); }
+  deleteBooking(b: any) { this.api.deleteBooking(this.orgId, b.id).subscribe({ next: () => this.loadBookings(), error: () => {} }); this.selectedBooking = null; this.cancelEdit(); }
   weekDays() { const [y,m,day] = this.bookingDate().split('-').map(Number); const d = new Date(Date.UTC(y, m-1, day)); const dow = d.getUTCDay(); const mon = new Date(Date.UTC(y, m-1, day - (dow === 0 ? 6 : dow - 1))); return Array.from({ length: 6 }, (_, i) => { const dt = new Date(mon); dt.setUTCDate(mon.getUTCDate() + i); return dt.toISOString().slice(0, 10); }); }
   weekDayLabel(d: string) { const [y,m,day] = d.split('-').map(Number); const dt = new Date(Date.UTC(y, m-1, day)); const n = ['PO','TO','SR','ČE','PE','SO'][dt.getUTCDay() - 1] || '??'; return n + ' ' + String(day) + '.'; }
-  getWeekBooking(date: string, time: string) { return this.mockBookings().find(b => b.bookingDate === date && b.bookingTime === time); }
+  getWeekBooking(date: string, time: string) { return this.bookings().find(b => b.bookingDate === date && b.bookingTime === time); }
 
   addDays(dateStr: string, n: number) { const [y,m,d] = dateStr.split('-').map(Number); const dt = new Date(Date.UTC(y, m-1, d + n)); return dt.toISOString().slice(0, 10); }
   prevDay() { this.bookingDate.set(this.addDays(this.bookingDate(), -1)); this.selectedBooking = null; }
@@ -278,7 +287,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     (e.currentTarget as HTMLElement).closest('.booking-card')?.classList.remove('drag-hover');
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
     const id = parseInt(e.dataTransfer!.getData('text/plain'));
-    const dragged = this.mockBookings().find(x => x.id === id);
+    const dragged = this.bookings().find(x => x.id === id);
     if (!dragged) return;
     const existing = this.getBookingAt(time);
     if (existing && existing.id !== id) {
@@ -286,7 +295,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       existing.bookingTime = dragged.bookingTime;
     }
     dragged.bookingTime = time;
-    this.mockBookings.set([...this.mockBookings()]);
+    this.bookings.set([...this.bookings()]);
   }
 
   // ══════ NEW BOOKING ══════
@@ -294,16 +303,15 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   get newBookingValid() { return this.newBooking.name.trim() && this.newBooking.time && (this.newBooking.phone.trim() || this.newBooking.email.trim()); }
   addBooking() {
     if (!this.newBookingValid) { this.newBookingError = 'Ime, ura in vsaj en kontakt (telefon ali email) so obvezni.'; return; }
-    const svc = this.allServices.find(s => s.id === this.newBooking.service)!;
-    const b: any = {
-      id: Date.now(), customerName: this.newBooking.name.trim(), customerPhone: this.newBooking.phone.trim(), customerEmail: this.newBooking.email.trim(),
-      serviceId: svc.id, serviceName: svc.name.replace(/ \(.*/, ''), durationMin: svc.id === 'nega-obraza' ? 45 : svc.id === 'maska-obraza' ? 30 : 60,
-      priceEur: svc.id === 'nega-obraza' ? 35 : svc.id === 'maska-obraza' ? 25 : 50,
-      bookingDate: this.newBooking.date, bookingTime: this.newBooking.time, status: 'confirmed', notes: this.newBooking.notes
-    };
-    this.mockBookings.set([...this.mockBookings(), b]);
-    this.showNewBooking = false; this.newBookingError = '';
-    this.newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
+    this.api.createBooking(this.orgId, {
+      customer_name: this.newBooking.name.trim(), customer_phone: this.newBooking.phone.trim(),
+      customer_email: this.newBooking.email.trim(), service_id: this.newBooking.service,
+      booking_date: this.newBooking.date, booking_time: this.newBooking.time, notes: this.newBooking.notes
+    }).subscribe({
+      next: () => { this.loadBookings(); this.showNewBooking = false; this.newBookingError = '';
+        this.newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' }; },
+      error: (e) => { this.newBookingError = e?.error?.detail || 'Napaka pri rezervaciji.'; }
+    });
   }
   onEditServiceChange() {
     if (!this.editingBooking) return;

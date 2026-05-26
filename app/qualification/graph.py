@@ -29,6 +29,11 @@ def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
     recent = state.get("recent_messages", []) or []
     existing_stage = state.get("conversation_stage", "")
 
+    # If we're in a booking flow, stay in it — don't reclassify mid-booking
+    if existing_stage in ("availability", "booking"):
+        state["conversation_stage"] = existing_stage
+        return state
+
     # Fast-path: single-word greetings mid-conversation = idle
     lowered = latest.lower()
     greeting_words = {"dober dan", "zdravo", "živjo", "pozdravljeni", "pozdravljena",
@@ -50,7 +55,10 @@ def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
 
     # If we're past greeting and LLM still says greeting, check if it's really just a greeting word
     if existing_stage and stage == "greeting" and existing_stage != "greeting":
-        stage = "idle"
+        stage = existing_stage  # keep previous stage — context carries forward
+    # If we're in availability and user gives contact/confirmation, stay in availability
+    if existing_stage in ("availability", "booking") and stage in ("greeting", "idle", "discovery"):
+        stage = existing_stage
     # If first-ever message is a greeting word, that's a proper greeting
     elif not existing_stage and is_just_greeting:
         stage = "greeting"
@@ -120,9 +128,15 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
 
     # Tool-calling: first try, allow tools for availability/booking
     needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff")
-    force_tools = stage in ("greeting", "discovery")  # must check salon state + services
+    force_tools = stage in ("greeting", "discovery", "availability", "booking")  # must check salon state + services
     msgs = [{"role": "user", "content": latest_json}]
     reply = ""
+
+    # Pre-check contact for booking stages (deterministic, no LLM guesswork)
+    if stage in ("availability", "booking"):
+        contact = json.loads(execute_tool("salon_check_contact", {}))
+        if not contact.get("ok"):
+            system += "\n\nPOZOR: Stranka NIMA kontaktnih podatkov. Vljudno prosi za telefonsko ali email PREDEN rezerviraš. NE kaži terminov dokler ne dobiš kontakta."
 
     if needs_tools and llm.is_available():
         resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=force_tools)
@@ -136,7 +150,6 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
                     {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
                 ]})
                 msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
-            # Get final reply after tools
             reply = llm.call_json_response(system, msgs)
         else:
             reply = resp.get("text", "")

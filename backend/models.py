@@ -104,6 +104,26 @@ class Qualifier(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     organization = relationship("Organization")
 
+class Booking(Base):
+    __tablename__ = "bookings"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
+    service_id = Column(String(40), nullable=False)
+    service_name = Column(String(80), nullable=False)
+    duration_min = Column(Integer, nullable=False)
+    price_eur = Column(Integer, nullable=False)
+    booking_date = Column(String(10), nullable=False)
+    booking_time = Column(String(5), nullable=False)
+    customer_name = Column(String(160), nullable=False, default="")
+    customer_phone = Column(String(30), nullable=True)
+    customer_email = Column(String(160), nullable=True)
+    status = Column(String(20), nullable=False, default="confirmed")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    organization = relationship("Organization")
+    lead = relationship("Lead")
+
 async def init_db():
     from database import engine
     async with engine.begin() as conn:

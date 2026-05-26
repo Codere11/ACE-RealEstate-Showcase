@@ -1,9 +1,12 @@
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from app.qualification.tools import set_db_context
 import json as _json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
-from models import Organization, Lead, ConversationMessage, Qualifier, LeadEvent, ConvRole, LeadStatus, new_sid
+from models import Organization, Lead, ConversationMessage, Qualifier, LeadEvent, Booking, ConvRole, LeadStatus, new_sid
 from auth import get_current_user, get_platform_admin, User
 from events import publish_event
 from pydantic import BaseModel
@@ -82,10 +85,22 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     
     qualifier = (await db.execute(select(Qualifier).where(Qualifier.organization_id == org.id, Qualifier.status == "live"))).scalar_one_or_none()
     
+    # Capture contact info from message if present
+    import re
+    if not lead.phone:
+        phone_match = re.search(r'(\+?\d[\d\s]{7,}\d)', req.message)
+        if phone_match:
+            lead.phone = phone_match.group(1).strip()
+    if not lead.email:
+        email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.+-]+', req.message)
+        if email_match:
+            lead.email = email_match.group(0).strip()
+    if lead.phone or lead.email:
+        await db.commit()  # persist contact immediately
+    set_db_context(org.id, lead.sid, lead.phone, lead.email)
+    
     if qualifier:
         try:
-            import sys, os
-            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
             from app.qualification.graph import run_qualification_graph
             from app.services.llm_service import LLMService
             from types import SimpleNamespace
@@ -97,6 +112,16 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             state = run_qualification_graph(llm=llm, qualifier=q, latest_message=req.message, recent_messages=recent, profile_before=lead.qualifier_profile or {})
             decision = state.get("decision")
             reply = (getattr(decision, 'reply', None) or "Hvala za vaše sporočilo.").strip()
+            
+            # Persist conversation stage so context carries across turns
+            profile = dict(lead.qualifier_profile or {})
+            profile["conversation_stage"] = state.get("conversation_stage", "")
+            profile["hours_mentioned"] = state.get("hours_mentioned", False)
+            profile["services_presented"] = state.get("services_presented", False)
+            profile["service_interest"] = state.get("service_interest", "")
+            profile["booking_date"] = state.get("booking_date", "")
+            profile["booking_time"] = state.get("booking_time", "")
+            lead.qualifier_profile = profile
             await save_message(db, lead, ConvRole.ASSISTANT, reply)
             await db.commit()
             
@@ -274,6 +299,75 @@ async def public_live_state(slug: str, sid: str = Query(...), db: AsyncSession =
     }
 
 from livekit_token import ws_url
+
+# ══════ BOOKINGS ══════
+class CreateBookingRequest(BaseModel):
+    sid: Optional[str] = None
+    customer_name: str = ""
+    customer_phone: Optional[str] = None
+    customer_email: Optional[str] = None
+    service_id: str
+    booking_date: str
+    booking_time: str
+    notes: Optional[str] = None
+
+@router.get("/api/organizations/{org_id}/bookings")
+async def list_bookings(org_id: int, date_from: Optional[str] = None, date_to: Optional[str] = None, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await check_org_access(user, org_id)
+    q = select(Booking).where(Booking.organization_id == org_id, Booking.status != 'cancelled')
+    if date_from:
+        q = q.where(Booking.booking_date >= date_from)
+    if date_to:
+        q = q.where(Booking.booking_date <= date_to)
+    bookings = (await db.execute(q.order_by(Booking.booking_date, Booking.booking_time))).scalars().all()
+    return [{"id": b.id, "serviceId": b.service_id, "serviceName": b.service_name,
+             "durationMin": b.duration_min, "priceEur": b.price_eur,
+             "bookingDate": b.booking_date, "bookingTime": b.booking_time,
+             "customerName": b.customer_name, "customerPhone": b.customer_phone,
+             "customerEmail": b.customer_email, "status": b.status, "notes": b.notes,
+             "leadId": b.lead_id} for b in bookings]
+
+@router.post("/api/organizations/{org_id}/bookings")
+async def create_booking(org_id: int, req: CreateBookingRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await check_org_access(user, org_id)
+    svc = next((s for s in [
+        {"id": "nega-obraza", "name": "Nega obraza", "dur": 45, "price": 35},
+        {"id": "maska-obraza", "name": "Maska obraza", "dur": 30, "price": 25},
+        {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "dur": 60, "price": 50}
+    ] if s["id"] == req.service_id), None)
+    if not svc: raise HTTPException(400, f"Unknown service: {req.service_id}")
+    # Conflict check
+    existing = (await db.execute(select(Booking).where(
+        Booking.organization_id == org_id, Booking.booking_date == req.booking_date,
+        Booking.booking_time == req.booking_time, Booking.status != 'cancelled'
+    ))).scalar_one_or_none()
+    if existing: raise HTTPException(409, f"Slot {req.booking_date} {req.booking_time} is already booked")
+    lead = None
+    if req.sid:
+        lead = (await db.execute(select(Lead).where(Lead.organization_id == org_id, Lead.sid == req.sid))).scalar_one_or_none()
+    b = Booking(organization_id=org_id, lead_id=lead.id if lead else None,
+                service_id=svc["id"], service_name=svc["name"], duration_min=svc["dur"], price_eur=svc["price"],
+                booking_date=req.booking_date, booking_time=req.booking_time,
+                customer_name=req.customer_name or (lead.display_name if lead else ""),
+                customer_phone=req.customer_phone or (lead.phone if lead else None),
+                customer_email=req.customer_email or (lead.email if lead else None),
+                notes=req.notes)
+    db.add(b); await db.commit()
+    await publish_event(org_id, req.sid or "*", "booking.created", {
+        "id": b.id, "bookingDate": b.booking_date, "bookingTime": b.booking_time,
+        "serviceName": b.service_name, "customerName": b.customer_name
+    })
+    return {"ok": True, "id": b.id}
+
+@router.delete("/api/organizations/{org_id}/bookings/{booking_id}")
+async def delete_booking(org_id: int, booking_id: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await check_org_access(user, org_id)
+    b = (await db.execute(select(Booking).where(Booking.id == booking_id, Booking.organization_id == org_id))).scalar_one_or_none()
+    if not b: raise HTTPException(404, "Booking not found")
+    b.status = 'cancelled'
+    await db.commit()
+    await publish_event(org_id, b.lead.sid if b.lead else "*", "booking.cancelled", {"id": b.id})
+    return {"ok": True}
 
 # ══════ LOGIN ══════
 from fastapi import Form

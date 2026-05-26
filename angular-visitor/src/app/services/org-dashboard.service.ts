@@ -23,4 +23,16 @@ export class OrgDashboardService {
   deleteLead(orgId: number, sid: string) {
     return this.http.delete('/api/organizations/' + orgId + '/leads/' + sid);
   }
+  getBookings(orgId: number, dateFrom?: string, dateTo?: string) {
+    let params: any = {};
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    return this.http.get<any[]>('/api/organizations/' + orgId + '/bookings', { params });
+  }
+  createBooking(orgId: number, data: any) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/bookings', data);
+  }
+  deleteBooking(orgId: number, bookingId: number) {
+    return this.http.delete('/api/organizations/' + orgId + '/bookings/' + bookingId);
+  }
 }
