@@ -14,6 +14,12 @@ export class OrgDashboardService {
   endTakeover(orgId: number, sid: string) {
     return this.http.post('/api/organizations/' + orgId + '/leads/' + sid + '/takeover/end', {});
   }
+  goLive(orgId: number, sid: string) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/live-sessions/go-live', { sid });
+  }
+  endLive(orgId: number, sid: string) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/live-sessions/end', { sid });
+  }
   deleteLead(orgId: number, sid: string) {
     return this.http.delete('/api/organizations/' + orgId + '/leads/' + sid);
   }

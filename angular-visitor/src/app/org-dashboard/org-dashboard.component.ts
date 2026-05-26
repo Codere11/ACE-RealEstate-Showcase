@@ -1,8 +1,9 @@
-import { Component, signal, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { OrgDashboardService } from '../services/org-dashboard.service';
 import { firstValueFrom } from 'rxjs';
+import { Room, RoomEvent, LocalVideoTrack, RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track, createLocalVideoTrack } from 'livekit-client';
 
 @Component({
   standalone: true,
@@ -13,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 export class OrgDashboardComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private api = inject(OrgDashboardService);
+  private zone = inject(NgZone);
 
   slug = signal(''); orgId = 0; error = signal('');
   leads = signal<any[]>([]); allLeads = signal<any[]>([]);
@@ -21,6 +23,13 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   activeTab = 'leads';
   filters = { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false };
 
+  // Live/camera state
+  liveActive = signal(false);
+  liveConnecting = signal(false);
+  liveRoom: Room | null = null;
+
+  @ViewChild('staffVideo') staffVideoEl!: ElementRef<HTMLVideoElement>;
+
   private timer: any = null;
 
   async ngOnInit() {
@@ -28,7 +37,66 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     await this.resolveOrg();
     if (this.orgId) { await this.loadLeads(); this.timer = setInterval(() => { this.loadLeads(); if (this.selectedSid) this.select(this.selectedSid); }, 1000); }
   }
-  ngOnDestroy() { if (this.timer) clearInterval(this.timer); }
+  ngOnDestroy() { if (this.timer) clearInterval(this.timer); this.disconnectLive(); }
+
+  // ══════ CAMERA / LIVE ══════
+
+  async goLive() {
+    if (!this.selectedSid || !this.orgId || this.liveConnecting()) return;
+    this.liveConnecting.set(true);
+    try {
+      // First, send a staff takeover message so the visitor knows staff is active
+      try {
+        await firstValueFrom(this.api.sendTakeover(this.orgId, this.selectedSid, 'Pozdravljeni! Povezujem se preko kamere ...'));
+      } catch (e) { console.warn('Takeover message failed, continuing:', e); }
+
+      const res = await firstValueFrom(this.api.goLive(this.orgId, this.selectedSid));
+      if (!res.token || !res.wsUrl) throw new Error('No token');
+
+      // Get local camera
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const videoTrack = stream.getVideoTracks()[0];
+
+      // Show local preview
+      if (this.staffVideoEl) {
+        this.staffVideoEl.nativeElement.srcObject = stream;
+        this.staffVideoEl.nativeElement.muted = true;
+      }
+
+      // Connect to LiveKit and publish
+      this.liveRoom = new Room({ adaptiveStream: true, dynacast: true });
+      await this.liveRoom.connect(res.wsUrl, res.token);
+      const lkTrack = await createLocalVideoTrack({ deviceId: videoTrack.getSettings().deviceId });
+      await this.liveRoom.localParticipant.publishTrack(lkTrack);
+
+      this.liveActive.set(true);
+      this.liveConnecting.set(false);
+    } catch (e: any) {
+      console.error('Go live failed:', e);
+      this.liveConnecting.set(false);
+      this.error.set('Camera error: ' + (e.message || 'Unknown'));
+    }
+  }
+
+  async endLive() {
+    if (!this.selectedSid || !this.orgId) return;
+    try {
+      await firstValueFrom(this.api.endLive(this.orgId, this.selectedSid));
+    } catch (e) { console.error('End live API failed:', e); }
+    this.disconnectLive();
+  }
+
+  private disconnectLive() {
+    this.liveRoom?.disconnect();
+    this.liveRoom = null;
+    this.liveActive.set(false);
+    this.liveConnecting.set(false);
+    if (this.staffVideoEl) {
+      const stream = this.staffVideoEl.nativeElement.srcObject as MediaStream;
+      stream?.getTracks().forEach(t => t.stop());
+      this.staffVideoEl.nativeElement.srcObject = null;
+    }
+  }
 
   private async resolveOrg() {
     try {

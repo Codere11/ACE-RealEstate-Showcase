@@ -1,30 +1,32 @@
 .staff-video {
   position: fixed;
-  top: 80px;
+  top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
-  width: min(480px, 90vw);
-  aspect-ratio: 4/3;
+  z-index: 100;
+  width: min(480px, 65vw);
+  aspect-ratio: 16 / 9;
   background: #050607;
   border-radius: 16px;
   border: 1px solid rgba(193,164,108,.3);
-  box-shadow: 0 16px 48px rgba(0,0,0,.5);
+  border-top: none;
+  box-shadow: 0 16px 48px rgba(0,0,0,.6), 0 0 0 1px rgba(193,164,108,.15);
   overflow: hidden;
   display: none;
 }
 
-.staff-video.connecting, .staff-video.fade-in {
+.staff-video.connecting,
+.staff-video.fade-in {
   display: block;
 }
 
 .staff-video.fade-in {
-  animation: cameraFadeIn 0.8s ease forwards;
+  animation: cameraFadeIn 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
 @keyframes cameraFadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  0%   { opacity: 0; transform: translateX(-50%); }
+  100% { opacity: 1; transform: translateX(-50%); }
 }
 
 .video-pending {
@@ -59,15 +61,17 @@
 .video-frame video {
   width: 100%; height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .live-badge {
   position: absolute;
   top: 10px; right: 10px;
-  background: rgba(5,6,7,.8);
+  background: rgba(5,6,7,.85);
   color: #10b981;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
+  letter-spacing: 0.04em;
 }

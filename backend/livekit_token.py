@@ -1,6 +1,16 @@
 import os, time, json
+from pathlib import Path
 from datetime import timedelta
 from livekit import api as lkapi
+
+# Load .env from repo root
+_env_path = Path(__file__).resolve().parent.parent / '.env'
+if _env_path.exists():
+    for line in _env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith('#') and '=' in line:
+            k, v = line.split('=', 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 LIVEKIT_URL = os.getenv("ACE_LIVEKIT_WS_URL", "ws://localhost:7880")
 LIVEKIT_API_KEY = os.getenv("ACE_LIVEKIT_API_KEY", "devkey")

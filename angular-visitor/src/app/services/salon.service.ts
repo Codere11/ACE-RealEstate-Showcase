@@ -96,6 +96,13 @@ export class SalonService implements OnDestroy {
         this.staffState.set('idle');
         this.addMsg('ai', 'Pogovor z osebjem se je zaključil.', this.defaultActions());
         break;
+      case 'live_session.started':
+        this.staffState.set('connected');
+        if (this.onStaffMessage) this.onStaffMessage();
+        break;
+      case 'live_session.ended':
+        this.staffState.set('idle');
+        break;
       case 'message.created':
         if (!p?.text || p.role === 'user') break;
         if (p.role === 'staff') {

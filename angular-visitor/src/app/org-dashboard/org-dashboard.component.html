@@ -27,21 +27,34 @@
 
     @if (activeTab === 'leads') {
       <!-- LIVE PREVIEW -->
-      <div class="live-preview-stage">
+      <div class="live-preview-stage" [class.live]="liveActive()">
         <div class="live-preview-stage__camera">
-          <div class="live-preview-stage__overlay">
-            <div class="live-preview-stage__eyebrow">Live help</div>
-            <div class="live-preview-stage__title">Camera stage</div>
-          </div>
+          @if (liveActive() || liveConnecting()) {
+            <video #staffVideo autoplay playsinline muted class="staff-camera-feed"></video>
+            @if (liveActive()) {
+              <div class="live-preview-stage__badge">● V ŽIVO</div>
+            } @else {
+              <div class="live-preview-stage__badge connecting">⏳ Povezovanje...</div>
+            }
+          } @else {
+            <div class="live-preview-stage__overlay">
+              <div class="live-preview-stage__eyebrow">Live help</div>
+              <div class="live-preview-stage__title">Camera stage</div>
+            </div>
+          }
         </div>
         <div class="live-preview-stage__meta">
           <span class="live-preview-stage__meta-label">Live help stage</span>
           <span class="live-preview-stage__meta-value">{{ selectedSid ? 'Target: ' + selectedLeadName() + ' · ' + selectedSid : 'Open a lead to choose target.' }}</span>
         </div>
         <div class="live-preview-stage__actions">
-          <button class="btn ghost">Start preview</button>
-          <button class="btn primary">Go live</button>
-          <button class="btn danger">End live</button>
+          @if (!liveActive()) {
+            <button class="btn primary" (click)="goLive()" [disabled]="!selectedSid || liveConnecting()">
+              {{ liveConnecting() ? '⏳ Connecting...' : 'Go live' }}
+            </button>
+          } @else {
+            <button class="btn danger" (click)="endLive()">End live</button>
+          }
         </div>
 
         <div class="live-stage-stats">
