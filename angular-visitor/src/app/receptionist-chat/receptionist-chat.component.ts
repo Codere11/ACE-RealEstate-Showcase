@@ -17,6 +17,8 @@ export class ReceptionistChatComponent implements AfterViewChecked {
   readonly salon = inject(SalonService);
   private cdr = inject(ChangeDetectorRef);
   inputText = '';
+  private prevMessageCount = 0;
+  private userScrolledUp = false;
 
   constructor() {
     this.salon.onStaffMessage = () => this.cdr.detectChanges();
@@ -27,7 +29,21 @@ export class ReceptionistChatComponent implements AfterViewChecked {
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
   ngAfterViewChecked(): void {
-    this.scrollToBottom();
+    // Only auto-scroll when new messages arrive AND user hasn't scrolled up
+    const currentCount = this.salon.messages().length;
+    if (currentCount !== this.prevMessageCount && !this.userScrolledUp) {
+      this.scrollToBottom();
+      this.prevMessageCount = currentCount;
+    }
+  }
+
+  onChatScroll(): void {
+    const el = this.chatContainer.nativeElement;
+    // If user scrolled more than 100px from bottom, mark as scrolled up
+    this.userScrolledUp = (el.scrollHeight - el.scrollTop - el.clientHeight) > 100;
+    if (!this.userScrolledUp) {
+      this.prevMessageCount = this.salon.messages().length;
+    }
   }
 
   private scrollToBottom(): void {
