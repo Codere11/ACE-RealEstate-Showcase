@@ -53,18 +53,15 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.slug.set(this.route.snapshot.paramMap.get('slug') || '');
     await this.resolveOrg();
-    if (this.orgId) {
-      await this.loadLeads();
-      await this.loadBookings();
-      this.timer = setInterval(() => {
-        this.loadLeads();
-        this.loadBookings();
-        if (this.selectedSid) this.select(this.selectedSid);
-      }, 3000);
-    }
-    // Force refresh when tab becomes visible (browser throttles setInterval in background)
+    await this.loadLeads();
+    await this.loadBookings();
+    this.timer = setInterval(() => {
+      this.loadLeads();
+      this.loadBookings();
+      if (this.selectedSid) this.select(this.selectedSid);
+    }, 3000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.orgId) {
+      if (document.visibilityState === 'visible') {
         this.loadLeads();
         this.loadBookings();
       }
@@ -153,18 +150,23 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     if (!this.orgId) return;
     try {
       const list = await firstValueFrom(this.api.getBookings(this.orgId));
-      const isFirstLoad = this.bookings().length === 0;
+      const oldIds = new Set(this.bookings().map(b => b.id));
       this.bookings.set(list.map((b: any) => ({
         ...b, status: b.status || 'confirmed', customerName: b.customerName || '',
         customerPhone: b.customerPhone || '', customerEmail: b.customerEmail || '',
         serviceId: b.serviceId, serviceName: b.serviceName, durationMin: b.durationMin, priceEur: b.priceEur,
         bookingDate: b.bookingDate, bookingTime: b.bookingTime, notes: b.notes || ''
       })));
-      if (isFirstLoad && list.length > 0) {
-        const first = list[0];
-        if (first.bookingDate !== this.bookingDate()) {
-          this.bookingDate.set(first.bookingDate);
+      // Auto-navigate to first NEW booking's date (only when a genuinely new booking appears)
+      for (const b of list) {
+        if (!oldIds.has(b.id) && b.bookingDate !== this.bookingDate()) {
+          this.bookingDate.set(b.bookingDate);
+          break;
         }
+      }
+      // If first successful load and no bookings for today, jump to earliest booking date
+      if (oldIds.size === 0 && list.length > 0 && this.todaysBookings.length === 0) {
+        this.bookingDate.set(list[0].bookingDate);
       }
     } catch(e: any) { console.error('loadBookings:', e); }
   }

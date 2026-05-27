@@ -232,7 +232,7 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
     # 2. Scan recent messages for explicit booking details
     all_text = latest
     for m in (recent or [])[-3:]:
-        all_text += " " + (m.get("text", "") or "")
+        all_text += " . " + (m.get("text", "") or "")
     all_lower = all_text.lower()
 
     # Service detection
