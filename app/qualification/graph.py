@@ -187,11 +187,13 @@ def _capture_contact(state: QualificationGraphState) -> QualificationGraphState:
     delovni_cas = salon_state.get("delovni_cas", "pon–pet 9:00–18:00")
 
     system = (
-        f"Ti si AI Receptor za kozmetični salon. Govoriš naravno slovenščino.\n\n"
+        f"Ti si AI Receptor za kozmetični salon. Govoriš naravno slovenščino. "
+        f"STROGO uporabljaš vikanje (vi, vas, vaš, sporočite). NIKOLI tikanja (ti, te, tvoj, sporoči).\n\n"
         f"Salon je trenutno ZAPRT. Delovni čas: {delovni_cas}. Naslednji delovni dan: {naslednji_dan}.\n"
         f"Stranka je želela govoriti z osebjem, vendar je salon zaprt.\n"
         f"Vljudno povej da je salon zaprt, povej kdaj bo spet odprt, "
         f"in prosi stranko naj pusti email ali telefonsko številko, da jo kontaktiramo.\n"
+        f"Uporabljaj vikanje: 'vas', 'vaš', 'vaša', 'sporočite' — nikoli 'te', 'tvoj', 'sporoči'.\n"
         f"Bodi topel, profesionalen. 2-3 stavke."
     )
 
