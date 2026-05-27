@@ -63,9 +63,10 @@ a { color:inherit; }
 .thread-panel { margin-top:18px; border:1px solid #E6E2D6; border-radius:16px; background:#F8F7F3; padding:16px; display:grid; gap:14px; position:sticky; top:16px; height:calc(100vh - 150px); min-height:520px; min-width:0; overflow:hidden; }
 .thread { display:grid; gap:10px; min-height:0; min-width:0; height:100%; overflow-y:auto; align-content:start; padding-right:4px; }
 .bubble { max-width:86%; border-radius:14px; padding:12px 14px; border:1px solid #E6E2D6; background:#FFF; overflow-wrap:anywhere; word-break:break-word; }
-.bubble.user { margin-left:auto; background:#F4F8FF; border-color:#C8D9FF; }
-.bubble.assistant { margin-right:auto; }
-.bubble.staff { margin-right:auto; background:#FBF5E7; border-color:#E6D4A7; }
+/* Manager view: stranka LEFT, our messages (AI/osebje/sistem) RIGHT */
+.bubble.user { margin-right:auto; background:#F8F7F3; border-color:#E6E2D6; }
+.bubble.ai, .bubble.assistant, .bubble.staff, .bubble.system { margin-left:auto; background:#F4F8FF; border-color:#C8D9FF; }
+.bubble.staff { background:#FBF5E7; border-color:#E6D4A7; }
 .bubble .meta { font-size:12px; color:#6B7280; margin-bottom:6px; font-weight:700; text-transform:uppercase; }
 .bubble__body { display:grid; gap:10px; white-space:pre-wrap; line-height:1.45; }
 .composer { display:flex; gap:10px; flex-wrap:wrap; }
