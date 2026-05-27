@@ -59,53 +59,36 @@
         </div>
 
         <div class="live-stage-stats">
-          <div class="live-stage-stats__item"><span class="live-stage-stats__label">Visitor SPA</span><span class="muted">localhost:8080/{{ slug() }}</span></div>
           <div class="live-stage-stats__item"><span class="live-stage-stats__label">Live leads</span><span class="muted">{{ leadCount }}</span></div>
-          <div class="live-stage-stats__item"><span class="live-stage-stats__label">Active takeovers</span><span class="muted">{{ takeoverCount }}</span></div>
+          <div class="live-stage-stats__item"><span class="live-stage-stats__label">Osebje zahtevano</span><span class="muted">{{ staffRequestedCount }}</span></div>
         </div>
+      </div>
+
+      <!-- FILTERS BAR -->
+      <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;margin-bottom:16px;">
+        <div class="field" style="flex:1;min-width:180px;"><input id="searchInput" [(ngModel)]="filters.search" (input)="applyFilters()" placeholder="Išči po imenu ali SID…" style="width:100%;"></div>
+        <label class="checkbox-pill" style="margin:0;"><input type="checkbox" [(ngModel)]="filters.staffRequested" (change)="applyFilters()"> Osebje zahtevano</label>
+        <label class="checkbox-pill" style="margin:0;"><input type="checkbox" [(ngModel)]="filters.workingHours" (change)="applyFilters()"> Delovni čas</label>
+        <label class="checkbox-pill" style="margin:0;"><input type="checkbox" [(ngModel)]="filters.takeoverOnly" (change)="applyFilters()"> Prevzemi</label>
       </div>
 
       <div class="leads-grid dashboard-split dashboard-split--leads">
         <aside class="sidebar">
           <div class="card">
-            <h3>Filters</h3>
-            <div class="filter-grid">
-              <div class="field"><label for="searchInput">Search by lead name or SID</label><input id="searchInput" [(ngModel)]="filters.search" (input)="applyFilters()" placeholder="Type a lead name or SID…"></div>
-              <div class="field"><label for="interestFilter">Interest</label>
-                <select id="interestFilter" [(ngModel)]="filters.interest" (change)="applyFilters()">
-                  <option value="all">All interest levels</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
-                </select>
-              </div>
-              <div class="field"><label for="statusFilter">Status</label>
-                <select id="statusFilter" [(ngModel)]="filters.status" (change)="applyFilters()">
-                  <option value="all">All statuses</option><option value="SURVEY">Survey</option><option value="OPEN_CHAT">Open chat</option><option value="HUMAN_TAKEOVER">Human takeover</option>
-                </select>
-              </div>
-              <div class="field"><label for="progressFilter">Minimum survey progress</label>
-                <select id="progressFilter" [(ngModel)]="filters.minProgress" (change)="applyFilters()">
-                  <option [ngValue]="0">Any progress</option><option [ngValue]="20">20%+</option><option [ngValue]="40">40%+</option><option [ngValue]="60">60%+</option><option [ngValue]="80">80%+</option><option [ngValue]="100">100%</option>
-                </select>
-              </div>
-              <div class="checkbox-row"><label class="checkbox-pill"><input id="takeoverOnly" type="checkbox" [(ngModel)]="filters.takeoverOnly" (change)="applyFilters()"> Takeovers only</label></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Quick overview</h3>
+            <h3>Hitri pregled</h3>
             <div class="stats-grid">
-              <div class="hero-card"><strong>{{ visibleCount }}</strong><small>Visible leads</small></div>
-              <div class="hero-card"><strong>{{ contactCount }}</strong><small>Contactable</small></div>
-              <div class="hero-card"><strong>{{ surveyCount }}</strong><small>Still in survey</small></div>
-              <div class="hero-card"><strong>{{ openChatCount }}</strong><small>Open chat</small></div>
-              <div class="hero-card"><strong>{{ humanCount }}</strong><small>Human takeover</small></div>
+              <div class="hero-card"><strong>{{ visibleCount }}</strong><small>Vidnih</small></div>
+              <div class="hero-card"><strong>{{ contactCount }}</strong><small>Kontakt</small></div>
+              <div class="hero-card"><strong>{{ openChatCount }}</strong><small>Odprt chat</small></div>
+              <div class="hero-card"><strong>{{ humanCount }}</strong><small>Prevzem</small></div>
             </div>
           </div>
 
           <div class="card stack">
-            <div><h3>Conversation tags</h3><p class="muted">Use one tag per line or comma-separated.</p></div>
-            <div class="field"><label for="tagsInput">Tags</label><textarea id="tagsInput" rows="6" placeholder="seller&#10;buyer&#10;hot-lead"></textarea></div>
-            <div class="actions"><button class="btn primary">Save tags</button></div>
-            <div class="tag-cloud"><span class="pill dark">No tags yet</span></div>
+            <div><h3>Značke</h3><p class="muted">Ena značka na vrstico ali ločeno z vejico.</p></div>
+            <div class="field"><label for="tagsInput">Značke</label><textarea id="tagsInput" rows="6" placeholder="prodajalec&#10;kupec&#10;vroč-lead"></textarea></div>
+            <div class="actions"><button class="btn primary">Shrani značke</button></div>
+            <div class="tag-cloud"><span class="pill dark">Ni značk</span></div>
           </div>
         </aside>
 

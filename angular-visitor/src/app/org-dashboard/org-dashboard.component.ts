@@ -22,7 +22,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   messages = signal<any[]>([]);
   selectedSid = ''; takeoverActive = signal(false); takeoverText = '';
   activeTab = 'leads';
-  filters = { search: '', interest: 'all', status: 'all', minProgress: 0, takeoverOnly: false };
+  filters = { search: '', staffRequested: false, workingHours: true, takeoverOnly: false };
 
   // Rezervacije tab state — loaded from API
   bookings = signal<any[]>([]);
@@ -175,9 +175,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     let list = this.allLeads();
     const q = this.filters.search.toLowerCase();
     if (q) list = list.filter(l => (l.name || '').toLowerCase().includes(q) || (l.sid || '').toLowerCase().includes(q));
-    if (this.filters.interest !== 'all') list = list.filter(l => (l.interest || '') === this.filters.interest);
-    if (this.filters.status !== 'all') list = list.filter(l => l.status === this.filters.status);
-    if (this.filters.minProgress > 0) list = list.filter(l => (l.surveyProgress || 0) >= this.filters.minProgress);
+    if (this.filters.staffRequested) list = list.filter(l => l.staffRequested);
     if (this.filters.takeoverOnly) list = list.filter(l => l.takeoverActive);
     this.leads.set(list);
   }
@@ -346,8 +344,8 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   get visibleCount() { return this.leads().length; }
   get leadCount() { return this.allLeads().length; }
   get takeoverCount() { return this.allLeads().filter(l => l.takeoverActive).length; }
+  get staffRequestedCount() { return this.allLeads().filter(l => l.staffRequested).length; }
   get contactCount() { return this.allLeads().filter(l => l.phone || l.email).length; }
-  get surveyCount() { return this.allLeads().filter(l => l.status === 'SURVEY').length; }
   get openChatCount() { return this.allLeads().filter(l => l.status === 'OPEN_CHAT').length; }
   get humanCount() { return this.allLeads().filter(l => l.status === 'HUMAN_TAKEOVER').length; }
 }
