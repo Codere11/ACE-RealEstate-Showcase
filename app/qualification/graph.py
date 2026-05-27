@@ -138,6 +138,31 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
                 ]})
                 msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
+        # SECOND PASS: if contact exists and we're in booking stage but LLM didn't call
+        # salon_check_availability or salon_book_appointment, force another call with only booking tools
+        booking_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_check_availability", "salon_book_appointment")]
+        if stage in ("availability", "booking") and not contact_missing and llm.is_available():
+            has_booking_tool = any(tc["name"] in ("salon_check_availability", "salon_book_appointment") for tc in tool_calls_list)
+            if not has_booking_tool:
+                resp2 = llm.call_with_tools(system, msgs, booking_tools, required=True)
+                tcs2 = resp2.get("tool_calls")
+                if tcs2:
+                    for tc in tcs2:
+                        result = execute_tool(tc["name"], tc["args"])
+                        tool_results[tc["id"]] = result
+                        tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
+                        if tc["name"] == "salon_book_appointment":
+                            r = json.loads(result)
+                            if r.get("potrjeno"):
+                                state["booking_confirmed"] = True
+                                state["booking_date"] = tc["args"].get("datum", "")
+                                state["booking_time"] = tc["args"].get("ura", "")
+                    for tc in tcs2:
+                        msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                            {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                        ]})
+                        msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
+
     state["tool_results"] = tool_results
     state["tool_calls"] = tool_calls_list
     state["tool_messages"] = msgs
@@ -295,91 +320,18 @@ def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
 # ═══════════════════════════════════════════════════════════
 
 def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict | None:
-    """Extract booking details (service_id, date, time, name) from conversation context."""
-    import re
-    from datetime import datetime, timedelta
-
-    # 1. Check tool calls for salon_check_availability/salon_book_appointment args
+    """Extract booking details from LLM tool calls — the LLM already parsed
+    dates, times, and service IDs into structured arguments."""
     for tc in (tool_calls or []):
         if tc.get("name") in ("salon_check_availability", "salon_book_appointment"):
             args = tc.get("args", {})
             svc = args.get("storitev_id", "")
             dt = args.get("datum", "")
             tm = args.get("ura", "")
+            name = args.get("ime_stranke", "Stranka")
             if svc and dt and tm:
-                return {"service_id": svc, "date": dt, "time": tm,
-                        "name": args.get("ime_stranke", "Stranka")}
-
-    # 2. Scan messages for explicit booking details
-    all_text = latest
-    for m in (recent or [])[-3:]:
-        all_text += " . " + (m.get("text", "") or "")
-    all_lower = all_text.lower()
-
-    # Service detection
-    service_id = None
-    if "nega obraza" in all_lower or "nego obraza" in all_lower or "nege obraza" in all_lower:
-        service_id = "nega-obraza"
-    elif "maska obraza" in all_lower or "masko obraza" in all_lower:
-        service_id = "maska-obraza"
-    elif "čiščenje" in all_lower or "ciscenje" in all_lower or "čiščenja" in all_lower:
-        service_id = "ciscenje-obraza"
-    if not service_id:
-        return None
-
-    # Date detection
-    today = datetime.now()
-    date = None
-    if "jutri" in all_lower:
-        date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
-    elif "danes" in all_lower:
-        date = today.strftime("%Y-%m-%d")
-    elif "pojutrišnjem" in all_lower or "pojutrisnjem" in all_lower:
-        date = (today + timedelta(days=2)).strftime("%Y-%m-%d")
-    else:
-        m = re.search(r'\b(20\d{2}-\d{2}-\d{2})\b', all_text)
-        if m:
-            date = m.group(1)
-    if not date and tool_calls:
-        for tc in tool_calls:
-            d = (tc.get("args") or {}).get("datum", "")
-            if d:
-                date = d
-                break
-    if not date:
-        return None
-
-    # Time detection
-    time = None
-    tm = re.search(r'\b(\d{1,2})[:.](\d{2})\b', all_text)
-    if tm:
-        time = f"{int(tm.group(1)):02d}:{tm.group(2)}"
-    else:
-        tm2 = re.search(r'\bob\s+(\d{1,2})\s*(ih|h)?\b', all_lower)
-        if tm2:
-            time = f"{int(tm2.group(1)):02d}:00"
-    if not time and tool_calls:
-        for tc in tool_calls:
-            t = (tc.get("args") or {}).get("ura", "")
-            if t:
-                time = t
-                break
-    if not time:
-        return None
-
-    # Name extraction
-    name = "Stranka"
-    name_patterns = [
-        r'(?:ime\s+(?:mi\s+)?je\s+|moje\s+ime\s+je\s+|kličem\s+se\s+|pišem\s+se\s+|sem\s+)([A-ZČŠŽ][a-zčšž]+(?:\s+[A-ZČŠŽ][a-zčšž]+)?)',
-        r'(?:jaz\s+sem\s+)([A-ZČŠŽ][a-zčšž]+(?:\s+[A-ZČŠŽ][a-zčšž]+)?)',
-    ]
-    for pat in name_patterns:
-        m = re.search(pat, all_text)
-        if m:
-            name = m.group(1).strip()
-            break
-
-    return {"service_id": service_id, "date": date, "time": time, "name": name}
+                return {"service_id": svc, "date": dt, "time": tm, "name": name}
+    return None
 
 
 # ═══════════════════════════════════════════════════════════
