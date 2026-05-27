@@ -9,7 +9,7 @@
         <span class="unread-badge" (click)="scrollToBottom(); $event.stopPropagation()">{{ unreadCount() }}</span>
       }
       <span class="chat-status" [class.online]="salon.staffState() === 'connected' || salon.status() === 'open'"></span>
-      <button class="staff-btn" (click)="onAction('request-staff'); $event.stopPropagation()" title="Prosim osebje">🎥</button>
+      <button class="staff-btn" (click)="onAction('request-staff'); $event.stopPropagation()">Zahtevaj osebje</button>
       <span class="minimize-icon">{{ minimized() ? '▲' : '▼' }}</span>
     </div>
 
