@@ -18,6 +18,8 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   private zone = inject(NgZone);
 
   slug = signal(''); orgId = 0; error = signal('');
+  bookingsError = signal('');  // separate error for Rezervacije tab
+  lastBookingsRefresh = signal<string>('');
   leads = signal<any[]>([]); allLeads = signal<any[]>([]);
   messages = signal<any[]>([]);
   selectedSid = ''; takeoverActive = signal(false); takeoverText = '';
@@ -53,7 +55,22 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.slug.set(this.route.snapshot.paramMap.get('slug') || '');
     await this.resolveOrg();
-    if (this.orgId) { await this.loadLeads(); await this.loadBookings(); this.timer = setInterval(() => { this.loadLeads(); this.loadBookings(); if (this.selectedSid) this.select(this.selectedSid); }, 3000); }
+    if (this.orgId) {
+      await this.loadLeads();
+      await this.loadBookings();
+      this.timer = setInterval(() => {
+        this.loadLeads();
+        this.loadBookings();
+        if (this.selectedSid) this.select(this.selectedSid);
+      }, 3000);
+    }
+    // Force refresh when tab becomes visible (browser throttles setInterval in background)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.orgId) {
+        this.loadLeads();
+        this.loadBookings();
+      }
+    });
   }
   ngOnDestroy() { if (this.timer) clearInterval(this.timer); this.disconnectLive(); }
 
@@ -120,9 +137,9 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     try {
       const orgs = await firstValueFrom(this.api.getOrgs());
       const org = orgs.find((o: any) => o.slug === this.slug());
-      if (!org) { this.error.set('Organizacija ne obstaja.'); return; }
+      if (!org) { this.error.set('Organizacija ne obstaja. Preverite URL (trenutno: /' + this.slug() + '/dashboard).'); return; }
       this.orgId = org.id;
-    } catch { this.error.set('Napaka pri povezavi.'); }
+    } catch { this.error.set('Napaka pri povezavi s strežnikom. Preverite ce backend teče na localhost:8000.'); }
   }
 
   async loadLeads() {
@@ -137,15 +154,28 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async loadBookings() {
     if (!this.orgId) return;
     this.bookingsLoading = true;
+    this.bookingsError.set('');
     try {
       const list = await firstValueFrom(this.api.getBookings(this.orgId));
+      const oldIds = new Set(this.bookings().map(b => b.id));
       this.bookings.set(list.map((b: any) => ({
         ...b, status: b.status || 'confirmed', customerName: b.customerName || '',
         customerPhone: b.customerPhone || '', customerEmail: b.customerEmail || '',
         serviceId: b.serviceId, serviceName: b.serviceName, durationMin: b.durationMin, priceEur: b.priceEur,
         bookingDate: b.bookingDate, bookingTime: b.bookingTime, notes: b.notes || ''
       })));
-    } catch(e: any) { console.error('loadBookings:', e); }
+      // If a NEW booking appeared on a different date, auto-navigate to it
+      for (const b of list) {
+        if (!oldIds.has(b.id) && b.bookingDate !== this.bookingDate()) {
+          this.bookingDate.set(b.bookingDate);
+          break;
+        }
+      }
+      this.lastBookingsRefresh.set(new Date().toLocaleTimeString('sl-SI'));
+    } catch(e: any) {
+      this.bookingsError.set('Napaka pri nalaganju rezervacij.');
+      console.error('loadBookings:', e);
+    }
     this.bookingsLoading = false;
   }
 

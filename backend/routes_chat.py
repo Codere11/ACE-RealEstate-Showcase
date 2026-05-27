@@ -354,12 +354,20 @@ async def create_booking(org_id: int, req: CreateBookingRequest, user: User = De
         {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "dur": 60, "price": 50}
     ] if s["id"] == req.service_id), None)
     if not svc: raise HTTPException(400, f"Unknown service: {req.service_id}")
-    # Conflict check
-    existing = (await db.execute(select(Booking).where(
+    # Conflict check: overlap-aware, not just exact time
+    all_bookings = (await db.execute(select(Booking.booking_time, Booking.duration_min).where(
         Booking.organization_id == org_id, Booking.booking_date == req.booking_date,
-        Booking.booking_time == req.booking_time, Booking.status != 'cancelled'
-    ))).scalar_one_or_none()
-    if existing: raise HTTPException(409, f"Slot {req.booking_date} {req.booking_time} is already booked")
+        Booking.status != 'cancelled'
+    ))).all()
+    b_h, b_m = map(int, req.booking_time.split(":"))
+    b_start = b_h * 60 + b_m
+    b_end = b_start + svc["dur"]
+    for (bk_time, bk_dur) in all_bookings:
+        bh, bm = map(int, bk_time.split(":"))
+        bk_start = bh * 60 + bm
+        bk_end = bk_start + bk_dur
+        if b_start < bk_end and b_end > bk_start:
+            raise HTTPException(409, f"Termin {req.booking_date} {req.booking_time} se prekriva z obstoječo rezervacijo")
     lead = None
     if req.sid:
         lead = (await db.execute(select(Lead).where(Lead.organization_id == org_id, Lead.sid == req.sid))).scalar_one_or_none()

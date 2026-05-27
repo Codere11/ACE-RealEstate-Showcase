@@ -31,8 +31,10 @@ export class LoginComponent {
       if (!r.ok) { this.error.set('Invalid credentials'); return; }
       const data = await r.json();
       localStorage.setItem('ace_token', data.token);
-      if (data.role === 'PLATFORM_ADMIN') this.router.navigate(['/admin']);
-      else this.router.navigate(['/demo/dashboard']);
+      // Redirect back to intended page, or dashboard
+      const returnUrl = sessionStorage.getItem('ace_return_url') || (data.role === 'PLATFORM_ADMIN' ? '/admin' : '/demo/dashboard');
+      sessionStorage.removeItem('ace_return_url');
+      this.router.navigate([returnUrl]);
     } catch { this.error.set('Connection failed'); }
   }
 }
