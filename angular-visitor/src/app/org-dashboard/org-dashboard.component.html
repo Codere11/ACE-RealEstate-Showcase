@@ -147,7 +147,7 @@
                 </div>
                 <div class="thread">
                   @for (m of messages(); track $index) {
-                    <div class="bubble" [class]="m.role">
+                    <div class="bubble" [class]="'bubble ' + m.role">
                       <div class="meta">{{ m.role === 'user' ? 'Stranka' : m.role === 'staff' ? 'Osebje' : m.role === 'system' ? 'Sistem' : 'AI' }}</div>
                       <div class="bubble__body">{{ m.text }}</div>
                     </div>
