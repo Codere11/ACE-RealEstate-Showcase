@@ -5,6 +5,9 @@
   <div class="chat-card" [class.minimized]="minimized()">
     <div class="chat-header" (click)="toggleMinimize()" [class.header-staff]="salon.staffState() === 'connected'">
       <span class="chat-title">{{ salon.staffState() === 'connected' ? 'Osebje' : salon.staffState() === 'offering' ? 'Osebje na voljo' : 'AI Receptor' }}</span>
+      @if (unreadCount()) {
+        <span class="unread-badge" (click)="scrollToBottom(); $event.stopPropagation()">{{ unreadCount() }}</span>
+      }
       <span class="chat-status" [class.online]="salon.staffState() === 'connected' || salon.status() === 'open'"></span>
       <span class="minimize-icon">{{ minimized() ? '▲' : '▼' }}</span>
     </div>
@@ -20,7 +23,7 @@
         </div>
       }
 
-      <div class="chat-messages" #chatContainer (scroll)="onChatScroll()">
+      <div class="chat-messages" #chatContainer>
         <!-- Messages -->
         @for (msg of salon.messages(); track $index) {
           <div class="message-row" [class]="rowClass(msg)">

@@ -17,8 +17,8 @@ export class ReceptionistChatComponent implements AfterViewChecked {
   readonly salon = inject(SalonService);
   private cdr = inject(ChangeDetectorRef);
   inputText = '';
-  private prevMessageCount = 0;
-  private userScrolledUp = false;
+  private prevLen = 0;
+  unreadCount = signal(0);
 
   constructor() {
     this.salon.onStaffMessage = () => this.cdr.detectChanges();
@@ -29,45 +29,36 @@ export class ReceptionistChatComponent implements AfterViewChecked {
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
   ngAfterViewChecked(): void {
-    // Only auto-scroll when new messages arrive AND user hasn't scrolled up
-    const currentCount = this.salon.messages().length;
-    if (currentCount !== this.prevMessageCount && !this.userScrolledUp) {
-      this.scrollToBottom();
-      this.prevMessageCount = currentCount;
+    const el = this.chatContainer?.nativeElement;
+    if (!el) return;
+    const currentLen = this.salon.messages().length;
+    if (currentLen !== this.prevLen) {
+      const newMsgs = currentLen - this.prevLen;
+      this.prevLen = currentLen;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+      if (atBottom) {
+        el.scrollTop = el.scrollHeight;
+        this.unreadCount.set(0);
+      } else {
+        this.unreadCount.update(c => c + Math.max(0, newMsgs));
+      }
     }
   }
 
-  onChatScroll(): void {
-    const el = this.chatContainer.nativeElement;
-    // If user scrolled more than 100px from bottom, mark as scrolled up
-    this.userScrolledUp = (el.scrollHeight - el.scrollTop - el.clientHeight) > 100;
-    if (!this.userScrolledUp) {
-      this.prevMessageCount = this.salon.messages().length;
-    }
-  }
-
-  private scrollToBottom(): void {
-    try {
-      this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
-    } catch (_) {}
+  scrollToBottom(): void {
+    const el = this.chatContainer?.nativeElement;
+    if (el) { el.scrollTop = el.scrollHeight; this.unreadCount.set(0); }
   }
 
   send(): void {
     const text = this.inputText.trim();
     if (!text) return;
     this.inputText = '';
-
-    // Un-minimize if minimized
-    if (this.minimized()) {
-      this.minimized.set(false);
-    }
-
+    if (this.minimized()) this.minimized.set(false);
     this.salon.sendMessage(text);
   }
 
   retryConnection(): void {
-    // SalonService constructor calls connect() — re-instantiate by calling connect
-    // We trigger a reconnect by reloading the page for simplicity
     window.location.reload();
   }
 
@@ -82,10 +73,7 @@ export class ReceptionistChatComponent implements AfterViewChecked {
         break;
       case 'book-appointment':
         this.showCalendar.set(true);
-        this.salon.addMessage({
-          role: 'ai',
-          text: 'Izberite termin, ki vam najbolj ustreza:',
-        });
+        this.salon.addMessage({ role: 'ai', text: 'Izberite termin, ki vam najbolj ustreza:' });
         break;
       case 'accept-staff':
         this.salon.acceptStaff();
@@ -124,7 +112,6 @@ export class ReceptionistChatComponent implements AfterViewChecked {
   }
 
   rowClass(msg: ChatMessage): string {
-    if (msg.role === 'user') return 'row-user';
-    return 'row-ai';
+    return msg.role === 'user' ? 'row-user' : 'row-ai';
   }
 }
