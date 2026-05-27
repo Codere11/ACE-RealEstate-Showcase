@@ -144,20 +144,30 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
     state["system_prompt"] = system
     state["contact_missing"] = contact_missing
     state["latest_json"] = latest_json
+    # Detect: staff requested but salon closed
+    state["salon_closed_request"] = False
+    for tc in tool_calls_list:
+        if tc["name"] == "salon_request_staff":
+            r = json.loads(tc["result"])
+            if not r.get("uspesno", True):
+                state["salon_closed_request"] = True
+                state["contact_missing"] = True  # force contact capture
     return state
 
 
 def _check_booking(state: QualificationGraphState) -> str:
-    """Conditional edge: can we auto-book right now? Returns 'auto_book' or 'generate_reply'."""
+    """Conditional edge: where to route after call_tools? Returns 'auto_book', 'capture_contact', or 'generate_reply'."""
+    # Closed-hours staff request with no contact → capture contact
+    if state.get("salon_closed_request") and state.get("contact_missing"):
+        return "capture_contact"
     stage = state.get("conversation_stage", "")
     if stage not in ("availability", "booking"):
         return "generate_reply"
     if state.get("booking_confirmed"):
-        return "generate_reply"  # already booked in this turn
+        return "generate_reply"
     if state.get("contact_missing"):
-        return "generate_reply"  # no contact, can't book
+        return "generate_reply"
 
-    # Try to extract booking intent
     latest = state.get("latest_message", "")
     recent = state.get("recent_messages", []) or []
     tcs = state.get("tool_calls", []) or []
@@ -166,6 +176,12 @@ def _check_booking(state: QualificationGraphState) -> str:
         state["booking_extracted"] = extracted
         return "auto_book"
     return "generate_reply"
+
+
+def _capture_contact(state: QualificationGraphState) -> QualificationGraphState:
+    """When staff is requested but salon is closed and no contact — ask for contact info."""
+    state["auto_book_reply"] = "Salon je trenutno zaprt. Lahko pustite vaš email ali telefonsko številko in vas kontaktiramo v delovnem času."
+    return state
 
 
 def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
@@ -391,7 +407,10 @@ def run_qualification_graph(
     state = _retrieve_knowledge(state)
     state = _classify_intent(state)
     state = _call_tools(state)
-    if _check_booking(state) == "auto_book":
+    route = _check_booking(state)
+    if route == "auto_book":
         state = _auto_book(state)
+    elif route == "capture_contact":
+        state = _capture_contact(state)
     state = _generate_reply(state)
     return state

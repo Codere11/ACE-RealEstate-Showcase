@@ -129,12 +129,16 @@ export class SalonService implements OnDestroy {
     try {
       const res = await firstValueFrom(this.api.sendMessage(this.sid, text));
       this.sid = res.sid;
-      // Remove loading placeholder
-      this.messages.update(msgs => msgs.filter(m => m.id !== loadingId));
-      if (this.staffState() === 'connected') {
-        if (res.reply) { this.staffState.set('idle'); this.addMsg('ai', res.reply); }
-      } else if (res.reply) {
-        this.addMsg('ai', res.reply);
+      // Remove loading placeholder, add reply (dedup: event might have arrived first)
+      this.messages.update(msgs => {
+        const withoutLoading = msgs.filter(m => m.id !== loadingId);
+        if (res.reply && !withoutLoading.some(m => m.text === res.reply)) {
+          return [...withoutLoading, { id: nextId(), role: 'ai' as const, text: res.reply }];
+        }
+        return withoutLoading;
+      });
+      if (res.reply && this.staffState() === 'connected') {
+        this.staffState.set('idle');
       }
     } catch {
       this.messages.update(msgs => msgs.filter(m => m.id !== loadingId));

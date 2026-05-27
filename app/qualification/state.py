@@ -72,6 +72,7 @@ class QualificationGraphState(TypedDict, total=False):
     latest_json: str
     booking_extracted: Optional[Dict[str, str]]
     auto_book_reply: str          # set by auto_book node for generate_reply
+    salon_closed_request: bool    # set when staff requested but salon closed
 
     # ── Existing pipeline fields ──
     runtime_context: Dict[str, Any]
