@@ -273,16 +273,7 @@
               <button class="btn" (click)="nextDay()">Naprej →</button>
               <strong style="font-size:1.1rem;">{{ bookingDate() | date:'EEEE, d. MMMM y' }}</strong>
             </div>
-            <div style="display:flex;gap:4px;align-items:center;">
-              @if (bookingsLoading) {
-                <span class="pill warn" style="font-size:10px;">⏳ Nalagam...</span>
-              }
-              @if (lastBookingsRefresh()) {
-                <span class="pill dark" style="font-size:10px;">Posodobljeno: {{ lastBookingsRefresh() }}</span>
-              }
-              @if (bookingsError()) {
-                <span class="pill" style="background:#7f1d1d;color:#fca5a5;font-size:10px;">{{ bookingsError() }}</span>
-              }
+            <div style="display:flex;gap:4px;">
               <button class="btn" [class.primary]="bookingView() === 'day'" (click)="bookingView.set('day')">Dan</button>
               <button class="btn" [class.primary]="bookingView() === 'week'" (click)="bookingView.set('week')">Teden</button>
             </div>

@@ -18,8 +18,6 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   private zone = inject(NgZone);
 
   slug = signal(''); orgId = 0; error = signal('');
-  bookingsError = signal('');  // separate error for Rezervacije tab
-  lastBookingsRefresh = signal<string>('');
   leads = signal<any[]>([]); allLeads = signal<any[]>([]);
   messages = signal<any[]>([]);
   selectedSid = ''; takeoverActive = signal(false); takeoverText = '';
@@ -153,30 +151,22 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
 
   async loadBookings() {
     if (!this.orgId) return;
-    this.bookingsLoading = true;
-    this.bookingsError.set('');
     try {
       const list = await firstValueFrom(this.api.getBookings(this.orgId));
-      const oldIds = new Set(this.bookings().map(b => b.id));
+      const isFirstLoad = this.bookings().length === 0;
       this.bookings.set(list.map((b: any) => ({
         ...b, status: b.status || 'confirmed', customerName: b.customerName || '',
         customerPhone: b.customerPhone || '', customerEmail: b.customerEmail || '',
         serviceId: b.serviceId, serviceName: b.serviceName, durationMin: b.durationMin, priceEur: b.priceEur,
         bookingDate: b.bookingDate, bookingTime: b.bookingTime, notes: b.notes || ''
       })));
-      // If a NEW booking appeared on a different date, auto-navigate to it
-      for (const b of list) {
-        if (!oldIds.has(b.id) && b.bookingDate !== this.bookingDate()) {
-          this.bookingDate.set(b.bookingDate);
-          break;
+      if (isFirstLoad && list.length > 0) {
+        const first = list[0];
+        if (first.bookingDate !== this.bookingDate()) {
+          this.bookingDate.set(first.bookingDate);
         }
       }
-      this.lastBookingsRefresh.set(new Date().toLocaleTimeString('sl-SI'));
-    } catch(e: any) {
-      this.bookingsError.set('Napaka pri nalaganju rezervacij.');
-      console.error('loadBookings:', e);
-    }
-    this.bookingsLoading = false;
+    } catch(e: any) { console.error('loadBookings:', e); }
   }
 
   applyFilters() {
