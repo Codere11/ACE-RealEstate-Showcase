@@ -81,6 +81,8 @@ PRAVILA:
 3. Če orodje vrne napako (termin zaseden) — povej stranki in ponudi alternative.
 4. Če orodje potrdi — povej: storitev, datum, uro, ceno. Zahvali se.
 
+STROGO PREPOVEDANO: Nikoli ne reci 'potrjujem', 'potrjeno', 'rezervirano', 'vaš termin je' brez da si prej poklical/a salon_book_appointment in dobil/a potrjeno=true.
+
 Toplo, profesionalno, kratko — 2-3 stavke."""
 
 

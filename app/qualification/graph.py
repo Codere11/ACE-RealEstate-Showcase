@@ -169,13 +169,15 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
                             state["booking_confirmed"] = True
                             state["booking_date"] = extracted["date"]
                             state["booking_time"] = extracted["time"]
+                            # Use the tool's confirmation message directly — don't let LLM hallucinate over it
+                            reply = r.get("sporocilo", "")
 
             for tc in tcs:
                 msgs.append({"role": "assistant", "content": None, "tool_calls": [
                     {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
                 ]})
                 msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
-            reply = llm.call_json_response(system, msgs)
+            reply = reply or llm.call_json_response(system, msgs)
         else:
             reply = resp.get("text", "")
 
@@ -274,15 +276,17 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
     if not date:
         return None
 
-    # Time detection: "ob 11:00", "9:30", "10h", "ob 10ih"
+    # Time detection: "ob 11:00", "9:30", "ob 11ih", "ob 11h", "ob 10"
     time = None
-    tm = re.search(r'\b(\d{1,2}):(\d{2})\b', all_text)
+    # HH:MM or HH.MM
+    tm = re.search(r'\b(\d{1,2})[:.](\d{2})\b', all_text)
     if tm:
         time = f"{int(tm.group(1)):02d}:{tm.group(2)}"
     else:
-        tm2 = re.search(r'\b(\d{1,2})\.(\d{2})\b', all_text)
+        # Slovenian: "ob 11ih", "ob 11h", "ob 3h", "ob 10"
+        tm2 = re.search(r'\bob\s+(\d{1,2})\s*(ih|h)?\b', all_lower)
         if tm2:
-            time = f"{int(tm2.group(1)):02d}:{tm2.group(2)}"
+            time = f"{int(tm2.group(1)):02d}:00"
     
     if not time:
         # Check tool call args
