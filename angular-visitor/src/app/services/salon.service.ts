@@ -22,6 +22,7 @@ export class SalonService implements OnDestroy {
   readonly connectionStatus = signal<'connecting'|'connected'|'error'>('connecting');
   readonly status = signal<'open'|'closed'>('open');
   readonly errorMessage = signal<string|null>(null);
+  readonly aiLoading = signal(false);  // true while waiting for AI reply
 
   private sid = '';
   private seq = 0;
@@ -44,14 +45,15 @@ export class SalonService implements OnDestroy {
       const res = await firstValueFrom(this.api.sendMessage(stored || undefined, ''));
       this.sid = res.sid; sessionStorage?.setItem('ace_sid', res.sid);
       this.connectionStatus.set('connected');
-      if (!stored && (res.reply || res.currentStep?.title)) {
-        this.addMsg('ai', res.reply || res.currentStep!.title, this.defaultActions());
-      }
       await this.loadHistory();
+      // Only add greeting if history is empty (prevents double-greeting)
+      if (this.messages().length === 0 && (res.reply || res.currentStep?.title)) {
+        this.addMsg('ai', res.reply || res.currentStep!.title);
+      }
     } catch {
       sessionStorage?.removeItem('ace_sid');
       this.connectionStatus.set('connected');
-      this.addMsg('ai', this.defaultGreeting(), this.defaultActions());
+      if (this.messages().length === 0) this.addMsg('ai', this.defaultGreeting());
     }
     this.startPolling();
   }
@@ -94,7 +96,7 @@ export class SalonService implements OnDestroy {
         this.staffState.set('connected'); break;
       case 'lead.takeover.ended':
         this.staffState.set('idle');
-        this.addMsg('ai', 'Pogovor z osebjem se je zaključil.', this.defaultActions());
+        this.addMsg('ai', 'Pogovor z osebjem se je zaključil.');
         break;
       case 'live_session.started':
         this.staffState.set('connected');
@@ -121,18 +123,17 @@ export class SalonService implements OnDestroy {
 
   async sendMessage(text: string) {
     this.addMsg('user', text);
+    this.aiLoading.set(true);
     try {
       const res = await firstValueFrom(this.api.sendMessage(this.sid, text));
       this.sid = res.sid;
       if (this.staffState() === 'connected') {
-        if (res.reply) { this.staffState.set('idle'); this.addMsg('ai', res.reply, this.defaultActions()); }
-        return;
+        if (res.reply) { this.staffState.set('idle'); this.addMsg('ai', res.reply); }
+      } else if (res.reply) {
+        this.addMsg('ai', res.reply);
       }
-      if (res.reply || res.currentStep?.title) {
-        this.addMsg('ai', res.reply || res.currentStep!.title, res.storyComplete ? [] : this.defaultActions());
-      }
-      if (res.storyComplete && res.completionTitle) this.addMsg('ai', res.completionTitle);
     } catch { this.addMsg('system', 'Strežnik trenutno ni dosegljiv.'); }
+    this.aiLoading.set(false);
   }
 
   // ══════ MESSAGES ══════
@@ -147,7 +148,7 @@ export class SalonService implements OnDestroy {
     { label: '✅ Sprejmi', type: 'accept-staff' }, { label: '❌ Ne, hvala', type: 'deny-staff' },
   ]);}
   acceptStaff() { this.staffState.set('connected'); this.addMsg('system', 'Povezani ste z osebjem.'); }
-  denyStaff()  { this.staffState.set('idle'); this.addMsg('ai', 'Ni problema!', this.defaultActions()); }
+  denyStaff()  { this.staffState.set('idle'); this.addMsg('ai', 'Ni problema!'); }
   requestStaff() {
     if (this.status() !== 'open') { this.addMsg('ai','Trenutno smo zaprti.'); return; }
     if (this.sid) fetch('/api/public/organizations/'+this.getTenantSlug()+'/leads/'+this.sid+'/request-staff',{method:'POST'}).catch(()=>{});
@@ -157,9 +158,8 @@ export class SalonService implements OnDestroy {
   // ══════ HELPERS ══════
 
   defaultGreeting() { return 'Dober dan! Dobrodošli. Kako vam lahko pomagamo? 💆‍♀️'; }
-  defaultActions(): ChatAction[] { return [
-    { label: '🎥 Prosim osebje', type: 'request-staff' }, { label: '📅 Rezerviraj termin', type: 'book-appointment' },
-  ];}
+
+  requestStaffAction(): ChatAction { return { label: '🎥 Prosim osebje', type: 'request-staff' }; }
   private getTenantSlug(): string {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('org'); if (p) return p;
