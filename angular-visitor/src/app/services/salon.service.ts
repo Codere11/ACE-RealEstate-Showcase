@@ -161,9 +161,14 @@ export class SalonService implements OnDestroy {
   acceptStaff() { this.staffState.set('connected'); this.addMsg('system', 'Povezani ste z osebjem.'); }
   denyStaff()  { this.staffState.set('idle'); this.addMsg('ai', 'Ni problema!'); }
   requestStaff() {
-    if (this.status() !== 'open') { this.addMsg('ai','Trenutno smo zaprti.'); return; }
     if (this.sid) fetch('/api/public/organizations/'+this.getTenantSlug()+'/leads/'+this.sid+'/request-staff',{method:'POST'}).catch(()=>{});
-    this.staffOffering();
+    const isClosed = this.status() !== 'open';
+    if (isClosed) {
+      // Let the AI handle it — LLM will understand salon is closed and ask for contact
+      this.sendMessage('Prosim osebje');
+    } else {
+      this.staffOffering();
+    }
   }
 
   // ══════ HELPERS ══════
