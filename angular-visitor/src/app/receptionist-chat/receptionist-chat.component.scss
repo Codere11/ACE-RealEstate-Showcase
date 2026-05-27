@@ -88,12 +88,12 @@
 
 .loading-dots {
   display: flex;
-  gap: 4px;
-  padding: 8px 16px;
+  gap: 5px;
+  padding: 4px 0;
 }
 .loading-dots span {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #a78bfa;
   animation: dotPulse 1.4s infinite ease-in-out both;

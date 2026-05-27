@@ -123,16 +123,23 @@ export class SalonService implements OnDestroy {
 
   async sendMessage(text: string) {
     this.addMsg('user', text);
+    const loadingId = nextId();
+    this.messages.update(msgs => [...msgs, { id: loadingId, role: 'ai', text: '__LOADING__' }]);
     this.aiLoading.set(true);
     try {
       const res = await firstValueFrom(this.api.sendMessage(this.sid, text));
       this.sid = res.sid;
+      // Remove loading placeholder
+      this.messages.update(msgs => msgs.filter(m => m.id !== loadingId));
       if (this.staffState() === 'connected') {
         if (res.reply) { this.staffState.set('idle'); this.addMsg('ai', res.reply); }
       } else if (res.reply) {
         this.addMsg('ai', res.reply);
       }
-    } catch { this.addMsg('system', 'Strežnik trenutno ni dosegljiv.'); }
+    } catch {
+      this.messages.update(msgs => msgs.filter(m => m.id !== loadingId));
+      this.addMsg('system', 'Strežnik trenutno ni dosegljiv.');
+    }
     this.aiLoading.set(false);
   }
 

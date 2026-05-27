@@ -35,7 +35,13 @@
               @if (msg.role === 'staff') {
                 <div class="message-badge">Osebje</div>
               }
-              <div class="message-text">{{ msg.text }}</div>
+              <div class="message-text">
+                @if (msg.text === '__LOADING__') {
+                  <div class="loading-dots"><span></span><span></span><span></span></div>
+                } @else {
+                  {{ msg.text }}
+                }
+              </div>
               @if (msg.actions && msg.actions.length) {
                 <div class="message-actions">
                   @for (action of msg.actions; track action.label) {
@@ -57,10 +63,6 @@
           ></app-calendar-picker>
         }
       </div>
-
-      @if (salon.aiLoading()) {
-        <div class="loading-dots"><span></span><span></span><span></span></div>
-      }
 
       <div class="chat-input-row">
         <input
