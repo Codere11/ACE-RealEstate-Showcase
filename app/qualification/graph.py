@@ -179,8 +179,31 @@ def _check_booking(state: QualificationGraphState) -> str:
 
 
 def _capture_contact(state: QualificationGraphState) -> QualificationGraphState:
-    """When staff is requested but salon is closed and no contact — ask for contact info."""
-    state["auto_book_reply"] = "Salon je trenutno zaprt. Lahko pustite vaš email ali telefonsko številko in vas kontaktiramo v delovnem času."
+    """LangGraph node: salon closed, staff requested, no contact. LLM asks for email/phone."""
+    llm = LLMService()
+    latest = state.get("latest_message", "")
+    salon_state = json.loads(execute_tool("salon_get_context", {}))
+    naslednji_dan = salon_state.get("naslednji_delovni_dan", "")
+    delovni_cas = salon_state.get("delovni_cas", "pon–pet 9:00–18:00")
+
+    system = (
+        f"Ti si AI Receptor za kozmetični salon. Govoriš naravno slovenščino.\n\n"
+        f"Salon je trenutno ZAPRT. Delovni čas: {delovni_cas}. Naslednji delovni dan: {naslednji_dan}.\n"
+        f"Stranka je želela govoriti z osebjem, vendar je salon zaprt.\n"
+        f"Vljudno povej da je salon zaprt, povej kdaj bo spet odprt, "
+        f"in prosi stranko naj pusti email ali telefonsko številko, da jo kontaktiramo.\n"
+        f"Bodi topel, profesionalen. 2-3 stavke."
+    )
+
+    msgs = state.get("tool_messages", []) or []
+    reply = llm.call_json_response(system, msgs)
+    reply = _unwrap_reply(reply)
+    if not reply:
+        reply = llm.call_text(system, json.dumps(latest, ensure_ascii=False))
+    if not reply:
+        reply = f"Salon je trenutno zaprt ({delovni_cas}). Lahko pustite vaš email ali telefonsko številko in vas kontaktiramo naslednji delovni dan ({naslednji_dan})."
+
+    state["auto_book_reply"] = reply
     return state
 
 

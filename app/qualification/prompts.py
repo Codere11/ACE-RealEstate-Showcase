@@ -89,8 +89,8 @@ Toplo, profesionalno, kratko — 2-3 stavke."""
 HANDOFF_PROMPT = """Stranka želi govoriti z osebjem.
 Pokliči salon_check_contact — če kontakt manjka, ga vljudno prosi.
 Pokliči salon_request_staff za povezavo.
-Če je salon zaprt — povej da osebje trenutno ni na voljo in ponudi rezervacijo za naslednji delovni dan.
-Bodi razumevajoč. 1-2 stavki."""
+Če je salon zaprt — vljudno povej, povej delovni čas in naslednji delovni dan, ter prosi stranko naj pusti email ali telefonsko številko, da jo kontaktiramo.
+Bodi razumevajoč. 2-3 stavki."""
 
 
 IDLE_PROMPT = """Stranka samo klepeta ali se zahvaljuje.
