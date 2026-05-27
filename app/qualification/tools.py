@@ -71,6 +71,22 @@ def _slot_overlaps(slot_time: str, slot_duration: int, bookings: set) -> bool:
             return True
     return False
 
+def _free_slots_from_bookings(date_str: str, service_duration_min: int, bookings: set) -> list[dict]:
+    """Like _free_slots but uses an already-queried bookings set (under lock)."""
+    try:
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return []
+    if date.weekday() >= 5:
+        return []
+    slots = []
+    for h in range(OPEN_HOUR, CLOSE_HOUR):
+        for m in range(0, 60, service_duration_min):
+            t = f"{h:02d}:{m:02d}"
+            if t != "12:00" and not _slot_overlaps(t, service_duration_min, bookings):
+                slots.append({"time": t, "available": True})
+    return slots
+
 def _free_slots(date_str: str, service_duration_min: int = 45) -> list[dict]:
     """Generate available time slots for a given date."""
     try:
@@ -179,24 +195,33 @@ def execute_tool(name: str, args: dict) -> str:
                 return json.dumps({"napaka": f"Neznana storitev: {storitev_id}"}, ensure_ascii=False)
 
             # Check slot is free (overlap-aware, not just exact match)
-            bookings = _get_booked_slots(datum)
-            if _slot_overlaps(ura, service["duration_min"], bookings):
-                free = [s["time"] for s in _free_slots(datum, service["duration_min"])[:6]]
-                return json.dumps({"napaka": f"Termin {datum} ob {ura} je žal že zaseden. Prosti termini: {free}"}, ensure_ascii=False)
-
-            # Validate slot exists in the schedule
-            slots = _free_slots(datum, service["duration_min"])
-            if not any(s["time"] == ura for s in slots):
-                free = [s["time"] for s in slots[:5]]
-                return json.dumps({"napaka": f"Termin {datum} ob {ura} ni na voljo. Prosti termini: {free}"}, ensure_ascii=False)
-
-            # Persist to DB (sync session — no event loop issues)
+            # ── ALL of this must happen in ONE transaction with FOR UPDATE lock ──
             booking_id = None
             if _db_ctx:
                 try:
                     from app.core.db import SessionLocal
                     from sqlalchemy import text
                     with SessionLocal() as db:
+                        # Lock all bookings for this org+date to prevent race-condition double-booking
+                        rows = db.execute(text(
+                            "SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled' FOR UPDATE"
+                        ), {"oid": _db_ctx["org_id"], "d": datum}).all()
+                        bookings = {(r[0], r[1]) for r in rows}
+
+                        # Check overlap (under lock)
+                        if _slot_overlaps(ura, service["duration_min"], bookings):
+                            free = [s["time"] for s in _free_slots_from_bookings(datum, service["duration_min"], bookings)[:6]]
+                            db.rollback()
+                            return json.dumps({"napaka": f"Termin {datum} ob {ura} je žal že zaseden. Prosti termini: {free}"}, ensure_ascii=False)
+
+                        # Validate slot exists in schedule
+                        slots = _free_slots_from_bookings(datum, service["duration_min"], bookings)
+                        if not any(s["time"] == ura for s in slots):
+                            free = [s["time"] for s in slots[:5]]
+                            db.rollback()
+                            return json.dumps({"napaka": f"Termin {datum} ob {ura} ni na voljo. Prosti termini: {free}"}, ensure_ascii=False)
+
+                        # Insert booking (under same lock)
                         result = db.execute(text("""
                             INSERT INTO bookings (organization_id, service_id, service_name, duration_min, price_eur,
                                 booking_date, booking_time, customer_name, customer_phone, customer_email, status)
@@ -209,7 +234,7 @@ def execute_tool(name: str, args: dict) -> str:
                             "cphone": _db_ctx.get("lead_phone"), "cemail": _db_ctx.get("lead_email"),
                         })
                         booking_id = result.scalar()
-                        # Also persist event so dashboard picks it up via polling / WebSocket
+                        # Also persist event so dashboard picks it up
                         db.execute(text("""
                             INSERT INTO lead_events (organization_id, sid, event_type, payload_json)
                             VALUES (:oid, :sid, :etype, :payload)
