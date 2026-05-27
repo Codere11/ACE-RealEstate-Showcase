@@ -178,20 +178,36 @@ def execute_tool(name: str, args: dict) -> str:
                 return json.dumps({"napaka": f"Termin {datum} ob {ura} ni na voljo. Prosti termini: {free}"}, ensure_ascii=False)
 
             # Persist to DB (sync session — no event loop issues)
+            booking_id = None
             if _db_ctx:
                 try:
                     from app.core.db import SessionLocal
                     from sqlalchemy import text
                     with SessionLocal() as db:
-                        db.execute(text("""
+                        result = db.execute(text("""
                             INSERT INTO bookings (organization_id, service_id, service_name, duration_min, price_eur,
-                                booking_date, booking_time, customer_name, customer_phone, customer_email)
-                            VALUES (:oid, :sid, :sname, :dur, :price, :bdate, :btime, :cname, :cphone, :cemail)
+                                booking_date, booking_time, customer_name, customer_phone, customer_email, status)
+                            VALUES (:oid, :sid, :sname, :dur, :price, :bdate, :btime, :cname, :cphone, :cemail, 'confirmed')
+                            RETURNING id
                         """), {
                             "oid": _db_ctx["org_id"], "sid": service["id"], "sname": service["name"],
                             "dur": service["duration_min"], "price": service["price_eur"],
                             "bdate": datum, "btime": ura, "cname": ime,
                             "cphone": _db_ctx.get("lead_phone"), "cemail": _db_ctx.get("lead_email"),
+                        })
+                        booking_id = result.scalar()
+                        # Also persist event so dashboard picks it up via polling / WebSocket
+                        db.execute(text("""
+                            INSERT INTO lead_events (organization_id, sid, event_type, payload_json)
+                            VALUES (:oid, :sid, :etype, :payload)
+                        """), {
+                            "oid": _db_ctx["org_id"], "sid": _db_ctx.get("sid", "*"),
+                            "etype": "booking.created",
+                            "payload": json.dumps({
+                                "id": booking_id, "bookingDate": datum, "bookingTime": ura,
+                                "serviceName": service["name"], "customerName": ime,
+                                "durationMin": service["duration_min"], "priceEur": service["price_eur"],
+                            }),
                         })
                         db.commit()
                 except Exception as e:

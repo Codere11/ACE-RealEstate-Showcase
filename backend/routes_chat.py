@@ -124,7 +124,25 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             lead.qualifier_profile = profile
             await save_message(db, lead, ConvRole.ASSISTANT, reply)
             await db.commit()
-            
+
+            # If a booking was just confirmed, publish event for real-time dashboard updates
+            if state.get("booking_confirmed"):
+                result = await db.execute(
+                    select(Booking).where(Booking.organization_id == org.id)
+                        .order_by(desc(Booking.id)).limit(1)
+                )
+                last_booking = result.scalar_one_or_none()
+                if last_booking:
+                    await publish_event(org.id, lead.sid, "booking.created", {
+                        "id": last_booking.id,
+                        "bookingDate": last_booking.booking_date,
+                        "bookingTime": last_booking.booking_time,
+                        "serviceName": last_booking.service_name,
+                        "customerName": last_booking.customer_name,
+                        "durationMin": last_booking.duration_min,
+                        "priceEur": last_booking.price_eur,
+                    })
+
             return {"sid": lead.sid, "reply": reply, "chatMode": "open", "storyComplete": False,
                     "surveyProgress": 100, "currentStep": None, "completionTitle": None, "completionSubtitle": None}
         except Exception as e:

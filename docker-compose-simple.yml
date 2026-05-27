@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -26,6 +24,24 @@ services:
       - ./docker/livekit.yaml:/etc/livekit.yaml:ro
     network_mode: host
     restart: unless-stopped
+
+  backend:
+    build: .
+    container_name: ace-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ace_user:test_password_123@postgres:5432/ace_platform
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ACE_LLM_PROVIDER=${ACE_LLM_PROVIDER:-openai}
+      - ACE_LLM_MODEL=${ACE_LLM_MODEL:-gpt-4.1-mini}
+      - ACE_SECRET=${ACE_SECRET:-dev-secret-change-me}
+      - ACE_LIVEKIT_WS_URL=${ACE_LIVEKIT_WS_URL:-ws://localhost:7880}
+      - ACE_LIVEKIT_API_KEY=${ACE_LIVEKIT_API_KEY:-devkey}
+      - ACE_LIVEKIT_API_SECRET=${ACE_LIVEKIT_API_SECRET:-devsecretkey_for_local_livekit_32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

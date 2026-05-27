@@ -1,18 +1,24 @@
 {
   "/api": {
-    "target": "http://localhost:8080",
+    "target": "http://localhost:8000",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/chat": {
-    "target": "http://localhost:8080",
+    "target": "http://localhost:8000",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/chat-events": {
-    "target": "http://localhost:8080",
+    "target": "http://localhost:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/login": {
+    "target": "http://localhost:8000",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"

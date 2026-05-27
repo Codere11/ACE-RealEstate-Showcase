@@ -66,11 +66,11 @@ Bodi koristen, ne vsiljiv. 2-4 stavke."""
 AVAILABILITY_PROMPT = """Stranka želi rezervirati termin.
 
 MORAŠ narediti točno to po vrsti:
-1. Pokliči salon_check_contact. Če vrne ok:false — vljudno prosi za kontakt (telefon ali email). NE nadaljuj.
-2. Če kontakt obstaja — pokliči salon_check_availability za datum ki ga stranka želi.
-3. Naštej proste termine. Vprašaj kateri čas ustreza.
+1. Pokliči salon_check_contact. Če vrne ok:false — vljudno prosi za kontakt (telefon ali email). NE nadaljuj. NE rezerviraj brez kontakta.
+2. Če kontakt obstaja IN stranka JE že izbrala točen termin (datum IN uro) — takoj pokliči salon_book_appointment s temi podatki. NE sprašuj ponovno — rezerviraj direktno.
+3. Če kontakt obstaja, ampak stranka še NI izbrala točnega termina — pokliči salon_check_availability. Naštej 2-3 proste termine in vprašaj.
 
-Bodi naraven, nežen, ne robotski. 2-4 stavke."""
+Bodi naraven, nežen, ne robotski. 2-3 stavke."""
 
 
 BOOKING_PROMPT = """Stranka je izbrala termin. 
@@ -140,5 +140,5 @@ def build_node_prompt(
         f"TRENUTNO STANJE SALONA: {state_json}\n"
         f"ZGODOVINA: {messages_json}\n"
         f"STRANKA: {latest_json}\n\n"
-        f"Vrni SAMO JSON: {{\"rep\":\"tvoj odgovor\"}}"
+        f"Bodi kratek (1-3 stavke). Govori naravno slovenščino."
     )

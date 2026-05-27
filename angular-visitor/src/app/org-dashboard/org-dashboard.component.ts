@@ -53,7 +53,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.slug.set(this.route.snapshot.paramMap.get('slug') || '');
     await this.resolveOrg();
-    if (this.orgId) { await this.loadLeads(); await this.loadBookings(); this.timer = setInterval(() => { this.loadLeads(); if (this.selectedSid) this.select(this.selectedSid); }, 1000); }
+    if (this.orgId) { await this.loadLeads(); await this.loadBookings(); this.timer = setInterval(() => { this.loadLeads(); this.loadBookings(); if (this.selectedSid) this.select(this.selectedSid); }, 3000); }
   }
   ngOnDestroy() { if (this.timer) clearInterval(this.timer); this.disconnectLive(); }
 

@@ -29,11 +29,6 @@ def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
     recent = state.get("recent_messages", []) or []
     existing_stage = state.get("conversation_stage", "")
 
-    # If we're in a booking flow, stay in it — don't reclassify mid-booking
-    if existing_stage in ("availability", "booking"):
-        state["conversation_stage"] = existing_stage
-        return state
-
     # Fast-path: single-word greetings mid-conversation = idle
     lowered = latest.lower()
     greeting_words = {"dober dan", "zdravo", "živjo", "pozdravljeni", "pozdravljena",
@@ -126,17 +121,17 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
         latest_json=latest_json,
     )
 
-    # Tool-calling: first try, allow tools for availability/booking
+    # Tool-calling: availability & booking must call tools; others can optionally
     needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff")
-    force_tools = stage in ("greeting", "discovery", "availability", "booking")  # must check salon state + services
+    force_tools = stage in ("availability", "booking")
     msgs = [{"role": "user", "content": latest_json}]
     reply = ""
 
-    # Pre-check contact for booking stages (deterministic, no LLM guesswork)
+    # Deterministic contact check for booking stages
     if stage in ("availability", "booking"):
         contact = json.loads(execute_tool("salon_check_contact", {}))
         if not contact.get("ok"):
-            system += "\n\nPOZOR: Stranka NIMA kontaktnih podatkov. Vljudno prosi za telefonsko ali email PREDEN rezerviraš. NE kaži terminov dokler ne dobiš kontakta."
+            system += "\n\nPOZOR: Stranka NIMA kontaktnih podatkov. Vljudno prosi za telefonsko ali email PREDEN rezerviraš. NE kaži terminov dokler ne dobiš kontakta. Ne kliči salon_book_appointment dokler nimaš kontakta."
 
     if needs_tools and llm.is_available():
         resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=force_tools)
@@ -145,6 +140,36 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
             results = {}
             for tc in tcs:
                 results[tc["id"]] = execute_tool(tc["name"], tc["args"])
+                # Capture booking details from successful tool call
+                if tc["name"] == "salon_book_appointment":
+                    r = json.loads(results[tc["id"]])
+                    if r.get("potrjeno"):
+                        state["booking_confirmed"] = True
+                        state["booking_date"] = tc["args"].get("datum", "")
+                        state["booking_time"] = tc["args"].get("ura", "")
+
+            # DETERMINISTIC: If we're in availability/booking, have contact, haven't booked yet,
+            # and the user already specified a service + date + time — auto-book.
+            if stage in ("availability", "booking") and not state.get("booking_confirmed"):
+                contact_ok = json.loads(execute_tool("salon_check_contact", {}))
+                if contact_ok.get("ok"):
+                    # Try to extract service + date + time from LLM tool calls or recent messages
+                    extracted = _extract_booking_intent(latest, recent, tcs)
+                    if extracted:
+                        auto_args = {"storitev_id": extracted["service_id"], "datum": extracted["date"], "ura": extracted["time"], "ime_stranke": extracted.get("name", "Stranka")}
+                        auto_result = execute_tool("salon_book_appointment", auto_args)
+                        auto_tc_id = "auto_booking"
+                        results[auto_tc_id] = auto_result
+                        msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                            {"id": auto_tc_id, "type": "function", "function": {"name": "salon_book_appointment", "arguments": json.dumps(auto_args)}}
+                        ]})
+                        msgs.append({"role": "tool", "tool_call_id": auto_tc_id, "content": auto_result})
+                        r = json.loads(auto_result)
+                        if r.get("potrjeno"):
+                            state["booking_confirmed"] = True
+                            state["booking_date"] = extracted["date"]
+                            state["booking_time"] = extracted["time"]
+
             for tc in tcs:
                 msgs.append({"role": "assistant", "content": None, "tool_calls": [
                     {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
@@ -167,8 +192,6 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
     if stage == "greeting":
         state["hours_mentioned"] = True
         state["services_presented"] = True
-    if stage == "booking":
-        state["booking_confirmed"] = True
 
     interpretation = TurnInterpretation(
         visitor_type="new_visitor",
@@ -189,6 +212,91 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
     state["interpretation"] = interpretation
     state["decision"] = decision
     return state
+
+
+def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict | None:
+    """Extract booking details (service_id, date, time) from conversation context.
+    Checks LLM tool calls first, then scans message text for service keywords and time patterns."""
+    import re
+
+    # 1. Check tool calls for salon_check_availability/salon_book_appointment args
+    for tc in (tool_calls or []):
+        if tc["name"] in ("salon_check_availability", "salon_book_appointment"):
+            args = tc["args"]
+            svc = args.get("storitev_id", "")
+            dt = args.get("datum", "")
+            tm = args.get("ura", "")
+            if svc and dt and tm:
+                return {"service_id": svc, "date": dt, "time": tm, "name": args.get("ime_stranke", "Stranka")}
+
+    # 2. Scan recent messages for explicit booking details
+    all_text = latest
+    for m in (recent or [])[-3:]:
+        all_text += " " + (m.get("text", "") or "")
+    all_lower = all_text.lower()
+
+    # Service detection
+    service_id = None
+    if "nega obraza" in all_lower or "nego obraza" in all_lower or "nege obraza" in all_lower:
+        service_id = "nega-obraza"
+    elif "maska obraza" in all_lower or "masko obraza" in all_lower:
+        service_id = "maska-obraza"
+    elif "čiščenje" in all_lower or "ciscenje" in all_lower or "čiščenja" in all_lower:
+        service_id = "ciscenje-obraza"
+
+    if not service_id:
+        return None
+
+    # Date detection: "jutri", "danes", "pojutrišnjem", explicit YYYY-MM-DD
+    date = None
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    if "jutri" in all_lower:
+        date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
+    elif "danes" in all_lower:
+        date = today.strftime("%Y-%m-%d")
+    elif "pojutrišnjem" in all_lower or "pojutrisnjem" in all_lower:
+        date = (today + timedelta(days=2)).strftime("%Y-%m-%d")
+    else:
+        m = re.search(r'\b(20\d{2}-\d{2}-\d{2})\b', all_text)
+        if m:
+            date = m.group(1)
+
+    if not date:
+        # Check if LLM already specified a date in tool args
+        if tool_calls:
+            for tc in tool_calls:
+                d = (tc.get("args") or {}).get("datum", "")
+                if d:
+                    date = d
+                    break
+
+    if not date:
+        return None
+
+    # Time detection: "ob 11:00", "9:30", "10h", "ob 10ih"
+    time = None
+    tm = re.search(r'\b(\d{1,2}):(\d{2})\b', all_text)
+    if tm:
+        time = f"{int(tm.group(1)):02d}:{tm.group(2)}"
+    else:
+        tm2 = re.search(r'\b(\d{1,2})\.(\d{2})\b', all_text)
+        if tm2:
+            time = f"{int(tm2.group(1)):02d}:{tm2.group(2)}"
+    
+    if not time:
+        # Check tool call args
+        if tool_calls:
+            for tc in tool_calls:
+                t = (tc.get("args") or {}).get("ura", "")
+                if t:
+                    time = t
+                    break
+
+    if not time:
+        return None
+
+    return {"service_id": service_id, "date": date, "time": time, "name": "Stranka"}
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
