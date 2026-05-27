@@ -50,6 +50,13 @@ export class ReceptionistChatComponent implements AfterViewChecked {
     if (el) { el.scrollTop = el.scrollHeight; this.unreadCount.set(0); }
   }
 
+  onScroll(): void {
+    const el = this.chatContainer?.nativeElement;
+    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+      this.unreadCount.set(0);
+    }
+  }
+
   send(): void {
     const text = this.inputText.trim();
     if (!text) return;

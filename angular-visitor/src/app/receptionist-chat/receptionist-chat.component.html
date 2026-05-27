@@ -23,7 +23,7 @@
         </div>
       }
 
-      <div class="chat-messages" #chatContainer>
+      <div class="chat-messages" #chatContainer (scroll)="onScroll()">
         <!-- Messages -->
         @for (msg of salon.messages(); track $index) {
           <div class="message-row" [class]="rowClass(msg)">
