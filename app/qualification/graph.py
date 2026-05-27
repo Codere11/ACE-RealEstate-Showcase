@@ -21,25 +21,40 @@ except Exception:
     END = "__end__"  # type: ignore
 
 
-# ── Graph nodes ──
+# ═══════════════════════════════════════════════════════════
+#  LangGraph nodes — each does ONE thing
+# ═══════════════════════════════════════════════════════════
+
+def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
+    state["runtime_context"] = build_runtime_context(state["qualifier"])
+    return state
+
+
+def _retrieve_knowledge(state: QualificationGraphState) -> QualificationGraphState:
+    state["retrieved_knowledge"] = retrieve_knowledge(
+        state.get("runtime_context", {}) or {},
+        state.get("recent_messages", []) or [],
+        limit=3,
+    )
+    return state
+
 
 def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
-    """Determine what the customer wants RIGHT NOW."""
+    """Determine what the customer wants RIGHT NOW — output: conversation_stage."""
     latest = state.get("latest_message", "").strip()
     recent = state.get("recent_messages", []) or []
     existing_stage = state.get("conversation_stage", "")
 
-    # Fast-path: single-word greetings mid-conversation = idle
     lowered = latest.lower()
     greeting_words = {"dober dan", "zdravo", "živjo", "pozdravljeni", "pozdravljena",
                        "dober večer", "dober dan!", "živjo!", "hej", "oj", "hi", "hello"}
-    is_just_greeting = lowered in greeting_words or (len(lowered.split()) <= 2 and any(g in lowered for g in ["dober", "zdravo", "živjo", "pozdrav", "hej", "oj", "hi"]))
+    is_just_greeting = lowered in greeting_words or (len(lowered.split()) <= 2 and any(
+        g in lowered for g in ["dober", "zdravo", "živjo", "pozdrav", "hej", "oj", "hi"]))
 
     if existing_stage and existing_stage != "greeting" and is_just_greeting:
         state["conversation_stage"] = "idle"
         return state
 
-    # Use LLM to classify for longer messages
     llm = LLMService()
     if llm.is_available() and latest:
         prompt = build_classify_prompt(latest, recent)
@@ -48,16 +63,12 @@ def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
     else:
         stage = "greeting"
 
-    # If we're past greeting and LLM still says greeting, check if it's really just a greeting word
     if existing_stage and stage == "greeting" and existing_stage != "greeting":
-        stage = existing_stage  # keep previous stage — context carries forward
-    # If we're in availability and user gives contact/confirmation, stay in availability
+        stage = existing_stage
     if existing_stage in ("availability", "booking") and stage in ("greeting", "idle", "discovery"):
         stage = existing_stage
-    # If first-ever message is a greeting word, that's a proper greeting
     elif not existing_stage and is_just_greeting:
         stage = "greeting"
-    # If we're in greeting stage and message is just another greeting — stay idle
     elif existing_stage == "greeting" and is_just_greeting:
         stage = "idle"
 
@@ -65,46 +76,16 @@ def _classify_intent(state: QualificationGraphState) -> QualificationGraphState:
     return state
 
 
-def _route_by_stage(state: QualificationGraphState) -> str:
-    stage = state.get("conversation_stage", "greeting")
-    # Map to node names
-    return stage
-
-
-def _greeting_node(state: QualificationGraphState) -> QualificationGraphState:
-    return _reply_for_stage(state, "greeting")
-
-
-def _discovery_node(state: QualificationGraphState) -> QualificationGraphState:
-    return _reply_for_stage(state, "discovery")
-
-
-def _availability_node(state: QualificationGraphState) -> QualificationGraphState:
-    return _reply_for_stage(state, "availability")
-
-
-def _booking_node(state: QualificationGraphState) -> QualificationGraphState:
-    return _reply_for_stage(state, "booking")
-
-
-def _handoff_node(state: QualificationGraphState) -> QualificationGraphState:
-    return _reply_for_stage(state, "handoff")
-
-
-def _idle_node(state: QualificationGraphState) -> QualificationGraphState:
-    return _reply_for_stage(state, "idle")
-
-
-def _reply_for_stage(state: QualificationGraphState, stage: str) -> QualificationGraphState:
+def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
+    """Build prompt, call LLM with tools, execute any tool calls. Stores results in state."""
     llm = LLMService()
     latest = state.get("latest_message", "")
     recent = (state.get("recent_messages", []) or [])[-6:]
+    stage = state.get("conversation_stage", "greeting")
     hours_mentioned = state.get("hours_mentioned", False)
     services_presented = state.get("services_presented", False)
 
-    # Get salon state from tools
     salon_state = execute_tool("salon_get_context", {})
-
     state_json = salon_state
     messages_json = json.dumps(
         [{"r": m.get("role", "user"), "t": m.get("text", "")} for m in recent],
@@ -121,76 +102,129 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
         latest_json=latest_json,
     )
 
-    # Tool-calling: availability & booking must call tools; others can optionally
-    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff")
-    force_tools = stage in ("availability", "booking")
-    msgs = [{"role": "user", "content": latest_json}]
-    reply = ""
-
     # Deterministic contact check for booking stages
+    contact_missing = False
     if stage in ("availability", "booking"):
         contact = json.loads(execute_tool("salon_check_contact", {}))
         if not contact.get("ok"):
             system += "\n\nPOZOR: Stranka NIMA kontaktnih podatkov. Vljudno prosi za telefonsko ali email PREDEN rezerviraš. NE kaži terminov dokler ne dobiš kontakta. Ne kliči salon_book_appointment dokler nimaš kontakta."
+            contact_missing = True
+
+    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff")
+    force_tools = stage in ("availability", "booking")
+    msgs = [{"role": "user", "content": latest_json}]
+    tool_results = {}
+    tool_calls_list = []
 
     if needs_tools and llm.is_available():
         resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=force_tools)
         tcs = resp.get("tool_calls")
         if tcs:
-            results = {}
             for tc in tcs:
-                results[tc["id"]] = execute_tool(tc["name"], tc["args"])
-                # Capture booking details from successful tool call
+                result = execute_tool(tc["name"], tc["args"])
+                tool_results[tc["id"]] = result
+                tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
+                # If LLM actually called salon_book_appointment and it succeeded, mark as confirmed
                 if tc["name"] == "salon_book_appointment":
-                    r = json.loads(results[tc["id"]])
+                    r = json.loads(result)
                     if r.get("potrjeno"):
                         state["booking_confirmed"] = True
                         state["booking_date"] = tc["args"].get("datum", "")
                         state["booking_time"] = tc["args"].get("ura", "")
-
-            # DETERMINISTIC: If we're in availability/booking, have contact, haven't booked yet,
-            # and the user already specified a service + date + time — auto-book.
-            if stage in ("availability", "booking") and not state.get("booking_confirmed"):
-                contact_ok = json.loads(execute_tool("salon_check_contact", {}))
-                if contact_ok.get("ok"):
-                    # Try to extract service + date + time from LLM tool calls or recent messages
-                    extracted = _extract_booking_intent(latest, recent, tcs)
-                    if extracted:
-                        auto_args = {"storitev_id": extracted["service_id"], "datum": extracted["date"], "ura": extracted["time"], "ime_stranke": extracted.get("name", "Stranka")}
-                        auto_result = execute_tool("salon_book_appointment", auto_args)
-                        auto_tc_id = "auto_booking"
-                        results[auto_tc_id] = auto_result
-                        msgs.append({"role": "assistant", "content": None, "tool_calls": [
-                            {"id": auto_tc_id, "type": "function", "function": {"name": "salon_book_appointment", "arguments": json.dumps(auto_args)}}
-                        ]})
-                        msgs.append({"role": "tool", "tool_call_id": auto_tc_id, "content": auto_result})
-                        r = json.loads(auto_result)
-                        if r.get("potrjeno"):
-                            state["booking_confirmed"] = True
-                            state["booking_date"] = extracted["date"]
-                            state["booking_time"] = extracted["time"]
-                            # Use the tool's confirmation message directly — don't let LLM hallucinate over it
-                            reply = r.get("sporocilo", "")
-
-            for tc in tcs:
+            # Build message history for reply generation
+            for tc in tool_calls_list:
                 msgs.append({"role": "assistant", "content": None, "tool_calls": [
                     {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
                 ]})
-                msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": results[tc["id"]]})
-            reply = reply or llm.call_json_response(system, msgs)
-        else:
-            reply = resp.get("text", "")
+                msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
+
+    state["tool_results"] = tool_results
+    state["tool_calls"] = tool_calls_list
+    state["tool_messages"] = msgs
+    state["system_prompt"] = system
+    state["contact_missing"] = contact_missing
+    state["latest_json"] = latest_json
+    return state
+
+
+def _check_booking(state: QualificationGraphState) -> str:
+    """Conditional edge: can we auto-book right now? Returns 'auto_book' or 'generate_reply'."""
+    stage = state.get("conversation_stage", "")
+    if stage not in ("availability", "booking"):
+        return "generate_reply"
+    if state.get("booking_confirmed"):
+        return "generate_reply"  # already booked in this turn
+    if state.get("contact_missing"):
+        return "generate_reply"  # no contact, can't book
+
+    # Try to extract booking intent
+    latest = state.get("latest_message", "")
+    recent = state.get("recent_messages", []) or []
+    tcs = state.get("tool_calls", []) or []
+    extracted = _extract_booking_intent(latest, recent, tcs)
+    if extracted:
+        state["booking_extracted"] = extracted
+        return "auto_book"
+    return "generate_reply"
+
+
+def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
+    """Deterministic booking: call salon_book_appointment with extracted intent. Bypasses LLM for reply."""
+    extracted = state.get("booking_extracted", {})
+    if not extracted:
+        state["decision"] = TurnDecision(reply="", recommended_next_action="continue_conversation",
+                                          funnel_stage=state.get("conversation_stage", ""),
+                                          qualification_band="warm", qualification_score=55,
+                                          confidence_overall=0.5, used_llm=False, model_name="")
+        return state
+
+    auto_args = {
+        "storitev_id": extracted["service_id"],
+        "datum": extracted["date"],
+        "ura": extracted["time"],
+        "ime_stranke": extracted.get("name", "Stranka"),
+    }
+    result_json = execute_tool("salon_book_appointment", auto_args)
+    result = json.loads(result_json)
+
+    if result.get("potrjeno"):
+        state["booking_confirmed"] = True
+        state["booking_date"] = extracted["date"]
+        state["booking_time"] = extracted["time"]
+        reply = result.get("sporocilo", "")
+    else:
+        msgs = state.get("tool_messages", []) or []
+        msgs.append({"role": "assistant", "content": None, "tool_calls": [
+            {"id": "auto_booking", "type": "function", "function": {"name": "salon_book_appointment", "arguments": json.dumps(auto_args)}}
+        ]})
+        msgs.append({"role": "tool", "tool_call_id": "auto_booking", "content": result_json})
+        state["tool_messages"] = msgs
+        reply = ""
+
+    state["auto_book_reply"] = reply
+    return state
+
+
+def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
+    """Generate final text reply from tool results using LLM, or use already-set reply from auto_book."""
+    llm = LLMService()
+    reply = state.get("auto_book_reply", "") or ""
 
     if not reply:
-        reply = llm.call_text(system, latest_json)
+        msgs = state.get("tool_messages", []) or []
+        system = state.get("system_prompt", "")
+        latest_json = state.get("latest_json", "")
+        if msgs:
+            reply = llm.call_json_response(system, msgs)
+        if not reply:
+            reply = llm.call_text(system, latest_json)
 
-    # Unwrap JSON if the LLM returned {"rep":"..."} instead of plain text
     reply = _unwrap_reply(reply)
-
     if not reply:
         reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
 
     # Update state flags
+    stage = state.get("conversation_stage", "")
     if stage == "greeting":
         state["hours_mentioned"] = True
         state["services_presented"] = True
@@ -201,7 +235,8 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
         used_llm=bool(reply),
         model_name=llm.model_name,
     )
-    decision = TurnDecision(
+    state["interpretation"] = interpretation
+    state["decision"] = TurnDecision(
         reply=reply,
         recommended_next_action="continue_conversation",
         funnel_stage=stage,
@@ -211,27 +246,30 @@ def _reply_for_stage(state: QualificationGraphState, stage: str) -> Qualificatio
         used_llm=bool(reply),
         model_name=llm.model_name,
     )
-    state["interpretation"] = interpretation
-    state["decision"] = decision
     return state
 
 
+# ═══════════════════════════════════════════════════════════
+#  Booking intent extraction (pure function, no side effects)
+# ═══════════════════════════════════════════════════════════
+
 def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict | None:
-    """Extract booking details (service_id, date, time) from conversation context.
-    Checks LLM tool calls first, then scans message text for service keywords and time patterns."""
+    """Extract booking details (service_id, date, time, name) from conversation context."""
     import re
+    from datetime import datetime, timedelta
 
     # 1. Check tool calls for salon_check_availability/salon_book_appointment args
     for tc in (tool_calls or []):
-        if tc["name"] in ("salon_check_availability", "salon_book_appointment"):
-            args = tc["args"]
+        if tc.get("name") in ("salon_check_availability", "salon_book_appointment"):
+            args = tc.get("args", {})
             svc = args.get("storitev_id", "")
             dt = args.get("datum", "")
             tm = args.get("ura", "")
             if svc and dt and tm:
-                return {"service_id": svc, "date": dt, "time": tm, "name": args.get("ime_stranke", "Stranka")}
+                return {"service_id": svc, "date": dt, "time": tm,
+                        "name": args.get("ime_stranke", "Stranka")}
 
-    # 2. Scan recent messages for explicit booking details
+    # 2. Scan messages for explicit booking details
     all_text = latest
     for m in (recent or [])[-3:]:
         all_text += " . " + (m.get("text", "") or "")
@@ -245,14 +283,12 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
         service_id = "maska-obraza"
     elif "čiščenje" in all_lower or "ciscenje" in all_lower or "čiščenja" in all_lower:
         service_id = "ciscenje-obraza"
-
     if not service_id:
         return None
 
-    # Date detection: "jutri", "danes", "pojutrišnjem", explicit YYYY-MM-DD
-    date = None
-    from datetime import datetime, timedelta
+    # Date detection
     today = datetime.now()
+    date = None
     if "jutri" in all_lower:
         date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
     elif "danes" in all_lower:
@@ -263,44 +299,34 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
         m = re.search(r'\b(20\d{2}-\d{2}-\d{2})\b', all_text)
         if m:
             date = m.group(1)
-
-    if not date:
-        # Check if LLM already specified a date in tool args
-        if tool_calls:
-            for tc in tool_calls:
-                d = (tc.get("args") or {}).get("datum", "")
-                if d:
-                    date = d
-                    break
-
+    if not date and tool_calls:
+        for tc in tool_calls:
+            d = (tc.get("args") or {}).get("datum", "")
+            if d:
+                date = d
+                break
     if not date:
         return None
 
-    # Time detection: "ob 11:00", "9:30", "ob 11ih", "ob 11h", "ob 10"
+    # Time detection
     time = None
-    # HH:MM or HH.MM
     tm = re.search(r'\b(\d{1,2})[:.](\d{2})\b', all_text)
     if tm:
         time = f"{int(tm.group(1)):02d}:{tm.group(2)}"
     else:
-        # Slovenian: "ob 11ih", "ob 11h", "ob 3h", "ob 10"
         tm2 = re.search(r'\bob\s+(\d{1,2})\s*(ih|h)?\b', all_lower)
         if tm2:
             time = f"{int(tm2.group(1)):02d}:00"
-    
-    if not time:
-        # Check tool call args
-        if tool_calls:
-            for tc in tool_calls:
-                t = (tc.get("args") or {}).get("ura", "")
-                if t:
-                    time = t
-                    break
-
+    if not time and tool_calls:
+        for tc in tool_calls:
+            t = (tc.get("args") or {}).get("ura", "")
+            if t:
+                time = t
+                break
     if not time:
         return None
 
-    # Name extraction: "ime mi je X", "sem X", "moje ime je X", "kličem se X"
+    # Name extraction
     name = "Stranka"
     name_patterns = [
         r'(?:ime\s+(?:mi\s+)?je\s+|moje\s+ime\s+je\s+|kličem\s+se\s+|pišem\s+se\s+|sem\s+)([A-ZČŠŽ][a-zčšž]+(?:\s+[A-ZČŠŽ][a-zčšž]+)?)',
@@ -315,24 +341,11 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
     return {"service_id": service_id, "date": date, "time": time, "name": name}
 
 
-def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
-    state["runtime_context"] = build_runtime_context(state["qualifier"])
-    return state
-
-
-def _retrieve_knowledge(state: QualificationGraphState) -> QualificationGraphState:
-    state["retrieved_knowledge"] = retrieve_knowledge(
-        state.get("runtime_context", {}) or {},
-        state.get("recent_messages", []) or [],
-        limit=3,
-    )
-    return state
-
-
-# ── Entry point ──
+# ═══════════════════════════════════════════════════════════
+#  Helpers
+# ═══════════════════════════════════════════════════════════
 
 def _unwrap_reply(text: str) -> str:
-    """If LLM returned JSON {"rep":"..."}, extract just the reply text."""
     if not text:
         return ""
     text = text.strip()
@@ -345,6 +358,10 @@ def _unwrap_reply(text: str) -> str:
     return text
 
 
+# ═══════════════════════════════════════════════════════════
+#  Entry point — build and run the graph
+# ═══════════════════════════════════════════════════════════
+
 def run_qualification_graph(
     *,
     llm: LLMService,
@@ -354,7 +371,6 @@ def run_qualification_graph(
     profile_before: Dict[str, Any],
     spatial_context: Optional[Dict[str, Any]] = None,
 ) -> QualificationGraphState:
-    # Carry forward conversation state from profile
     state: QualificationGraphState = {
         "qualifier": qualifier,
         "latest_message": latest_message,
@@ -370,46 +386,12 @@ def run_qualification_graph(
         "booking_confirmed": False,
     }
 
-    if StateGraph is None:
-        state = _load_runtime_context(state)
-        state = _classify_intent(state)
-        stage = state.get("conversation_stage", "greeting")
-        return _reply_for_stage(state, stage)
-
-    graph = StateGraph(QualificationGraphState)
-
-    # Nodes
-    graph.add_node("load_runtime_context", _load_runtime_context)
-    graph.add_node("retrieve_knowledge", _retrieve_knowledge)
-    graph.add_node("classify_intent", _classify_intent)
-    graph.add_node("greeting", _greeting_node)
-    graph.add_node("discovery", _discovery_node)
-    graph.add_node("availability", _availability_node)
-    graph.add_node("booking", _booking_node)
-    graph.add_node("handoff", _handoff_node)
-    graph.add_node("idle", _idle_node)
-
-    # Edges
-    graph.set_entry_point("load_runtime_context")
-    graph.add_edge("load_runtime_context", "retrieve_knowledge")
-    graph.add_edge("retrieve_knowledge", "classify_intent")
-
-    # Conditional routing from classify to stage-specific node
-    graph.add_conditional_edges(
-        "classify_intent",
-        _route_by_stage,
-        {
-            "greeting": "greeting",
-            "discovery": "discovery",
-            "availability": "availability",
-            "booking": "booking",
-            "handoff": "handoff",
-            "idle": "idle",
-        },
-    )
-
-    # All stage nodes go to END
-    for stage_node in ("greeting", "discovery", "availability", "booking", "handoff", "idle"):
-        graph.add_edge(stage_node, END)
-
-    return graph.compile().invoke(state)
+    # Use sequential pipeline — battle-tested, no serialization issues
+    state = _load_runtime_context(state)
+    state = _retrieve_knowledge(state)
+    state = _classify_intent(state)
+    state = _call_tools(state)
+    if _check_booking(state) == "auto_book":
+        state = _auto_book(state)
+    state = _generate_reply(state)
+    return state

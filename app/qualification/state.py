@@ -63,6 +63,16 @@ class QualificationGraphState(TypedDict, total=False):
     booking_time: str             # time customer selected
     booking_confirmed: bool       # was a booking confirmed this turn?
 
+    # ── Internal graph state (added by call_tools / auto_book nodes) ──
+    tool_results: Dict[str, str]
+    tool_calls: List[Dict[str, Any]]
+    tool_messages: List[Dict[str, Any]]
+    system_prompt: str
+    contact_missing: bool
+    latest_json: str
+    booking_extracted: Optional[Dict[str, str]]
+    auto_book_reply: str          # set by auto_book node for generate_reply
+
     # ── Existing pipeline fields ──
     runtime_context: Dict[str, Any]
     retrieved_knowledge: List[str]
