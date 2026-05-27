@@ -50,13 +50,26 @@ def _get_booked_slots(date_str: str) -> set:
         from sqlalchemy import text
         with SessionLocal() as db:
             result = db.execute(
-                text("SELECT booking_time FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled'"),
+                text("SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled'"),
                 {"oid": _db_ctx["org_id"], "d": date_str}
             )
-            return {row[0] for row in result.all()}
+            return {(row[0], row[1]) for row in result.all()}
     except Exception as e:
         logger.warning(f"Failed to query bookings: {e}")
         return set()
+
+def _slot_overlaps(slot_time: str, slot_duration: int, bookings: set) -> bool:
+    """Check if a proposed slot [time, time+duration) overlaps any existing booking."""
+    slot_h, slot_m = map(int, slot_time.split(":"))
+    slot_start = slot_h * 60 + slot_m
+    slot_end = slot_start + slot_duration
+    for bk_time, bk_dur in bookings:
+        bh, bm = map(int, bk_time.split(":"))
+        bk_start = bh * 60 + bm
+        bk_end = bk_start + bk_dur
+        if slot_start < bk_end and slot_end > bk_start:
+            return True
+    return False
 
 def _free_slots(date_str: str, service_duration_min: int = 45) -> list[dict]:
     """Generate available time slots for a given date."""
@@ -66,12 +79,12 @@ def _free_slots(date_str: str, service_duration_min: int = 45) -> list[dict]:
         return []
     if date.weekday() >= 5:
         return []
-    booked = _get_booked_slots(date_str)
+    bookings = _get_booked_slots(date_str)
     slots = []
     for h in range(OPEN_HOUR, CLOSE_HOUR):
         for m in range(0, 60, service_duration_min):
             t = f"{h:02d}:{m:02d}"
-            if t != "12:00" and t not in booked:
+            if t != "12:00" and not _slot_overlaps(t, service_duration_min, bookings):
                 slots.append({"time": t, "available": True})
     return slots
 
@@ -165,13 +178,13 @@ def execute_tool(name: str, args: dict) -> str:
             if not service:
                 return json.dumps({"napaka": f"Neznana storitev: {storitev_id}"}, ensure_ascii=False)
 
-            # Check slot is free
-            booked = _get_booked_slots(datum)
-            if ura in booked:
+            # Check slot is free (overlap-aware, not just exact match)
+            bookings = _get_booked_slots(datum)
+            if _slot_overlaps(ura, service["duration_min"], bookings):
                 free = [s["time"] for s in _free_slots(datum, service["duration_min"])[:6]]
                 return json.dumps({"napaka": f"Termin {datum} ob {ura} je žal že zaseden. Prosti termini: {free}"}, ensure_ascii=False)
 
-            # Validate slot exists
+            # Validate slot exists in the schedule
             slots = _free_slots(datum, service["duration_min"])
             if not any(s["time"] == ura for s in slots):
                 free = [s["time"] for s in slots[:5]]

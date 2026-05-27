@@ -296,7 +296,19 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
     if not time:
         return None
 
-    return {"service_id": service_id, "date": date, "time": time, "name": "Stranka"}
+    # Name extraction: "ime mi je X", "sem X", "moje ime je X", "kličem se X"
+    name = "Stranka"
+    name_patterns = [
+        r'(?:ime\s+(?:mi\s+)?je\s+|moje\s+ime\s+je\s+|kličem\s+se\s+|pišem\s+se\s+|sem\s+)([A-ZČŠŽ][a-zčšž]+(?:\s+[A-ZČŠŽ][a-zčšž]+)?)',
+        r'(?:jaz\s+sem\s+)([A-ZČŠŽ][a-zčšž]+(?:\s+[A-ZČŠŽ][a-zčšž]+)?)',
+    ]
+    for pat in name_patterns:
+        m = re.search(pat, all_text)
+        if m:
+            name = m.group(1).strip()
+            break
+
+    return {"service_id": service_id, "date": date, "time": time, "name": name}
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:
