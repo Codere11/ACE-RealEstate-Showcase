@@ -9,14 +9,14 @@
   <nav class="tabs">
     <a [class.active]="activeTab==='leads'" (click)="activeTab='leads'">KONVERZACIJE</a>
     <a [class.active]="activeTab==='receptor'" (click)="activeTab='receptor'">AI RECEPTOR</a>
-    <a [class.active]="activeTab==='rezervacije'" (click)="activeTab='rezervacije'">REZERVACIJE</a>
+    <a [class.active]="activeTab==='rezervacije'" (click)="activeTab='rezervacije'">REZERVACIJE @if (bookings().length) { <span style="background:#22c55e;color:#000;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px;">{{ bookings().length }}</span> }</a>
   </nav>
   <div class="right"><div class="user-pill">Dashboard</div></div>
 </div>
 
 <div class="dashboard-background">
   <div class="dashboard-container">
-    <h1 class="title">ACE Reception Services</h1>
+    <h1 class="title">ACE Reception Services — {{ slug() }}</h1>
     <p class="subtitle">{{ slug() }} · AI Receptor aktiviran</p>
 
     <div class="hero-strip">
