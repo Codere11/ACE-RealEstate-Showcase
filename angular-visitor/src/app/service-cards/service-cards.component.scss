@@ -31,9 +31,7 @@
     box-shadow: 0 4px 18px rgba(124, 58, 237, 0.16);
 
     .service-addons {
-      opacity: 1;
-      max-height: 80px;
-      padding: 0.5rem 1rem 0.6rem;
+      display: flex;
     }
   }
 }
@@ -81,14 +79,10 @@
 }
 
 .service-addons {
-  opacity: 0;
-  max-height: 0;
-  padding: 0 1rem;
-  overflow: hidden;
-  transition: opacity 0.2s, max-height 0.25s, padding 0.25s;
+  display: none;
+  padding: 0.5rem 1rem 0.6rem;
   background: #faf5ff;
   border-top: 1px solid #ede9fe;
-  display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 
