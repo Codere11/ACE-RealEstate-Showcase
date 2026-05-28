@@ -303,7 +303,17 @@
                               @for (s of allServices; track s.id) { <option [value]="s.id">{{ s.name }}</option> }
                             </select>
                           } @else {
-                            <span class="booking-service editable" (click)="startEditField(booking, 'service', $event); editValue = booking.serviceId">{{ booking.serviceName }} · {{ booking.durationMin }} min · {{ booking.priceEur }}€</span>
+                            <span class="booking-service editable" (click)="startEditField(booking, 'service', $event); editValue = booking.serviceId">
+                              {{ booking.serviceName }}{{ booking.addons && booking.addons.length ? ' + dodatki' : '' }} · {{ booking.durationMin }} min · {{ booking.priceEur }}€
+                            </span>
+                          }
+                          <!-- Addons -->
+                          @if (booking.addons && booking.addons.length) {
+                            <div class="booking-addons">
+                              @for (a of booking.addons; track a.id) {
+                                <span class="addon-line">{{ a.name }} +{{ a.price_eur }}€</span>
+                              }
+                            </div>
                           }
                           <!-- Phone -->
                           @if (editField?.bookingId === booking.id && editField?.field === 'phone') {

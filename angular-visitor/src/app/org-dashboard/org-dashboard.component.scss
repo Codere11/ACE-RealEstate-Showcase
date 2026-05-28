@@ -128,6 +128,8 @@ a { color:inherit; }
 .booking-dot { font-size:14px; }
 .booking-service { font-size:13px; color:#6B7280; }
 .booking-phone { font-size:12px; color:#9CA3AF; }
+.booking-addons { display:flex; flex-direction:column; gap:2px; margin-top:2px; }
+.addon-line { font-size:11px; color:#7c3aed; font-weight:500; }
 .inline-edit { font:inherit; font-size:13px; border:1px solid #C1A46C; border-radius:8px; padding:4px 8px; background:#FFFEF9; width:100%; box-sizing:border-box; outline:none; }
 select.inline-edit { width:100%; }
 .editable { cursor:text; border-radius:4px; padding:2px 4px; margin:-2px -4px; transition:background .12s; }

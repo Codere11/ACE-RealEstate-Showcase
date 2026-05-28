@@ -343,7 +343,7 @@ async def list_bookings(org_id: int, date_from: Optional[str] = None, date_to: O
              "bookingDate": b.booking_date, "bookingTime": b.booking_time,
              "customerName": b.customer_name, "customerPhone": b.customer_phone,
              "customerEmail": b.customer_email, "status": b.status, "notes": b.notes,
-             "leadId": b.lead_id} for b in bookings]
+             "addons": b.addons or [], "leadId": b.lead_id} for b in bookings]
 
 @router.post("/api/organizations/{org_id}/bookings")
 async def create_booking(org_id: int, req: CreateBookingRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
