@@ -2,7 +2,7 @@
   <h2 class="section-title">Naše storitve</h2>
   <div class="service-grid">
     @for (svc of salon.services; track svc.id) {
-      <div class="service-card">
+      <div class="service-card" (mouseenter)="scrollIntoView($event)">
         <div class="service-image">
           <div class="image-placeholder">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.5">
