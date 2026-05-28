@@ -349,9 +349,9 @@ async def list_bookings(org_id: int, date_from: Optional[str] = None, date_to: O
 async def create_booking(org_id: int, req: CreateBookingRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await check_org_access(user, org_id)
     svc = next((s for s in [
-        {"id": "nega-obraza", "name": "Nega obraza", "dur": 45, "price": 35},
-        {"id": "maska-obraza", "name": "Maska obraza", "dur": 30, "price": 25},
-        {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "dur": 60, "price": 50}
+        {"id": "nega-obraza", "name": "Nega obraza", "dur": 45, "price": 45},
+        {"id": "maska-obraza", "name": "Maska obraza", "dur": 30, "price": 30},
+        {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "dur": 60, "price": 60}
     ] if s["id"] == req.service_id), None)
     if not svc: raise HTTPException(400, f"Unknown service: {req.service_id}")
     # Conflict check: overlap-aware, not just exact time

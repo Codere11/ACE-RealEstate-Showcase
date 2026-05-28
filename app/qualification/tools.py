@@ -10,11 +10,11 @@ logger = logging.getLogger("ace.tools")
 # ── Salon data ──
 
 SERVICES = [
-    {"id": "nega-obraza", "name": "Nega obraza", "duration_min": 45, "price_eur": 35,
+    {"id": "nega-obraza", "name": "Nega obraza", "duration_min": 45, "price_eur": 45,
      "description": "Globinsko čiščenje, vlaženje in masaža obraza. Idealno za vse tipe kože."},
-    {"id": "maska-obraza", "name": "Maska obraza", "duration_min": 30, "price_eur": 25,
+    {"id": "maska-obraza", "name": "Maska obraza", "duration_min": 30, "price_eur": 30,
      "description": "Hitra osvežitev z vrhunsko masko po izboru. Super pred dogodkom."},
-    {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "duration_min": 60, "price_eur": 50,
+    {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "duration_min": 60, "price_eur": 60,
      "description": "Temeljito ročno čiščenje, piling in pomirjevalna maska. Naš najbolj priljubljen tretma."},
 ]
 
