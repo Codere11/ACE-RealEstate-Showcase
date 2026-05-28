@@ -287,6 +287,7 @@ def execute_tool(name: str, args: dict) -> str:
 
             return json.dumps({
                 "potrjeno": True,
+                "id": booking_id,
                 "storitev": service["name"], "trajanje_min": service["duration_min"],
                 "cena_eur": service["price_eur"], "datum": datum, "ura": ura,
                 "sporocilo": f"Vaš termin je potrjen! {service['name']} v {service['duration_min']} min, {service['price_eur']} €. Lepo vabljeni! 💆‍♀️",

@@ -299,6 +299,19 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         state["booking_date"] = extracted["date"]
         state["booking_time"] = extracted["time"]
         reply = result.get("sporocilo", "")
+        # Attach add-ons that were explicitly requested
+        requested = extracted.get("addons", [])
+        if requested:
+            booking_id = result.get("id")
+            if booking_id:
+                added = []
+                for a in requested:
+                    r = json.loads(execute_tool("salon_add_addon", {"booking_id": booking_id, "addon_id": a["id"]}))
+                    if r.get("dodano"):
+                        added.append(a["name"])
+                if added:
+                    total_price = result.get("cena_eur", 0) + sum(a["price_eur"] for a in requested if a["name"] in added)
+                    reply = f"Vaš termin je potrjen! {extracted.get('service_id','')} s/z {', '.join(added)} — skupaj {total_price}€. Lepo vabljeni! 💆‍♀️"
     else:
         msgs = state.get("tool_messages", []) or []
         msgs.append({"role": "assistant", "content": None, "tool_calls": [
@@ -376,8 +389,27 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
             tm = args.get("ura", "")
             name = args.get("ime_stranke", "Stranka")
             if svc and dt and tm:
-                return {"service_id": svc, "date": dt, "time": tm, "name": name}
+                # Also extract explicitly requested add-ons from the conversation
+                requested_addons = _extract_addon_ids(latest, recent, svc)
+                return {"service_id": svc, "date": dt, "time": tm, "name": name, "addons": requested_addons}
     return None
+
+
+def _extract_addon_ids(latest: str, recent: list, service_id: str) -> list:
+    """Check if the user explicitly requested add-ons. Returns list of valid addon IDs."""
+    from app.qualification.tools import ADDONS
+    all_text = (latest or "").lower()
+    for m in (recent or [])[-2:]:
+        all_text += " " + (m.get("text", "") or "").lower()
+    available = ADDONS.get(service_id, [])
+    requested = []
+    for a in available:
+        name_lower = a["name"].lower()
+        # Check if any part of the addon name appears in the text
+        parts = name_lower.split()
+        if any(p in all_text for p in parts if len(p) > 3):
+            requested.append({"id": a["id"], "name": a["name"], "price_eur": a["price_eur"]})
+    return requested
 
 
 # ═══════════════════════════════════════════════════════════
