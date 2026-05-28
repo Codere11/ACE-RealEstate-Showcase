@@ -43,6 +43,7 @@ ConversationStage = Literal[
     "availability",
     "booking",
     "addon",         # user wants to add an add-on to existing booking
+    "cancel",        # user wants to cancel a booking
     "handoff",
     "idle",
 ]

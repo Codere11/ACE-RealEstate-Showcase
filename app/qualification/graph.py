@@ -110,8 +110,8 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
             system += "\n\nPOZOR: Stranka NIMA kontaktnih podatkov. Vljudno prosi za telefonsko ali email PREDEN rezerviraš. NE kaži terminov dokler ne dobiš kontakta. Ne kliči salon_book_appointment dokler nimaš kontakta."
             contact_missing = True
 
-    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff", "addon")
-    force_tools = stage in ("availability", "booking", "addon")
+    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff", "addon", "cancel")
+    force_tools = stage in ("availability", "booking", "addon", "cancel")
     msgs = [{"role": "user", "content": latest_json}]
     tool_results = {}
     tool_calls_list = []

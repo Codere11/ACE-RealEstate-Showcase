@@ -180,6 +180,13 @@ SALON_TOOLS = [
             "addon_id": {"type": "string", "description": "ID dopolnitve (npr. 'kolagenska-maska')"},
         }, "required": ["booking_id", "addon_id"]},
     }},
+    {"type": "function", "function": {
+        "name": "salon_cancel_booking",
+        "description": "Prekliči obstoječo rezervacijo po ID-ju.",
+        "parameters": {"type": "object", "properties": {
+            "booking_id": {"type": "integer", "description": "ID rezervacije za preklic"},
+        }, "required": ["booking_id"]},
+    }},
 ]
 
 def execute_tool(name: str, args: dict) -> str:
@@ -347,6 +354,29 @@ def execute_tool(name: str, args: dict) -> str:
                 }, ensure_ascii=False)
             except Exception as e:
                 logger.warning(f"Failed to add addon: {e}")
+                return json.dumps({"napaka": str(e)[:200]}, ensure_ascii=False)
+
+        if name == "salon_cancel_booking":
+            booking_id = args.get("booking_id")
+            if not _db_ctx:
+                return json.dumps({"napaka": "DB ni na voljo"}, ensure_ascii=False)
+            try:
+                from app.core.db import SessionLocal
+                from sqlalchemy import text
+                with SessionLocal() as db:
+                    booking = db.execute(text(
+                        "SELECT id, service_name, booking_date, booking_time FROM bookings WHERE id = :bid AND organization_id = :oid AND status != 'cancelled'"
+                    ), {"bid": booking_id, "oid": _db_ctx["org_id"]}).fetchone()
+                    if not booking:
+                        return json.dumps({"napaka": "Rezervacija ne obstaja ali je že preklicana"}, ensure_ascii=False)
+                    db.execute(text("UPDATE bookings SET status = 'cancelled' WHERE id = :bid"), {"bid": booking_id})
+                    db.commit()
+                return json.dumps({
+                    "preklicano": True,
+                    "sporocilo": f"Rezervacija za {booking[1]} dne {booking[2]} ob {booking[3]} je preklicana.",
+                }, ensure_ascii=False)
+            except Exception as e:
+                logger.warning(f"Failed to cancel booking: {e}")
                 return json.dumps({"napaka": str(e)[:200]}, ensure_ascii=False)
 
         return json.dumps({"napaka": f"Neznano orodje: {name}"}, ensure_ascii=False)
