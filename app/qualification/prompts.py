@@ -31,7 +31,7 @@ CLASSIFY_PROMPT = """Glede na zadnje sporočilo stranke in zgodovino pogovora, d
 
 Vrni JSON:
 {
-  "stage": "greeting|discovery|availability|booking|handoff|idle"
+  "stage": "greeting|discovery|availability|booking|addon|handoff|idle"
 }
 
 Pravila:
@@ -39,6 +39,7 @@ Pravila:
 - "discovery": stranka sprašuje o storitvah, cenah, primerjavah, išče informacije
 - "availability": stranka želi rezervirati, sprašuje o terminih
 - "booking": stranka je izbrala točen termin — potrdi
+- "addon": stranka želi dodati dopolnitev k ŽE OBSTOJEČI rezervaciji ("dodaj", "pa še", "zraven", "ocesni tretma")
 - "handoff": stranka želi govoriti z osebjem (človekom)
 - "idle": stranka samo klepeta, se zahvaljuje, pozdravlja sredi pogovora — ne potrebuje ničesar konkretnega
 """
@@ -100,6 +101,19 @@ Bodi topel in kratek. 1 stavek.
 Ne ponujaj ničesar — samo bodi prijazen."""
 
 
+ADDON_PROMPT = """Stranka želi dodati dopolnitev k obstoječi rezervaciji.
+
+MORAŠ narediti točno to:
+1. Pokliči salon_list_addons za storitev, ki jo je stranka rezervirala.
+2. Če stranka ve katero dopolnitev želi — pokliči salon_add_addon s pravilnim booking_id.
+3. Če stranka ni specifična — na kratko opiši 1-2 najbolj primerni dopolnitvi.
+
+POZOR: Dopolnitev se doda k OBSTOJEČI rezervaciji. Ne rezerviraj novega termina.
+POZOR: Uporabljaj samo dopolnitve, ki jih vrne salon_list_addons.
+
+Bodi kratek, jasen. 2-3 stavke."""
+
+
 # ── Prompt builders ──
 
 def build_classify_prompt(latest_message: str, recent_messages: List[Dict[str, str]]) -> str:
@@ -135,6 +149,8 @@ def build_node_prompt(
         task = BOOKING_PROMPT
     elif node_type == "handoff":
         task = HANDOFF_PROMPT
+    elif node_type == "addon":
+        task = ADDON_PROMPT
     else:
         task = IDLE_PROMPT
 

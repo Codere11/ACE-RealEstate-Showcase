@@ -110,8 +110,8 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
             system += "\n\nPOZOR: Stranka NIMA kontaktnih podatkov. Vljudno prosi za telefonsko ali email PREDEN rezerviraš. NE kaži terminov dokler ne dobiš kontakta. Ne kliči salon_book_appointment dokler nimaš kontakta."
             contact_missing = True
 
-    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff")
-    force_tools = stage in ("availability", "booking")
+    needs_tools = stage in ("greeting", "discovery", "availability", "booking", "handoff", "addon")
+    force_tools = stage in ("availability", "booking", "addon")
     msgs = [{"role": "user", "content": latest_json}]
     tool_results = {}
     tool_calls_list = []
@@ -235,27 +235,36 @@ def _capture_contact(state: QualificationGraphState) -> QualificationGraphState:
 
 
 def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
-    """LangGraph node: after booking confirmed, LLM softly suggests relevant add-ons.
-    Only fires when a booking was just confirmed and add-ons haven't been suggested yet."""
+    """LangGraph node: after booking confirmed, LLM softly suggests ONE add-on from the real list."""
     if not state.get("booking_confirmed"):
         return state
-    # Don't suggest if auto_book_reply is already set (would override the confirmation)
     if state.get("auto_book_reply"):
         return state
 
+    # Get the service that was just booked from the booking_extracted data
+    extracted = state.get("booking_extracted", {})
+    service_id = extracted.get("service_id", "") if extracted else ""
+    if not service_id:
+        return state
+
     llm = LLMService()
-    service_id = state.get("service_interest", "") or ""
-    addons_json = execute_tool("salon_list_addons", {"storitev_id": service_id}) if service_id else "{}"
+    addons_json = execute_tool("salon_list_addons", {"storitev_id": service_id})
+    addons = json.loads(addons_json).get("dopolnitve", [])
+    if not addons:
+        return state
+
+    # Build a clean list for the LLM — only real add-ons, nothing hallucinated
+    addon_list = ", ".join(f"{a['name']} (+{a['price_eur']}€)" for a in addons)
 
     system = (
         f"Ti si AI Receptor za kozmetični salon. Govoriš naravno slovenščino. "
-        f"STROGO uporabljaš vikanje (vi, vas, vaš). NIKOLI tikanja.\n\n"
-        f"Stranka je pravkar uspešno rezervirala termin. "
-        f"Glede na izbrano storitev so na voljo te dopolnitve: {addons_json}\n\n"
-        f"Če se ti zdi primerno (stranka je zainteresirana, dopolnitev se smiselno poda k storitvi), "
-        f"lahko predlagaš ENO dopolnitev. Bodi zelo nežen — samo en stavek, kot 'Bi želeli dodati še X za Y€?' "
-        f"Če se ti ne zdi primerno (stranka se mudi, je kratka, ni zainteresirana), "
-        f"vrni prazen odgovor. NE vsiljuj. NE predlagaj če ni primerno.\n\n"
+        f"STROGO uporabljaš vikanje (vi, vas, vaš).\n\n"
+        f"Stranka je pravkar rezervirala: {extracted.get('service_id', '')}. "
+        f"Edine dopolnitve, ki so na voljo: {addon_list}. "
+        f"NE izmišljaj si drugih dopolnitev — uporabi SAMO te.\n\n"
+        f"Če se ti zdi primerno, predlagaj ENO od teh dopolnitev. "
+        f"Bodi nežen — en stavek, npr. 'Bi želeli dodati še X za Y€?' "
+        f"Če ni primerno, vrni prazen odgovor. NE vsiljuj.\n\n"
         f"Vrni SAMO predlog ali prazen niz. 0-1 stavek."
     )
 

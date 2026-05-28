@@ -38,12 +38,13 @@ class TurnDecision:
 
 # ── Conversation stages for routing ──
 ConversationStage = Literal[
-    "greeting",        # first contact — greet, mention hours, briefly offer help
-    "discovery",       # customer exploring — answer questions, describe services
-    "availability",    # customer wants to book — show available slots
-    "booking",         # customer selected slot — confirm
-    "handoff",         # customer wants human staff — connect
-    "idle",            # customer just chatting — be warm, brief
+    "greeting",
+    "discovery",
+    "availability",
+    "booking",
+    "addon",         # user wants to add an add-on to existing booking
+    "handoff",
+    "idle",
 ]
 
 
