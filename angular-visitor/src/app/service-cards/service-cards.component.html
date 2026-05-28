@@ -18,6 +18,14 @@
             <span class="price">{{ svc.priceEur }} €</span>
           </div>
         </div>
+        @if (svc.addons && svc.addons.length) {
+          <div class="service-addons">
+            <span class="addons-label">+ možne dopolnitve</span>
+            @for (a of svc.addons; track a.name) {
+              <span class="addon-item">{{ a.name }} +{{ a.priceEur }}€</span>
+            }
+          </div>
+        }
       </div>
     }
   </div>

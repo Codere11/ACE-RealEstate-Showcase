@@ -24,10 +24,16 @@
   box-shadow: 0 2px 12px rgba(124, 58, 237, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  position: relative;
 
   &:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 24px rgba(124, 58, 237, 0.18);
+
+    .service-addons {
+      opacity: 1;
+      max-height: 120px;
+    }
   }
 }
 
@@ -88,6 +94,34 @@
 
   &:hover {
     opacity: 0.9;
+  }
+}
+
+.service-addons {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.25s, max-height 0.3s;
+  padding: 0 1.15rem;
+  background: #faf5ff;
+  border-top: 1px solid #ede9fe;
+
+  .addons-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #a78bfa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 0 0.35rem;
+  }
+
+  .addon-item {
+    display: block;
+    font-size: 0.8rem;
+    color: #5b21b6;
+    padding: 0.2rem 0;
+    font-weight: 500;
   }
 }
 

@@ -69,6 +69,6 @@ Possible Step 0 things first:
 
 ## Step 0
 
-1) Remove rezerviraj buttons from the cards in the site-visitor page
+1) Remove rezerviraj buttons from the cards in the site-visitor page ✅
 2) Hovering over the card, it shows possible additions
 3) Empower Booking through LLM/etc., so additions can be added to the booking, the LLM SOFTLY nudges upsells, when deemed appropriate.

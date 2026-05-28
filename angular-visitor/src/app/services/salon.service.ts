@@ -191,9 +191,12 @@ export class SalonService implements OnDestroy {
   readonly selectedDate = signal<string|null>(null);
   readonly selectedSlot = signal<string|null>(null);
   services = [
-    {id:'nega-obraza',name:'Nega obraza',durationMin:45,priceEur:35,imageUrl:''},
-    {id:'maska-obraza',name:'Maska obraza',durationMin:30,priceEur:25,imageUrl:''},
-    {id:'ciscenje-obraza',name:'Čiščenje obraza',durationMin:60,priceEur:50,imageUrl:''},
+    {id:'nega-obraza',name:'Nega obraza',durationMin:45,priceEur:35,imageUrl:'',
+     addons:[{name:'Kolagenska maska',priceEur:15},{name:'Limfna drenaža',priceEur:20},{name:'LED terapija',priceEur:10}]},
+    {id:'maska-obraza',name:'Maska obraza',durationMin:30,priceEur:25,imageUrl:'',
+     addons:[{name:'Hialuronski serum',priceEur:12},{name:'Pomirjevalna krema',priceEur:8},{name:'Očesni tretma',priceEur:15}]},
+    {id:'ciscenje-obraza',name:'Čiščenje obraza',durationMin:60,priceEur:50,imageUrl:'',
+     addons:[{name:'Encimski piling',priceEur:18},{name:'LED terapija',priceEur:10},{name:'Kolagenska maska',priceEur:15}]},
   ];
   addMessage(m: ChatMessage) { this.addMsg(m.role, m.text, m.actions); }
   addMessageObj(m: {role: string, text: string, actions?: ChatAction[]}) { this.addMsg(m.role as ChatMessage['role'], m.text, m.actions); }
