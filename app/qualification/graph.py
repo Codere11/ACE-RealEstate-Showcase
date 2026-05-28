@@ -234,6 +234,38 @@ def _capture_contact(state: QualificationGraphState) -> QualificationGraphState:
     return state
 
 
+def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
+    """LangGraph node: after booking confirmed, LLM softly suggests relevant add-ons.
+    Only fires when a booking was just confirmed and add-ons haven't been suggested yet."""
+    if not state.get("booking_confirmed"):
+        return state
+    # Don't suggest if auto_book_reply is already set (would override the confirmation)
+    if state.get("auto_book_reply"):
+        return state
+
+    llm = LLMService()
+    service_id = state.get("service_interest", "") or ""
+    addons_json = execute_tool("salon_list_addons", {"storitev_id": service_id}) if service_id else "{}"
+
+    system = (
+        f"Ti si AI Receptor za kozmetični salon. Govoriš naravno slovenščino. "
+        f"STROGO uporabljaš vikanje (vi, vas, vaš). NIKOLI tikanja.\n\n"
+        f"Stranka je pravkar uspešno rezervirala termin. "
+        f"Glede na izbrano storitev so na voljo te dopolnitve: {addons_json}\n\n"
+        f"Če se ti zdi primerno (stranka je zainteresirana, dopolnitev se smiselno poda k storitvi), "
+        f"lahko predlagaš ENO dopolnitev. Bodi zelo nežen — samo en stavek, kot 'Bi želeli dodati še X za Y€?' "
+        f"Če se ti ne zdi primerno (stranka se mudi, je kratka, ni zainteresirana), "
+        f"vrni prazen odgovor. NE vsiljuj. NE predlagaj če ni primerno.\n\n"
+        f"Vrni SAMO predlog ali prazen niz. 0-1 stavek."
+    )
+
+    reply = llm.call_text(system, json.dumps(state.get("latest_message", ""), ensure_ascii=False))
+    reply = (reply or "").strip()
+    if reply and len(reply) > 3:
+        state["addon_suggestion"] = reply
+    return state
+
+
 def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
     """Deterministic booking: call salon_book_appointment with extracted intent. Bypasses LLM for reply."""
     extracted = state.get("booking_extracted", {})
@@ -288,6 +320,11 @@ def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
     reply = _unwrap_reply(reply)
     if not reply:
         reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+
+    # Append add-on suggestion if available
+    suggestion = state.get("addon_suggestion", "")
+    if suggestion and suggestion not in reply:
+        reply = reply.rstrip() + "\n\n" + suggestion
 
     # Update state flags
     stage = state.get("conversation_stage", "")
@@ -389,5 +426,6 @@ def run_qualification_graph(
         state = _auto_book(state)
     elif route == "capture_contact":
         state = _capture_contact(state)
+    state = _suggest_addons(state)
     state = _generate_reply(state)
     return state

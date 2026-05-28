@@ -21,6 +21,25 @@ SERVICES = [
 OPEN_HOUR = 9
 CLOSE_HOUR = 18
 
+# ── Add-ons per service ──
+ADDONS = {
+    "nega-obraza": [
+        {"id": "kolagenska-maska", "name": "Kolagenska maska", "price_eur": 15},
+        {"id": "limfna-drenaza", "name": "Limfna drenaža", "price_eur": 20},
+        {"id": "led-terapija", "name": "LED terapija", "price_eur": 10},
+    ],
+    "maska-obraza": [
+        {"id": "hialuronski-serum", "name": "Hialuronski serum", "price_eur": 12},
+        {"id": "pomirjevalna-krema", "name": "Pomirjevalna krema", "price_eur": 8},
+        {"id": "ocesni-tretma", "name": "Očesni tretma", "price_eur": 15},
+    ],
+    "ciscenje-obraza": [
+        {"id": "encimski-piling", "name": "Encimski piling", "price_eur": 18},
+        {"id": "led-terapija", "name": "LED terapija", "price_eur": 10},
+        {"id": "kolagenska-maska", "name": "Kolagenska maska", "price_eur": 15},
+    ],
+}
+
 # ── DB context (set by backend before graph runs) ──
 _db_ctx: Optional[dict] = None  # {"org_id": int, "sid": str, "lead_phone": str|None, "lead_email": str|None}
 
@@ -146,6 +165,21 @@ SALON_TOOLS = [
             "razlog": {"type": "string", "description": "Kratek razlog za zahtevo po osebju"},
         }, "required": ["razlog"]},
     }},
+    {"type": "function", "function": {
+        "name": "salon_list_addons",
+        "description": "Pridobi seznam možnih dopolnitev za določeno storitev.",
+        "parameters": {"type": "object", "properties": {
+            "storitev_id": {"type": "string", "enum": ["nega-obraza", "maska-obraza", "ciscenje-obraza"]},
+        }, "required": ["storitev_id"]},
+    }},
+    {"type": "function", "function": {
+        "name": "salon_add_addon",
+        "description": "Dodaj dopolnitev k obstoječi rezervaciji. Uporabi SAMO ko je stranka rezervirala in se strinja z dopolnitvijo.",
+        "parameters": {"type": "object", "properties": {
+            "booking_id": {"type": "integer", "description": "ID rezervacije"},
+            "addon_id": {"type": "string", "description": "ID dopolnitve (npr. 'kolagenska-maska')"},
+        }, "required": ["booking_id", "addon_id"]},
+    }},
 ]
 
 def execute_tool(name: str, args: dict) -> str:
@@ -269,6 +303,50 @@ def execute_tool(name: str, args: dict) -> str:
                 "uspesno": True,
                 "sporocilo": "Zahteva za osebje poslana. Maja (kozmeticarka) bo z vami v nekaj trenutkih.",
             }, ensure_ascii=False)
+
+        if name == "salon_list_addons":
+            svc = args.get("storitev_id", "")
+            addons = ADDONS.get(svc, [])
+            return json.dumps({"storitev_id": svc, "dopolnitve": addons}, ensure_ascii=False)
+
+        if name == "salon_add_addon":
+            booking_id = args.get("booking_id")
+            addon_id = args.get("addon_id", "")
+            if not _db_ctx:
+                return json.dumps({"napaka": "DB ni na voljo"}, ensure_ascii=False)
+            try:
+                from app.core.db import SessionLocal
+                from sqlalchemy import text
+                with SessionLocal() as db:
+                    # Find the addon
+                    booking = db.execute(text(
+                        "SELECT id, service_id, price_eur FROM bookings WHERE id = :bid AND organization_id = :oid"
+                    ), {"bid": booking_id, "oid": _db_ctx["org_id"]}).fetchone()
+                    if not booking:
+                        return json.dumps({"napaka": "Rezervacija ne obstaja"}, ensure_ascii=False)
+                    addons = ADDONS.get(booking[1], [])
+                    addon = next((a for a in addons if a["id"] == addon_id), None)
+                    if not addon:
+                        return json.dumps({"napaka": f"Dopolnitev {addon_id} ne obstaja za to storitev"}, ensure_ascii=False)
+                    # Update booking
+                    current = db.execute(text("SELECT addons FROM bookings WHERE id = :bid"), {"bid": booking_id}).scalar() or []
+                    if isinstance(current, str):
+                        current = json.loads(current) if current else []
+                    current.append({"id": addon["id"], "name": addon["name"], "price_eur": addon["price_eur"]})
+                    new_price = booking[2] + addon["price_eur"]
+                    db.execute(text("UPDATE bookings SET addons = :addons::jsonb, price_eur = :price WHERE id = :bid"),
+                               {"addons": json.dumps(current), "price": new_price, "bid": booking_id})
+                    db.commit()
+                return json.dumps({
+                    "dodano": True,
+                    "dopolnitev": addon["name"],
+                    "cena_dopolnitve": addon["price_eur"],
+                    "nova_skupna_cena": new_price,
+                    "sporocilo": f"Dopolnitev {addon['name']} (+{addon['price_eur']}€) dodana. Nova cena: {new_price}€.",
+                }, ensure_ascii=False)
+            except Exception as e:
+                logger.warning(f"Failed to add addon: {e}")
+                return json.dumps({"napaka": str(e)[:200]}, ensure_ascii=False)
 
         return json.dumps({"napaka": f"Neznano orodje: {name}"}, ensure_ascii=False)
     except Exception as e:

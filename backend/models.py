@@ -120,6 +120,7 @@ class Booking(Base):
     customer_email = Column(String(160), nullable=True)
     status = Column(String(20), nullable=False, default="confirmed")
     notes = Column(Text, nullable=True)
+    addons = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     organization = relationship("Organization")
     lead = relationship("Lead")
