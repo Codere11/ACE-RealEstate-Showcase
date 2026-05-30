@@ -161,24 +161,6 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
                     ]})
                     msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
 
-        # THIRD PASS: after booking, force LLM to check add-ons via salon_list_addons and salon_add_addon
-        addon_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_list_addons", "salon_add_addon")]
-        if stage in ("availability", "booking") and state.get("booking_confirmed") and llm.is_available():
-            # Tell LLM explicitly to check add-ons — do NOT repeat invalid ones from user message
-            system += "\n\nZELO POMEMBNO PRAVILO: Pokliči salon_list_addons. V odgovoru NE SMEŠ omeniti nobene dopolnitve ki je NI v seznamu. Če jo stranka omenja — ignoriraj jo. Naštej SAMO dopolnitve ki SO v seznamu. To je NAJPOMEMBNEJŠE pravilo."
-            resp3 = llm.call_with_tools(system, msgs, addon_tools, required=True)
-            tcs3 = resp3.get("tool_calls")
-            if tcs3:
-                for tc in tcs3:
-                    result = execute_tool(tc["name"], tc["args"])
-                    tool_results[tc["id"]] = result
-                    tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
-                for tc in tcs3:
-                    msgs.append({"role": "assistant", "content": None, "tool_calls": [
-                        {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
-                    ]})
-                    msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
-
     state["tool_results"] = tool_results
     state["tool_calls"] = tool_calls_list
     state["tool_messages"] = msgs
@@ -347,10 +329,8 @@ def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
     # If add-on tools were called, let LLM generate a proper response including add-on info
     has_addon_results = any("salon_list_addons" in str(m) or "salon_add_addon" in str(m) for m in msgs)
     if reply and not has_addon_results:
-        # Pure booking confirmation — no add-on info needed, use sporocilo directly
         pass
     else:
-        # Need LLM to handle add-ons or generate from tool results
         system = state.get("system_prompt", "")
         latest_json = state.get("latest_json", "")
         if msgs:
@@ -366,27 +346,6 @@ def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
     suggestion = state.get("addon_suggestion", "")
     if suggestion and suggestion not in reply:
         reply = reply.rstrip() + "\n\n" + suggestion
-
-    # Safety net: strip hallucinated add-on names from reply
-    from app.qualification.tools import ADDONS
-    all_valid_names = set()
-    for addons in ADDONS.values():
-        for a in addons:
-            all_valid_names.add(a["name"].lower())
-    import re
-    for name in list(all_valid_names):
-        # Don't touch valid names
-        pass
-    # Check for common hallucination: "s X" where X is an add-on not in booked service
-    service_id = (state.get("booking_extracted", {}) or {}).get("service_id", "")
-    valid_for_service = {a["name"].lower() for a in ADDONS.get(service_id, [])}
-    for addon_list in ADDONS.values():
-        for a in addon_list:
-            name_lower = a["name"].lower()
-            if name_lower not in valid_for_service and name_lower in reply.lower():
-                # Remove hallucinated add-on mention
-                reply = re.sub(r'\s+s\s+' + re.escape(a["name"]) + r'\b', '', reply, flags=re.IGNORECASE)
-                reply = re.sub(r'\s+' + re.escape(a["name"]) + r'\b', '', reply, flags=re.IGNORECASE)
 
     # Update state flags
     stage = state.get("conversation_stage", "")

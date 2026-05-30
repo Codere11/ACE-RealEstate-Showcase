@@ -156,6 +156,7 @@ SALON_TOOLS = [
             "datum": {"type": "string", "description": "Datum v formatu YYYY-MM-DD"},
             "ura": {"type": "string", "description": "Ura v formatu HH:MM, npr. '09:00'"},
             "ime_stranke": {"type": "string", "description": "Ime stranke (iz pogovora ali 'Stranka' če ne vemo)"},
+            "dodatki": {"type": "array", "items": {"type": "string"}, "description": "Seznam ID-jev dopolnitev ki jih stranka želi (npr. ['kolagenska-maska', 'led-terapija']). Pusti prazno če ni dopolnitev."},
         }, "required": ["storitev_id", "datum", "ura"]},
     }},
     {"type": "function", "function": {
@@ -292,12 +293,57 @@ def execute_tool(name: str, args: dict) -> str:
                 except Exception as e:
                     logger.warning(f"Failed to persist booking: {e}")
 
+            # Process add-ons
+            dodatki = args.get("dodatki", []) or []
+            valid_addons = ADDONS.get(storitev_id, [])
+            valid_ids = {a["id"] for a in valid_addons}
+            added = []
+            invalid = []
+            total_price = service["price_eur"]
+
+            if dodatki and _db_ctx:
+                try:
+                    from app.core.db import SessionLocal
+                    from sqlalchemy import text
+                    with SessionLocal() as db:
+                        current_addons = []
+                        for addon_id in dodatki:
+                            addon = next((a for a in valid_addons if a["id"] == addon_id), None)
+                            if addon:
+                                current_addons.append({"id": addon["id"], "name": addon["name"], "price_eur": addon["price_eur"]})
+                                total_price += addon["price_eur"]
+                                added.append(addon["name"])
+                            else:
+                                invalid.append(addon_id)
+                        if current_addons:
+                            db.execute(text("UPDATE bookings SET addons = :addons::jsonb, price_eur = :price WHERE id = :bid"),
+                                       {"addons": json.dumps(current_addons), "price": total_price, "bid": booking_id})
+                            db.commit()
+                except Exception as e:
+                    logger.warning(f"Failed to add addons: {e}")
+
+            # Build response
+            msg_parts = [f"Vaš termin je potrjen! {service['name']} v {service['duration_min']} min"]
+            if added:
+                msg_parts.append(f"z dopolnitvami: {', '.join(added)}")
+            msg_parts.append(f"— skupaj {total_price}€.")
+            if invalid:
+                all_names = [a["name"] for a in valid_addons]
+                msg_parts.append(f"{', '.join(invalid)} ni na voljo za {service['name']}. Na voljo so: {', '.join(all_names)}.")
+            else:
+                all_names = [f"{a['name']} (+{a['price_eur']}€)" for a in valid_addons]
+                msg_parts.append(f"Možne dopolnitve: {', '.join(all_names)}.")
+            msg_parts.append("Lepo vabljeni! 💆‍♀️")
+
             return json.dumps({
                 "potrjeno": True,
                 "id": booking_id,
                 "storitev": service["name"], "trajanje_min": service["duration_min"],
-                "cena_eur": service["price_eur"], "datum": datum, "ura": ura,
-                "sporocilo": f"Vaš termin je potrjen! {service['name']} v {service['duration_min']} min, {service['price_eur']} €. Lepo vabljeni! 💆‍♀️",
+                "cena_eur": total_price, "datum": datum, "ura": ura,
+                "dodane_dopolnitve": added,
+                "neveljavne_dopolnitve": invalid,
+                "vse_dopolnitve": [{"id": a["id"], "name": a["name"], "price_eur": a["price_eur"]} for a in valid_addons],
+                "sporocilo": " ".join(msg_parts),
             }, ensure_ascii=False)
 
         if name == "salon_request_staff":
