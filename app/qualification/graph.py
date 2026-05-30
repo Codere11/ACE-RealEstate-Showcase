@@ -83,11 +83,11 @@ STRANKA PRAVI: {json.dumps(latest, ensure_ascii=False)}
 TVOJA NALOGA:
 1. Če stranka pozdravlja — toplo pozdravi, omeni da si na voljo, vprašaj kako lahko pomagaš.
 2. Če stranka sprašuje o storitvah — odgovori direktno, opiši kar jo zanima.
-3. Če stranka želi rezervirati — najprej preveri kontakt (če ga ni, vljudno prosi). Potem pokliči salon_check_availability ali salon_book_appointment. Vključi dodatke če jih stranka omenja.
-4. Če stranka želi dodati dopolnitev k obstoječi rezervaciji — pokliči salon_list_addons, potem salon_add_addon.
+3. Če stranka želi rezervirati NOV termin — pokliči salon_book_appointment. Vključi dodatke v polje 'dodatki'.
+4. Če stranka želi dodati dopolnitev k OBSTOJEČI rezervaciji (že ima booking ID) — pokliči salon_add_addon. NE kliči salon_book_appointment.
 5. Če stranka želi preklicati — pokliči salon_cancel_booking.
 6. Če stranka želi osebje — pokliči salon_request_staff.
-7. Če je stranka samo potrdila, se strinja, ali sprejema brez sprememb ("ok", "v redu", "bom potem brez", "super", "hvala") — samo kratko potrdi ali se zahvali. NE rezerviraj ponovno.
+7. Če je stranka samo potrdila, se strinja, ali sprejema brez sprememb ("ok", "v redu", "bom potem brez", "super", "hvala") — NE kliči nobenega orodja. Samo kratko potrdi ali se zahvali.
 
 POMEMBNO: Če stranka omenja dopolnitev ki je NI na seznamu za izbrano storitev — NE vključi je v booking. Orodje salon_book_appointment bo samo preverilo dodatke in vrnilo rezultat. Preberi njegovo sporočilo in ga posreduj stranki.
 
@@ -114,9 +114,17 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
 
     # Call LLM with tools — when action needed, only provide booking/addon/cancel (no check_availability escape)
     if needs_action:
-        tools = [t for t in SALON_TOOLS if t["function"]["name"] in (
-            "salon_book_appointment", "salon_list_addons", "salon_add_addon", "salon_cancel_booking"
-        )]
+        has_existing_booking = state.get("last_booking_id") is not None
+        is_addon_msg = any(w in latest_lower for w in ["dodaj", "daj", "aha", "potem", "zraven", "namesto"])
+        if has_existing_booking and is_addon_msg:
+            # Only add-on tools — don't let LLM rebook
+            tools = [t for t in SALON_TOOLS if t["function"]["name"] in (
+                "salon_list_addons", "salon_add_addon"
+            )]
+        else:
+            tools = [t for t in SALON_TOOLS if t["function"]["name"] in (
+                "salon_book_appointment", "salon_list_addons", "salon_add_addon", "salon_cancel_booking"
+            )]
         resp = llm.call_with_tools(system, msgs, tools, required=True)
     else:
         tools = [t for t in SALON_TOOLS if t["function"]["name"] != "salon_check_contact"] if has_contact else SALON_TOOLS
