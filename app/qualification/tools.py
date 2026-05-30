@@ -316,7 +316,7 @@ def execute_tool(name: str, args: dict) -> str:
                             else:
                                 invalid.append(addon_id)
                         if current_addons:
-                            db.execute(text("UPDATE bookings SET addons = :addons::jsonb, price_eur = :price WHERE id = :bid"),
+                            db.execute(text("UPDATE bookings SET addons = CAST(:addons AS jsonb), price_eur = :price WHERE id = :bid"),
                                        {"addons": json.dumps(current_addons), "price": total_price, "bid": booking_id})
                             db.commit()
                 except Exception as e:
@@ -397,7 +397,7 @@ def execute_tool(name: str, args: dict) -> str:
                         current = json.loads(current) if current else []
                     current.append({"id": addon["id"], "name": addon["name"], "price_eur": addon["price_eur"]})
                     new_price = booking[2] + addon["price_eur"]
-                    db.execute(text("UPDATE bookings SET addons = :addons::jsonb, price_eur = :price WHERE id = :bid"),
+                    db.execute(text("UPDATE bookings SET addons = CAST(:addons AS jsonb), price_eur = :price WHERE id = :bid"),
                                {"addons": json.dumps(current), "price": new_price, "bid": booking_id})
                     db.commit()
                 return json.dumps({
