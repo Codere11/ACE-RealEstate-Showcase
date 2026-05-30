@@ -241,7 +241,6 @@ def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
     if state.get("auto_book_reply"):
         return state
 
-    # Get the service that was just booked from the booking_extracted data
     extracted = state.get("booking_extracted", {})
     service_id = extracted.get("service_id", "") if extracted else ""
     if not service_id:
@@ -253,13 +252,12 @@ def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
     if not addons:
         return state
 
-    # Build a clean list for the LLM — only real add-ons, nothing hallucinated
     addon_list = ", ".join(f"{a['name']} (+{a['price_eur']}€)" for a in addons)
 
     system = (
         f"Ti si AI Receptor za kozmetični salon. Govoriš naravno slovenščino. "
         f"STROGO uporabljaš vikanje (vi, vas, vaš).\n\n"
-        f"Stranka je pravkar rezervirala: {extracted.get('service_id', '')}. "
+        f"Stranka je pravkar rezervirala: {service_id}. "
         f"Edine dopolnitve, ki so na voljo: {addon_list}. "
         f"NE izmišljaj si drugih dopolnitev — uporabi SAMO te.\n\n"
         f"Če se ti zdi primerno, predlagaj ENO od teh dopolnitev. "
@@ -272,6 +270,47 @@ def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
     reply = (reply or "").strip()
     if reply and len(reply) > 3:
         state["addon_suggestion"] = reply
+    return state
+
+
+def _validate_addons(state: QualificationGraphState) -> QualificationGraphState:
+    """LangGraph node: after auto_book, validate and attach requested add-ons.
+    Attaches valid ones, builds explanation for invalid ones."""
+    if not state.get("booking_confirmed"):
+        return state
+    extracted = state.get("booking_extracted", {})
+    requested = extracted.get("addons", [])
+    if not requested:
+        return state
+
+    booking_id = state.get("last_booking_id")
+    if not booking_id:
+        return state
+
+    from app.qualification.tools import ADDONS
+    service_id = extracted.get("service_id", "")
+    valid_ids = {a["id"] for a in ADDONS.get(service_id, [])}
+    valid_names = [a["name"] for a in ADDONS.get(service_id, [])]
+
+    added = []
+    invalid = []
+    for a in requested:
+        if a["id"] in valid_ids:
+            r = json.loads(execute_tool("salon_add_addon", {"booking_id": booking_id, "addon_id": a["id"]}))
+            if r.get("dodano"):
+                added.append(a["name"])
+        else:
+            invalid.append(a["name"])
+
+    # Build a clear message
+    parts = []
+    reply = state.get("auto_book_reply", "") or ""
+    if added:
+        parts.append(f"Dodano: {', '.join(added)}.")
+    if invalid:
+        parts.append(f"{', '.join(invalid)} ni na voljo za {service_id}. Na voljo so: {', '.join(valid_names)}.")
+    if parts:
+        state["auto_book_reply"] = (reply + " " if reply else "") + " ".join(parts)
     return state
 
 
@@ -298,20 +337,8 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         state["booking_confirmed"] = True
         state["booking_date"] = extracted["date"]
         state["booking_time"] = extracted["time"]
+        state["last_booking_id"] = result.get("id")
         reply = result.get("sporocilo", "")
-        # Attach add-ons that were explicitly requested
-        requested = extracted.get("addons", [])
-        if requested:
-            booking_id = result.get("id")
-            if booking_id:
-                added = []
-                for a in requested:
-                    r = json.loads(execute_tool("salon_add_addon", {"booking_id": booking_id, "addon_id": a["id"]}))
-                    if r.get("dodano"):
-                        added.append(a["name"])
-                if added:
-                    total_price = result.get("cena_eur", 0) + sum(a["price_eur"] for a in requested if a["name"] in added)
-                    reply = f"Vaš termin je potrjen! {extracted.get('service_id','')} s/z {', '.join(added)} — skupaj {total_price}€. Lepo vabljeni! 💆‍♀️"
     else:
         msgs = state.get("tool_messages", []) or []
         msgs.append({"role": "assistant", "content": None, "tool_calls": [
@@ -465,6 +492,7 @@ def run_qualification_graph(
     route = _check_booking(state)
     if route == "auto_book":
         state = _auto_book(state)
+        state = _validate_addons(state)
     elif route == "capture_contact":
         state = _capture_contact(state)
     state = _suggest_addons(state)
