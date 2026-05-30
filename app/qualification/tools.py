@@ -387,7 +387,8 @@ def execute_tool(name: str, args: dict) -> str:
                     if not booking:
                         return json.dumps({"napaka": "Rezervacija ne obstaja"}, ensure_ascii=False)
                     addons = ADDONS.get(booking[1], [])
-                    addon = next((a for a in addons if a["id"] == addon_id), None)
+                    # Match by id OR by name (case-insensitive)
+                    addon = next((a for a in addons if a["id"] == addon_id or a["name"].lower() == addon_id.lower()), None)
                     if not addon:
                         return json.dumps({"napaka": f"Dopolnitev {addon_id} ne obstaja za to storitev"}, ensure_ascii=False)
                     # Update booking
