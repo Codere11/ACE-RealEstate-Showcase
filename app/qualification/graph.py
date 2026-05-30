@@ -112,8 +112,9 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     action_keywords = any(w in latest_lower for w in ["rezerviraj", "dodaj", "prekliči", "odpovej", "termin", "uro", "ob ", "daj", "potem", "aha"])
     needs_action = has_contact and action_keywords
 
-    # Call LLM with tools
-    resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=needs_action)
+    # Call LLM with tools — if contact exists, don't offer check_contact (LLM would use it as escape)
+    tools = SALON_TOOLS if not has_contact else [t for t in SALON_TOOLS if t["function"]["name"] != "salon_check_contact"]
+    resp = llm.call_with_tools(system, msgs, tools, required=needs_action)
     tcs = resp.get("tool_calls")
     tool_results = {}
     all_tcs = []
