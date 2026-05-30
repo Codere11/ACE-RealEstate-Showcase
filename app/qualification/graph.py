@@ -165,7 +165,7 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
         addon_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_list_addons", "salon_add_addon")]
         if stage in ("availability", "booking") and state.get("booking_confirmed") and llm.is_available():
             # Tell LLM explicitly to check add-ons — do NOT repeat invalid ones from user message
-            system += "\n\nPOZOR: Pokliči salon_list_addons za rezervirano storitev. Če katera od dopolnitev ki jih je stranka omenila NE obstaja v seznamu — NE omenjaj je v odgovoru. Samo povej katere SO na voljo. Če dopolnitev obstaja — dodaj jo s salon_add_addon. Bodi kratek in jasen: potrdi rezervacijo, povej katere dopolnitve so NA VOLJO, ne omenjaj tistih ki jih ni."
+            system += "\n\nZELO POMEMBNO PRAVILO: Pokliči salon_list_addons. V odgovoru NE SMEŠ omeniti nobene dopolnitve ki je NI v seznamu. Če jo stranka omenja — ignoriraj jo. Naštej SAMO dopolnitve ki SO v seznamu. To je NAJPOMEMBNEJŠE pravilo."
             resp3 = llm.call_with_tools(system, msgs, addon_tools, required=True)
             tcs3 = resp3.get("tool_calls")
             if tcs3:
@@ -366,6 +366,27 @@ def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
     suggestion = state.get("addon_suggestion", "")
     if suggestion and suggestion not in reply:
         reply = reply.rstrip() + "\n\n" + suggestion
+
+    # Safety net: strip hallucinated add-on names from reply
+    from app.qualification.tools import ADDONS
+    all_valid_names = set()
+    for addons in ADDONS.values():
+        for a in addons:
+            all_valid_names.add(a["name"].lower())
+    import re
+    for name in list(all_valid_names):
+        # Don't touch valid names
+        pass
+    # Check for common hallucination: "s X" where X is an add-on not in booked service
+    service_id = (state.get("booking_extracted", {}) or {}).get("service_id", "")
+    valid_for_service = {a["name"].lower() for a in ADDONS.get(service_id, [])}
+    for addon_list in ADDONS.values():
+        for a in addon_list:
+            name_lower = a["name"].lower()
+            if name_lower not in valid_for_service and name_lower in reply.lower():
+                # Remove hallucinated add-on mention
+                reply = re.sub(r'\s+s\s+' + re.escape(a["name"]) + r'\b', '', reply, flags=re.IGNORECASE)
+                reply = re.sub(r'\s+' + re.escape(a["name"]) + r'\b', '', reply, flags=re.IGNORECASE)
 
     # Update state flags
     stage = state.get("conversation_stage", "")
