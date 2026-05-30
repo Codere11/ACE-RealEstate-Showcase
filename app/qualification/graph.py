@@ -164,8 +164,8 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
         # THIRD PASS: after booking, force LLM to check add-ons via salon_list_addons and salon_add_addon
         addon_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_list_addons", "salon_add_addon")]
         if stage in ("availability", "booking") and state.get("booking_confirmed") and llm.is_available():
-            # Tell LLM explicitly to check add-ons against the booked service
-            system += "\n\nPOZOR: Stranka je morda omenila dopolnitve. Pokliči salon_list_addons za rezervirano storitev. Če dopolnitev obstaja — dodaj jo s salon_add_addon. Če ne obstaja — pojasni da ni na voljo in naštej alternative."
+            # Tell LLM explicitly to check add-ons — do NOT repeat invalid ones from user message
+            system += "\n\nPOZOR: Pokliči salon_list_addons za rezervirano storitev. Če katera od dopolnitev ki jih je stranka omenila NE obstaja v seznamu — NE omenjaj je v odgovoru. Samo povej katere SO na voljo. Če dopolnitev obstaja — dodaj jo s salon_add_addon. Bodi kratek in jasen: potrdi rezervacijo, povej katere dopolnitve so NA VOLJO, ne omenjaj tistih ki jih ni."
             resp3 = llm.call_with_tools(system, msgs, addon_tools, required=True)
             tcs3 = resp3.get("tool_calls")
             if tcs3:
