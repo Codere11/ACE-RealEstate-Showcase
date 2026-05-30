@@ -161,6 +161,24 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
                     ]})
                     msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
 
+        # ADDON SECOND PASS: if addon stage, force salon_add_addon after list_addons
+        if stage == "addon" and llm.is_available():
+            has_added = any(tc["name"] == "salon_add_addon" for tc in tool_calls_list)
+            if not has_added:
+                addon_only = [t for t in SALON_TOOLS if t["function"]["name"] == "salon_add_addon"]
+                resp3 = llm.call_with_tools(system, msgs, addon_only, required=True)
+                tcs3 = resp3.get("tool_calls")
+                if tcs3:
+                    for tc in tcs3:
+                        result = execute_tool(tc["name"], tc["args"])
+                        tool_results[tc["id"]] = result
+                        tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
+                    for tc in tcs3:
+                        msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                            {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                        ]})
+                        msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
+
     state["tool_results"] = tool_results
     state["tool_calls"] = tool_calls_list
     state["tool_messages"] = msgs
