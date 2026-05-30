@@ -438,6 +438,7 @@ def run_qualification_graph(
         "booking_date": profile_before.get("booking_date", ""),
         "booking_time": profile_before.get("booking_time", ""),
         "booking_confirmed": False,
+        "last_booking_id": profile_before.get("last_booking_id"),
     }
 
     # Use sequential pipeline — battle-tested, no serialization issues

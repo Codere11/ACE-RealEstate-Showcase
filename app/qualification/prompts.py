@@ -39,7 +39,7 @@ Pravila:
 - "discovery": stranka sprašuje o storitvah, cenah, primerjavah, išče informacije
 - "availability": stranka želi rezervirati, sprašuje o terminih
 - "booking": stranka je izbrala točen termin — potrdi
-- "addon": stranka želi dodati dopolnitev k ŽE OBSTOJEČI rezervaciji ("dodaj", "pa še", "zraven", "ocesni tretma") ALI sprašuje o dopolnitvah ("zakaj pa ne")
+- "addon": stranka želi dodati dopolnitev k ŽE OBSTOJEČI rezervaciji ("dodaj", "pa še", "zraven", "LED terapijo", "kolagensko") ALI sprašuje o dopolnitvah ("zakaj pa ne") ALI odgovarja na ponudbo dopolnitev ("daj", "aha daj", "potem pa")
 - "cancel": stranka želi preklicati rezervacijo ("prekliči", "odpovej", "ne bom", "nočem")
 - "handoff": stranka želi govoriti z osebjem (človekom)
 - "idle": stranka samo klepeta, se zahvaljuje, pozdravlja sredi pogovora — ne potrebuje ničesar konkretnega
@@ -105,13 +105,11 @@ Ne ponujaj ničesar — samo bodi prijazen."""
 ADDON_PROMPT = """Stranka želi dodati dopolnitev k obstoječi rezervaciji ali sprašuje o dopolnitvah.
 
 MORAŠ narediti točno to:
-1. Pokliči salon_list_addons za storitev, ki jo je stranka rezervirala.
-2. Če stranka ve katero dopolnitev želi — pokliči salon_add_addon s pravilnim booking_id.
+1. Pokliči salon_list_addons za storitev ki je bila rezervirana.
+2. Če stranka želi specifično dopolnitev — pokliči salon_add_addon s pravilnim booking_id (ID rezervacije iz prejšnjega pogovora).
 3. Če stranka sprašuje 'zakaj ne X' — pojasni da X ni na voljo za to storitev, naštej kaj JE na voljo.
-4. Če stranka ni specifična — na kratko opiši 1-2 najbolj primerni dopolnitvi.
 
-POZOR: Dopolnitev se doda k OBSTOJEČI rezervaciji. Ne rezerviraj novega termina.
-POZOR: Uporabljaj samo dopolnitve, ki jih vrne salon_list_addons. Ne izmišljaj si.
+POZOR: To NI nova rezervacija. Dodajaš samo dopolnitev k OBSTOJEČI rezervaciji.
 
 Bodi kratek, jasen. 2-3 stavke."""
 

@@ -121,6 +121,7 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             profile["service_interest"] = state.get("service_interest", "")
             profile["booking_date"] = state.get("booking_date", "")
             profile["booking_time"] = state.get("booking_time", "")
+            profile["last_booking_id"] = state.get("last_booking_id") or profile.get("last_booking_id")
             lead.qualifier_profile = profile
             await save_message(db, lead, ConvRole.ASSISTANT, reply)
             await db.commit()
