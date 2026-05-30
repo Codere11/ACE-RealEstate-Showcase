@@ -112,11 +112,10 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     action_keywords = any(w in latest_lower for w in ["rezerviraj", "dodaj", "prekliči", "odpovej", "termin", "uro", "ob ", "daj", "potem", "aha"])
     needs_action = has_contact and action_keywords
 
-    # Call LLM with tools — when action needed, only provide action tools
+    # Call LLM with tools — when action needed, only provide booking/addon/cancel (no check_availability escape)
     if needs_action:
         tools = [t for t in SALON_TOOLS if t["function"]["name"] in (
-            "salon_book_appointment", "salon_check_availability",
-            "salon_list_addons", "salon_add_addon", "salon_cancel_booking"
+            "salon_book_appointment", "salon_list_addons", "salon_add_addon", "salon_cancel_booking"
         )]
         resp = llm.call_with_tools(system, msgs, tools, required=True)
     else:
