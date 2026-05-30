@@ -97,7 +97,7 @@ Bodi kratek (1-3 stavke), naraven, vikanje."""
 
 
 def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
-    """ONE LLM call with full context + all tools. No separate classification/book/upsell passes."""
+    """ONE LLM call with full context + all tools."""
     llm = LLMService()
     latest = state.get("latest_message", "")
     recent = state.get("recent_messages", []) or []
@@ -105,13 +105,14 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     system = _build_agent_prompt(state)
     msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
 
-    # Detect if user message suggests they want action (booking, addon, cancel)
-    latest_lower = latest.lower()
+    # Determine if user message suggests action (booking, addon, cancel)
+    contact = json.loads(execute_tool("salon_check_contact", {}))
     has_contact = contact.get("ok")
+    latest_lower = latest.lower()
     action_keywords = any(w in latest_lower for w in ["rezerviraj", "dodaj", "prekliči", "odpovej", "termin", "uro", "ob ", "daj", "potem", "aha"])
     needs_action = has_contact and action_keywords
 
-    # Call LLM with tools — force tool calls only when booking/addon intent is clear
+    # Call LLM with tools
     resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=needs_action)
     tcs = resp.get("tool_calls")
     tool_results = {}
