@@ -105,8 +105,14 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     system = _build_agent_prompt(state)
     msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
 
-    # Call LLM with tools
-    resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=False)
+    # Detect if user message suggests they want action (booking, addon, cancel)
+    latest_lower = latest.lower()
+    has_contact = contact.get("ok")
+    action_keywords = any(w in latest_lower for w in ["rezerviraj", "dodaj", "prekliči", "odpovej", "termin", "uro", "ob ", "daj", "potem", "aha"])
+    needs_action = has_contact and action_keywords
+
+    # Call LLM with tools — force tool calls only when booking/addon intent is clear
+    resp = llm.call_with_tools(system, msgs, SALON_TOOLS, required=needs_action)
     tcs = resp.get("tool_calls")
     tool_results = {}
     all_tcs = []
