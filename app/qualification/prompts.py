@@ -39,10 +39,10 @@ Pravila:
 - "discovery": stranka sprašuje o storitvah, cenah, primerjavah, išče informacije
 - "availability": stranka želi rezervirati, sprašuje o terminih
 - "booking": stranka je izbrala točen termin — potrdi
-- "addon": stranka želi dodati dopolnitev k ŽE OBSTOJEČI rezervaciji ("dodaj", "pa še", "zraven", "LED terapijo", "kolagensko") ALI sprašuje o dopolnitvah ("zakaj pa ne") ALI odgovarja na ponudbo dopolnitev ("daj", "aha daj", "potem pa")
+- "addon": stranka želi dodati dopolnitev k ŽE OBSTOJEČI rezervaciji ALI sprašuje o dopolnitvah ALI odgovarja na ponudbo dopolnitev
 - "cancel": stranka želi preklicati rezervacijo ("prekliči", "odpovej", "ne bom", "nočem")
 - "handoff": stranka želi govoriti z osebjem (človekom)
-- "idle": stranka samo klepeta, se zahvaljuje, pozdravlja sredi pogovora — ne potrebuje ničesar konkretnega
+- "idle": stranka samo klepeta, se zahvaljuje, sprejema brez sprememb ("v redu", "ok", "potrjujem", "bom potem brez", "super", "hvala"), pozdravlja sredi pogovora — ne potrebuje ničesar konkretnega
 """
 
 
