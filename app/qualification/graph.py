@@ -298,6 +298,7 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         "datum": extracted["date"],
         "ura": extracted["time"],
         "ime_stranke": extracted.get("name", "Stranka"),
+        "dodatki": extracted.get("dodatki", []),
     }
     result_json = execute_tool("salon_book_appointment", auto_args)
     result = json.loads(result_json)
@@ -388,7 +389,9 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
             tm = args.get("ura", "")
             name = args.get("ime_stranke", "Stranka")
             if svc and dt and tm:
-                return {"service_id": svc, "date": dt, "time": tm, "name": name}
+                # Pass any additional add-on IDs the LLM included
+                addon_ids = args.get("dodatki", []) or []
+                return {"service_id": svc, "date": dt, "time": tm, "name": name, "dodatki": addon_ids}
     return None
 
 
