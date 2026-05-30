@@ -343,17 +343,22 @@ def _generate_reply(state: QualificationGraphState) -> QualificationGraphState:
     """Generate final text reply from tool results using LLM, or use already-set reply from auto_book."""
     llm = LLMService()
     reply = state.get("auto_book_reply", "") or ""
-
-    if not reply:
-        msgs = state.get("tool_messages", []) or []
+    msgs = state.get("tool_messages", []) or []
+    # If add-on tools were called, let LLM generate a proper response including add-on info
+    has_addon_results = any("salon_list_addons" in str(m) or "salon_add_addon" in str(m) for m in msgs)
+    if reply and not has_addon_results:
+        # Pure booking confirmation — no add-on info needed, use sporocilo directly
+        pass
+    else:
+        # Need LLM to handle add-ons or generate from tool results
         system = state.get("system_prompt", "")
         latest_json = state.get("latest_json", "")
         if msgs:
-            reply = llm.call_json_response(system, msgs)
+            reply = llm.call_json_response(system, msgs) or ""
         if not reply:
-            reply = llm.call_text(system, latest_json)
+            reply = llm.call_text(system, latest_json) or ""
+        reply = _unwrap_reply(reply)
 
-    reply = _unwrap_reply(reply)
     if not reply:
         reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
 
