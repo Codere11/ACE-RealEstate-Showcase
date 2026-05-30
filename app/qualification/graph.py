@@ -166,12 +166,17 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
     state["tool_calls"] = tool_calls_list
     state["tool_messages"] = msgs
 
-    # If addon tools were called and failed, append warning to system prompt
+    # If any addon tool was called, append validation to system prompt
     for tc in tool_calls_list:
         if tc["name"] == "salon_add_addon":
             r = json.loads(tc["result"]) if isinstance(tc["result"], str) else tc["result"]
             if r.get("napaka"):
                 system += f"\n\nPOZOR: Dopolnitve {tc['args'].get('addon_id','')} ni bilo mogoče dodati: {r['napaka']}. V odgovoru NE trdi da je bila dodana. Pojasni da ni na voljo in naštej kaj JE na voljo (pokliči salon_list_addons)."
+            elif r.get("dodano"):
+                system += f"\n\nDopolnitev {r.get('dopolnitev','')} je bila uspešno dodana. Omeni jo v odgovoru s ceno."
+    # Always: if booking stage and contact exists, warn LLM not to invent add-ons not in the real list
+    if stage in ("availability", "booking") and not contact_missing:
+        system += "\n\nPOZOR: Če stranka omenja dopolnitve ki jih ni v seznamu salon_list_addons — NE vključi jih v odgovor kot da so dodane. Pojasni da niso na voljo in naštej alternative."
     state["system_prompt"] = system
     state["contact_missing"] = contact_missing
     state["latest_json"] = latest_json
