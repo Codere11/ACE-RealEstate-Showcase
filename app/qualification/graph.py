@@ -138,10 +138,9 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
                 ]})
                 msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
-        # SECOND PASS: if contact exists, force LLM to call booking + addon tools
-        booking_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_check_availability", "salon_book_appointment", "salon_list_addons", "salon_add_addon")]
+        # SECOND PASS: force LLM to call booking tools (book_appointment or check_availability)
+        booking_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_check_availability", "salon_book_appointment")]
         if stage in ("availability", "booking") and not contact_missing and llm.is_available():
-            # Always do second pass — LLM may have called check_contact/availability but not booked
             resp2 = llm.call_with_tools(system, msgs, booking_tools, required=True)
             tcs2 = resp2.get("tool_calls")
             if tcs2:
@@ -157,6 +156,24 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
                             state["booking_time"] = tc["args"].get("ura", "")
                             state["last_booking_id"] = r.get("id")
                 for tc in tcs2:
+                    msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                        {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                    ]})
+                    msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
+
+        # THIRD PASS: after booking, force LLM to check add-ons via salon_list_addons and salon_add_addon
+        addon_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_list_addons", "salon_add_addon")]
+        if stage in ("availability", "booking") and state.get("booking_confirmed") and llm.is_available():
+            # Tell LLM explicitly to check add-ons against the booked service
+            system += "\n\nPOZOR: Stranka je morda omenila dopolnitve. Pokliči salon_list_addons za rezervirano storitev. Če dopolnitev obstaja — dodaj jo s salon_add_addon. Če ne obstaja — pojasni da ni na voljo in naštej alternative."
+            resp3 = llm.call_with_tools(system, msgs, addon_tools, required=True)
+            tcs3 = resp3.get("tool_calls")
+            if tcs3:
+                for tc in tcs3:
+                    result = execute_tool(tc["name"], tc["args"])
+                    tool_results[tc["id"]] = result
+                    tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
+                for tc in tcs3:
                     msgs.append({"role": "assistant", "content": None, "tool_calls": [
                         {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
                     ]})
@@ -308,8 +325,7 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         state["booking_date"] = extracted["date"]
         state["booking_time"] = extracted["time"]
         state["last_booking_id"] = result.get("id")
-        # Use tool's sporocilo directly — skip LLM for booking confirmation
-        state["auto_book_reply"] = result.get("sporocilo", "")
+        reply = result.get("sporocilo", "")
     else:
         msgs = state.get("tool_messages", []) or []
         msgs.append({"role": "assistant", "content": None, "tool_calls": [
@@ -317,7 +333,9 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         ]})
         msgs.append({"role": "tool", "tool_call_id": "auto_booking", "content": result_json})
         state["tool_messages"] = msgs
-        # Don't set auto_book_reply — let generate_reply handle the error
+        reply = ""
+
+    state["auto_book_reply"] = reply
     return state
 
 
