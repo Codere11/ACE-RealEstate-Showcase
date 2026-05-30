@@ -425,6 +425,15 @@ def execute_tool(name: str, args: dict) -> str:
                     if not booking:
                         return json.dumps({"napaka": "Rezervacija ne obstaja ali je že preklicana"}, ensure_ascii=False)
                     db.execute(text("UPDATE bookings SET status = 'cancelled' WHERE id = :bid"), {"bid": booking_id})
+                    # Publish event for dashboard real-time update
+                    db.execute(text("""
+                        INSERT INTO lead_events (organization_id, sid, event_type, payload_json)
+                        VALUES (:oid, :sid, :etype, :payload)
+                    """), {
+                        "oid": _db_ctx["org_id"], "sid": _db_ctx.get("sid", "*"),
+                        "etype": "booking.cancelled",
+                        "payload": json.dumps({"id": booking_id}),
+                    })
                     db.commit()
                 return json.dumps({
                     "preklicano": True,
