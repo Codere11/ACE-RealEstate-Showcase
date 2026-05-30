@@ -138,30 +138,29 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
                 ]})
                 msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
-        # SECOND PASS: if contact exists and we're in booking stage but LLM didn't call
-        # salon_check_availability or salon_book_appointment, force another call with only booking tools
-        booking_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_check_availability", "salon_book_appointment")]
+        # SECOND PASS: if contact exists, force LLM to call booking + addon tools
+        booking_tools = [t for t in SALON_TOOLS if t["function"]["name"] in ("salon_check_availability", "salon_book_appointment", "salon_list_addons", "salon_add_addon")]
         if stage in ("availability", "booking") and not contact_missing and llm.is_available():
-            has_booking_tool = any(tc["name"] in ("salon_check_availability", "salon_book_appointment") for tc in tool_calls_list)
-            if not has_booking_tool:
-                resp2 = llm.call_with_tools(system, msgs, booking_tools, required=True)
-                tcs2 = resp2.get("tool_calls")
-                if tcs2:
-                    for tc in tcs2:
-                        result = execute_tool(tc["name"], tc["args"])
-                        tool_results[tc["id"]] = result
-                        tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
-                        if tc["name"] == "salon_book_appointment":
-                            r = json.loads(result)
-                            if r.get("potrjeno"):
-                                state["booking_confirmed"] = True
-                                state["booking_date"] = tc["args"].get("datum", "")
-                                state["booking_time"] = tc["args"].get("ura", "")
-                    for tc in tcs2:
-                        msgs.append({"role": "assistant", "content": None, "tool_calls": [
-                            {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
-                        ]})
-                        msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
+            # Always do second pass — LLM may have called check_contact/availability but not booked
+            resp2 = llm.call_with_tools(system, msgs, booking_tools, required=True)
+            tcs2 = resp2.get("tool_calls")
+            if tcs2:
+                for tc in tcs2:
+                    result = execute_tool(tc["name"], tc["args"])
+                    tool_results[tc["id"]] = result
+                    tool_calls_list.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
+                    if tc["name"] == "salon_book_appointment":
+                        r = json.loads(result)
+                        if r.get("potrjeno"):
+                            state["booking_confirmed"] = True
+                            state["booking_date"] = tc["args"].get("datum", "")
+                            state["booking_time"] = tc["args"].get("ura", "")
+                            state["last_booking_id"] = r.get("id")
+                for tc in tcs2:
+                    msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                        {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                    ]})
+                    msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
 
     state["tool_results"] = tool_results
     state["tool_calls"] = tool_calls_list
@@ -273,64 +272,6 @@ def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
     return state
 
 
-def _validate_addons(state: QualificationGraphState) -> QualificationGraphState:
-    """LangGraph node: after auto_book, validate and attach requested add-ons.
-    Attaches valid ones, builds explanation for invalid ones.
-    Also checks raw user message for add-on mentions that don't match the service."""
-    if not state.get("booking_confirmed"):
-        return state
-
-    extracted = state.get("booking_extracted", {})
-    booking_id = state.get("last_booking_id")
-    if not booking_id:
-        return state
-
-    from app.qualification.tools import ADDONS
-    service_id = extracted.get("service_id", "")
-    valid_ids = {a["id"] for a in ADDONS.get(service_id, [])}
-    valid_names = [a["name"] for a in ADDONS.get(service_id, [])]
-
-    # Collect ALL add-on names across all services for detection
-    all_addon_names = {}
-    for svc_id, addons in ADDONS.items():
-        for a in addons:
-            all_addon_names[a["name"].lower()] = (a, svc_id)
-
-    # Check raw user message for ANY add-on mention
-    latest = (state.get("latest_message", "") or "").lower()
-    recent = state.get("recent_messages", []) or []
-    all_text = latest
-    for m in recent[-2:]:
-        all_text += " " + (m.get("text", "") or "").lower()
-
-    detected_invalid = []
-    for name_lower, (addon, belongs_to) in all_addon_names.items():
-        parts = name_lower.split()
-        if any(p in all_text for p in parts if len(p) > 3):
-            if addon["id"] not in valid_ids:
-                detected_invalid.append(f"{addon['name']} (na voljo pri {belongs_to})")
-
-    # Attach valid requested add-ons
-    requested = extracted.get("addons", [])
-    added = []
-    for a in requested:
-        if a["id"] in valid_ids:
-            r = json.loads(execute_tool("salon_add_addon", {"booking_id": booking_id, "addon_id": a["id"]}))
-            if r.get("dodano"):
-                added.append(a["name"])
-
-    # Build message
-    parts = []
-    reply = state.get("auto_book_reply", "") or ""
-    if added:
-        parts.append(f"Dodano: {', '.join(added)}.")
-    if detected_invalid:
-        parts.append(f"{' in '.join(detected_invalid)} ni na voljo za {service_id}. Na voljo so: {', '.join(valid_names)}.")
-    if parts:
-        state["auto_book_reply"] = (reply + " " if reply else "") + " ".join(parts)
-    return state
-
-
 def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
     """Deterministic booking: call salon_book_appointment with extracted intent. Bypasses LLM for reply."""
     extracted = state.get("booking_extracted", {})
@@ -433,27 +374,8 @@ def _extract_booking_intent(latest: str, recent: list, tool_calls: list) -> dict
             tm = args.get("ura", "")
             name = args.get("ime_stranke", "Stranka")
             if svc and dt and tm:
-                # Also extract explicitly requested add-ons from the conversation
-                requested_addons = _extract_addon_ids(latest, recent, svc)
-                return {"service_id": svc, "date": dt, "time": tm, "name": name, "addons": requested_addons}
+                return {"service_id": svc, "date": dt, "time": tm, "name": name}
     return None
-
-
-def _extract_addon_ids(latest: str, recent: list, service_id: str) -> list:
-    """Check if the user explicitly requested add-ons. Returns list of valid addon IDs."""
-    from app.qualification.tools import ADDONS
-    all_text = (latest or "").lower()
-    for m in (recent or [])[-2:]:
-        all_text += " " + (m.get("text", "") or "").lower()
-    available = ADDONS.get(service_id, [])
-    requested = []
-    for a in available:
-        name_lower = a["name"].lower()
-        # Check if any part of the addon name appears in the text
-        parts = name_lower.split()
-        if any(p in all_text for p in parts if len(p) > 3):
-            requested.append({"id": a["id"], "name": a["name"], "price_eur": a["price_eur"]})
-    return requested
 
 
 # ═══════════════════════════════════════════════════════════
@@ -509,7 +431,6 @@ def run_qualification_graph(
     route = _check_booking(state)
     if route == "auto_book":
         state = _auto_book(state)
-        state = _validate_addons(state)
     elif route == "capture_contact":
         state = _capture_contact(state)
     state = _suggest_addons(state)
