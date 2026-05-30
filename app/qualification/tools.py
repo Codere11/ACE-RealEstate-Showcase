@@ -177,9 +177,9 @@ SALON_TOOLS = [
         "name": "salon_add_addon",
         "description": "Dodaj dopolnitev k obstoječi rezervaciji. Uporabi SAMO ko je stranka rezervirala in se strinja z dopolnitvijo.",
         "parameters": {"type": "object", "properties": {
-            "booking_id": {"type": "integer", "description": "ID rezervacije"},
+            "booking_id": {"type": "integer", "description": "ID rezervacije (pusti prazno za zadnjo aktivno rezervacijo)"},
             "addon_id": {"type": "string", "description": "ID dopolnitve (npr. 'kolagenska-maska')"},
-        }, "required": ["booking_id", "addon_id"]},
+        }, "required": ["addon_id"]},
     }},
     {"type": "function", "function": {
         "name": "salon_cancel_booking",
@@ -372,7 +372,15 @@ def execute_tool(name: str, args: dict) -> str:
                 from app.core.db import SessionLocal
                 from sqlalchemy import text
                 with SessionLocal() as db:
-                    # Find the addon
+                    # Auto-find last confirmed booking for this org if no booking_id provided
+                    if not booking_id:
+                        row = db.execute(text(
+                            "SELECT id FROM bookings WHERE organization_id = :oid AND status = 'confirmed' ORDER BY id DESC LIMIT 1"
+                        ), {"oid": _db_ctx["org_id"]}).fetchone()
+                        if row:
+                            booking_id = row[0]
+                    if not booking_id:
+                        return json.dumps({"napaka": "Ni najdene aktivne rezervacije"}, ensure_ascii=False)
                     booking = db.execute(text(
                         "SELECT id, service_id, price_eur FROM bookings WHERE id = :bid AND organization_id = :oid"
                     ), {"bid": booking_id, "oid": _db_ctx["org_id"]}).fetchone()
