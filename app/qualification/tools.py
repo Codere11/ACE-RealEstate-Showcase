@@ -150,7 +150,7 @@ SALON_TOOLS = [
     }},
     {"type": "function", "function": {
         "name": "salon_book_appointment",
-        "description": "Rezerviraj termin. PRED tem MORAŠ poklicati salon_check_contact in dobiti ok:true. Če kontakt manjka, najprej prosi zanj.",
+        "description": "Rezerviraj termin. PRED tem MORAŠ poklicati salon_check_contact in dobiti ok:true. Če stranka omenja dopolnitve (npr. 'kolagensko masko', 'LED terapijo'), jih vključi v polje 'dodatki' kot seznam ID-jev (npr. ['kolagenska-maska', 'led-terapija']). Če ne veš točnega ID-ja — uporabi salon_list_addons najprej. Če stranka NE omenja dopolnitev, pusti 'dodatki' prazen.",
         "parameters": {"type": "object", "properties": {
             "storitev_id": {"type": "string", "enum": ["nega-obraza", "maska-obraza", "ciscenje-obraza"]},
             "datum": {"type": "string", "description": "Datum v formatu YYYY-MM-DD"},
