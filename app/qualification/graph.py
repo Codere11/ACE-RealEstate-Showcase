@@ -165,6 +165,13 @@ def _call_tools(state: QualificationGraphState) -> QualificationGraphState:
     state["tool_results"] = tool_results
     state["tool_calls"] = tool_calls_list
     state["tool_messages"] = msgs
+
+    # If addon tools were called and failed, append warning to system prompt
+    for tc in tool_calls_list:
+        if tc["name"] == "salon_add_addon":
+            r = json.loads(tc["result"]) if isinstance(tc["result"], str) else tc["result"]
+            if r.get("napaka"):
+                system += f"\n\nPOZOR: Dopolnitve {tc['args'].get('addon_id','')} ni bilo mogoče dodati: {r['napaka']}. V odgovoru NE trdi da je bila dodana. Pojasni da ni na voljo in naštej kaj JE na voljo (pokliči salon_list_addons)."
     state["system_prompt"] = system
     state["contact_missing"] = contact_missing
     state["latest_json"] = latest_json
