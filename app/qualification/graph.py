@@ -308,7 +308,8 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         state["booking_date"] = extracted["date"]
         state["booking_time"] = extracted["time"]
         state["last_booking_id"] = result.get("id")
-        reply = result.get("sporocilo", "")
+        # Use tool's sporocilo directly — skip LLM for booking confirmation
+        state["auto_book_reply"] = result.get("sporocilo", "")
     else:
         msgs = state.get("tool_messages", []) or []
         msgs.append({"role": "assistant", "content": None, "tool_calls": [
@@ -316,9 +317,7 @@ def _auto_book(state: QualificationGraphState) -> QualificationGraphState:
         ]})
         msgs.append({"role": "tool", "tool_call_id": "auto_booking", "content": result_json})
         state["tool_messages"] = msgs
-        reply = ""
-
-    state["auto_book_reply"] = reply
+        # Don't set auto_book_reply — let generate_reply handle the error
     return state
 
 
