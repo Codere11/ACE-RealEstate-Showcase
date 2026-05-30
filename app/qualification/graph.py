@@ -275,14 +275,12 @@ def _suggest_addons(state: QualificationGraphState) -> QualificationGraphState:
 
 def _validate_addons(state: QualificationGraphState) -> QualificationGraphState:
     """LangGraph node: after auto_book, validate and attach requested add-ons.
-    Attaches valid ones, builds explanation for invalid ones."""
+    Attaches valid ones, builds explanation for invalid ones.
+    Also checks raw user message for add-on mentions that don't match the service."""
     if not state.get("booking_confirmed"):
         return state
-    extracted = state.get("booking_extracted", {})
-    requested = extracted.get("addons", [])
-    if not requested:
-        return state
 
+    extracted = state.get("booking_extracted", {})
     booking_id = state.get("last_booking_id")
     if not booking_id:
         return state
@@ -292,23 +290,42 @@ def _validate_addons(state: QualificationGraphState) -> QualificationGraphState:
     valid_ids = {a["id"] for a in ADDONS.get(service_id, [])}
     valid_names = [a["name"] for a in ADDONS.get(service_id, [])]
 
+    # Collect ALL add-on names across all services for detection
+    all_addon_names = {}
+    for svc_id, addons in ADDONS.items():
+        for a in addons:
+            all_addon_names[a["name"].lower()] = (a, svc_id)
+
+    # Check raw user message for ANY add-on mention
+    latest = (state.get("latest_message", "") or "").lower()
+    recent = state.get("recent_messages", []) or []
+    all_text = latest
+    for m in recent[-2:]:
+        all_text += " " + (m.get("text", "") or "").lower()
+
+    detected_invalid = []
+    for name_lower, (addon, belongs_to) in all_addon_names.items():
+        parts = name_lower.split()
+        if any(p in all_text for p in parts if len(p) > 3):
+            if addon["id"] not in valid_ids:
+                detected_invalid.append(f"{addon['name']} (na voljo pri {belongs_to})")
+
+    # Attach valid requested add-ons
+    requested = extracted.get("addons", [])
     added = []
-    invalid = []
     for a in requested:
         if a["id"] in valid_ids:
             r = json.loads(execute_tool("salon_add_addon", {"booking_id": booking_id, "addon_id": a["id"]}))
             if r.get("dodano"):
                 added.append(a["name"])
-        else:
-            invalid.append(a["name"])
 
-    # Build a clear message
+    # Build message
     parts = []
     reply = state.get("auto_book_reply", "") or ""
     if added:
         parts.append(f"Dodano: {', '.join(added)}.")
-    if invalid:
-        parts.append(f"{', '.join(invalid)} ni na voljo za {service_id}. Na voljo so: {', '.join(valid_names)}.")
+    if detected_invalid:
+        parts.append(f"{' in '.join(detected_invalid)} ni na voljo za {service_id}. Na voljo so: {', '.join(valid_names)}.")
     if parts:
         state["auto_book_reply"] = (reply + " " if reply else "") + " ".join(parts)
     return state
