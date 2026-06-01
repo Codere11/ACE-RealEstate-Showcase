@@ -3,23 +3,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional
 
-from app.qualification.prompts import build_classify_prompt, build_node_prompt
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
 from app.qualification.state import (
     QualificationGraphState,
     TurnDecision,
-    TurnInterpretation,
-    ConversationStage,
 )
 from app.services.llm_service import LLMService
 from app.qualification.tools import SALON_TOOLS, execute_tool
 from app.qualification.tools import ADDONS
-
-try:
-    from langgraph.graph import StateGraph, END
-except Exception:
-    StateGraph = None  # type: ignore
-    END = "__end__"  # type: ignore
 
 
 # ═══════════════════════════════════════════════════════════
@@ -55,7 +46,11 @@ def _build_agent_prompt(state: QualificationGraphState) -> str:
     # Contact status
     contact = json.loads(execute_tool("salon_check_contact", {}))
 
-    prompt = f"""Ti si AI Receptor za kozmetični salon Lepota & Sprostitev.
+    # Use qualifier name from config, fall back to default
+    qualifier = state.get("qualifier")
+    salon_name = getattr(qualifier, "name", None) or "Lepota & Sprostitev"
+
+    prompt = f"""Ti si AI Receptor za kozmetični salon {salon_name}.
 Si prijazen, topel, profesionalen — kot izkušen receptor.
 Govoriš naravno slovenščino, kratko in jedrnato.
 STROGO UPORABLJAJ VIKANJE (vi, vas, vaš, sporočite, izberite).
@@ -97,7 +92,7 @@ Bodi kratek (1-3 stavke), naraven, vikanje."""
 
 
 def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
-    """ONE LLM call with full context + all tools."""
+    """ONE LLM call with full context + all tools. No keyword gating — trust the prompt."""
     llm = LLMService()
     latest = state.get("latest_message", "")
     recent = state.get("recent_messages", []) or []
@@ -105,40 +100,31 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     system = _build_agent_prompt(state)
     msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
 
-    # Determine if user message suggests action (booking, addon, cancel)
+    # Contact status for guarding
     contact = json.loads(execute_tool("salon_check_contact", {}))
     has_contact = contact.get("ok")
-    latest_lower = latest.lower()
-    action_keywords = any(w in latest_lower for w in ["rezerviraj", "dodaj", "prekliči", "odpovej", "termin", "uro", "ob ", "daj", "potem", "aha"])
-    needs_action = has_contact and action_keywords
 
-    # Call LLM with tools — when action needed, only provide booking/addon/cancel (no check_availability escape)
-    if needs_action:
-        has_existing_booking = state.get("last_booking_id") is not None
-        is_addon_msg = any(w in latest_lower for w in ["dodaj", "daj", "aha", "potem", "zraven", "namesto"])
-        if has_existing_booking and is_addon_msg:
-            # Only add-on tools — don't let LLM rebook
-            tools = [t for t in SALON_TOOLS if t["function"]["name"] in (
-                "salon_list_addons", "salon_add_addon"
-            )]
-        else:
-            tools = [t for t in SALON_TOOLS if t["function"]["name"] in (
-                "salon_book_appointment", "salon_list_addons", "salon_add_addon", "salon_cancel_booking"
-            )]
-        resp = llm.call_with_tools(system, msgs, tools, required=True)
-    else:
-        tools = [t for t in SALON_TOOLS if t["function"]["name"] != "salon_check_contact"] if has_contact else SALON_TOOLS
-        resp = llm.call_with_tools(system, msgs, tools, required=False)
+    # Always auto mode with all tools — LLM decides based on the prompt
+    tools = SALON_TOOLS
+    resp = llm.call_with_tools(system, msgs, tools, required=False)
     tcs = resp.get("tool_calls")
     tool_results = {}
     all_tcs = []
+
+    # Guard: reject booking if no contact — inject a forced message instead
+    blocked_booking = False
+    if tcs:
+        if not has_contact:
+            booking_tcs = [tc for tc in tcs if tc["name"] == "salon_book_appointment"]
+            if booking_tcs:
+                blocked_booking = True
+                tcs = [tc for tc in tcs if tc["name"] != "salon_book_appointment"]
 
     if tcs:
         for tc in tcs:
             result = execute_tool(tc["name"], tc["args"])
             tool_results[tc["id"]] = result
             all_tcs.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
-            # Capture booking confirmation from tool result
             if tc["name"] == "salon_book_appointment":
                 r = json.loads(result)
                 if r.get("potrjeno"):
@@ -151,18 +137,27 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
                 if r.get("preklicano"):
                     state["booking_confirmed"] = False
 
-        # Add tool results to messages
         for tc in all_tcs:
             msgs.append({"role": "assistant", "content": None, "tool_calls": [
                 {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
             ]})
             msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
+    # If booking was blocked, inject a mandatory ask-for-contact message
+    if blocked_booking:
+        msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati brez kontakta. Vljudno prosi za telefonsko številko ali email."})
+
     # Generate final response
     reply = llm.call_json_response(system, msgs)
     reply = _unwrap_reply(reply)
     if not reply:
-        reply = llm.call_text(system, json.dumps(latest, ensure_ascii=False))
+        # Fallback: build prompt with tool results so LLM has full context
+        if all_tcs:
+            tool_summary = "\n".join(f"Orodje {tc['name']} je vrnilo: {tc['result'][:500]}" for tc in all_tcs)
+            fallback_user = f"{tool_summary}\n\nStranka pravi: {json.dumps(latest, ensure_ascii=False)}\n\nKaj odgovoriš stranki? Odgovori v slovenščini, z vikanjem, 1-3 stavke."
+        else:
+            fallback_user = json.dumps(latest, ensure_ascii=False)
+        reply = llm.call_text(system, fallback_user)
     if not reply:
         reply = resp.get("text", "") if not tcs else ""
     reply = _unwrap_reply(reply)

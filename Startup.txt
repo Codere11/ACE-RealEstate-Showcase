@@ -1,0 +1,85 @@
+============================================================
+  ACE Reception Services — Startup Runbook
+============================================================
+
+STACK (one process, one SPA):
+  Python backend  : backend/main.py (FastAPI + LangGraph)
+  Frontend        : angular-visitor (Angular 19, pre-built to backend/static)
+  Database        : PostgreSQL 15 (docker)
+  Video           : LiveKit (docker)
+  NO ace-mobile, NO Java, NO separate dev servers.
+
+============================================================
+1. INFRASTRUCTURE
+============================================================
+
+  docker compose -f docker-compose-simple.yml up -d
+
+  Waits for:
+    PostgreSQL  →  localhost:5433
+    LiveKit     →  localhost:7880
+
+============================================================
+2. BACKEND
+============================================================
+
+  cd backend
+  source ../venv/bin/activate
+  PYTHONPATH=.. uvicorn main:app --port 8000 --reload
+
+  Auto-seeds on first run:
+    - Demo org (slug: demo)
+    - Admin:  admin / test123
+    - AI qualifier with Slovenian beauty salon prompt
+
+  Health check:  curl -sf http://127.0.0.1:8000/
+
+============================================================
+3. OPEN IN BROWSER
+============================================================
+
+  Everything is served from http://localhost:8000
+
+  Visitor chatbot  →  http://localhost:8000/demo
+  Login            →  http://localhost:8000/login
+  Org dashboard    →  http://localhost:8000/demo/dashboard
+  Admin dashboard  →  http://localhost:8000/admin/dashboard
+
+  Credentials:  admin / test123
+
+============================================================
+4. ANGULAR DEV (only if editing frontend)
+============================================================
+
+  cd angular-visitor
+  npm start
+
+  Opens on http://localhost:4200 with proxy to :8000 for
+  /api, /chat, /chat-events, /login.
+
+  WARNING: The proxy also sends GET /login to :8000, which
+  returns the production index.html. The production JS files
+  won't load from :4200. Use :8000 for the real app. The
+  dev server is only for editing components, then rebuild.
+
+============================================================
+5. REBUILD FRONTEND (after Angular changes)
+============================================================
+
+  cd angular-visitor
+  npm run build
+  cp -r dist/angular-visitor/browser/* ../backend/static/
+
+  Restart backend or reload the page.
+
+============================================================
+KEY ENDPOINTS
+============================================================
+
+  POST /login              form: username, password  →  JWT
+  POST /chat               JSON: {message, sid, tenant_slug}
+  POST /chat/staff         JWT-protected staff takeover
+  GET  /chat-events/poll   real-time event polling
+  GET  /api/public/organizations/{slug}/live-session
+  POST /api/organizations/{id}/live-sessions/go-live
+  POST /api/organizations/{id}/live-sessions/end

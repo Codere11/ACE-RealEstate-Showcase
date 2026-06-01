@@ -5,11 +5,12 @@ import { CalendarPickerComponent } from '../calendar-picker/calendar-picker.comp
 import { HeaderComponent } from '../header/header.component';
 import { ServiceCardsComponent } from '../service-cards/service-cards.component';
 import { StaffVideoComponent } from '../staff-video/staff-video.component';
+import { FooterComponent } from '../footer/footer.component';
 
 @Component({
   selector: 'app-receptionist-chat',
   standalone: true,
-  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent, StaffVideoComponent],
+  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent, StaffVideoComponent, FooterComponent],
   templateUrl: './receptionist-chat.component.html',
   styleUrls: ['./receptionist-chat.component.scss'],
 })

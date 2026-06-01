@@ -12,6 +12,11 @@ ACE_PRODUCT_BRIEF = [
 _RUNTIME_CACHE: Dict[Tuple[str, str, int], Dict[str, Any]] = {}
 
 
+def clear_runtime_cache():
+    """Invalidate the runtime context cache. Call after updating qualifier config."""
+    _RUNTIME_CACHE.clear()
+
+
 def build_runtime_context(qualifier: Any) -> Dict[str, Any]:
     key = _cache_key(qualifier)
     cached = _RUNTIME_CACHE.get(key)

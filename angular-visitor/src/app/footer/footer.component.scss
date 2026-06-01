@@ -1,0 +1,104 @@
+.salon-footer {
+  background: white;
+  border-top: 1px solid #ede9fe;
+  margin-top: 3rem;
+  padding-top: 2.5rem;
+}
+
+.footer-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem 2rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 2rem;
+}
+
+.footer-brand {
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #2e1065;
+    margin: 0.75rem 0 0.25rem;
+  }
+
+  p {
+    font-size: 0.82rem;
+    color: #7c3aed;
+    margin: 0;
+  }
+}
+
+.footer-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.footer-links {
+  h4 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a78bfa;
+    margin: 0 0 0.75rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  li {
+    font-size: 0.82rem;
+    color: #5b4d6b;
+
+    a {
+      color: #5b4d6b;
+      text-decoration: none;
+      transition: color 0.15s;
+
+      &:hover {
+        color: #7c3aed;
+      }
+    }
+  }
+}
+
+.footer-bottom {
+  border-top: 1px solid #ede9fe;
+  padding: 1rem 2rem;
+  text-align: center;
+
+  p {
+    font-size: 0.75rem;
+    color: #a78bfa;
+    margin: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .footer-inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+  }
+}

@@ -42,7 +42,7 @@ async def get_or_create_lead(db: AsyncSession, org_id: int, sid: Optional[str]) 
     if sid:
         lead = (await db.execute(select(Lead).where(Lead.organization_id == org_id, Lead.sid == sid))).scalar_one_or_none()
         if lead: return lead
-    lead = Lead(organization_id=org_id, sid=new_sid(), display_name="Visitor " + new_sid()[-6:])
+    lead = Lead(organization_id=org_id, sid=sid or new_sid(), display_name="Visitor " + (sid or new_sid())[-6:])
     db.add(lead)
     return lead
 

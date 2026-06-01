@@ -1,6 +1,9 @@
-<app-header></app-header>
-<app-service-cards></app-service-cards>
-<app-staff-video></app-staff-video>
+<div class="page-wrapper">
+  <app-header></app-header>
+  <app-service-cards></app-service-cards>
+  <app-staff-video></app-staff-video>
+  <app-footer></app-footer>
+</div>
 <section class="chat-section" id="chat-section">
   <div class="chat-card" [class.minimized]="minimized()">
     <div class="chat-header" (click)="toggleMinimize()" [class.header-staff]="salon.staffState() === 'connected'">

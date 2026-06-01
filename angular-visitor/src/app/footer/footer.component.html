@@ -1,0 +1,40 @@
+<footer class="salon-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo">L&amp;S</div>
+      <h3>{{ salon.salonName }}</h3>
+      <p>{{ salon.salonSubtitle }}</p>
+    </div>
+
+    <div class="footer-links">
+      <h4>Storitve</h4>
+      <ul>
+        @for (svc of salon.services; track svc.id) {
+          <li><a href="#chat-section">{{ svc.name }}</a></li>
+        }
+      </ul>
+    </div>
+
+    <div class="footer-links">
+      <h4>Kontakt</h4>
+      <ul>
+        <li>📞 01 234 56 78</li>
+        <li>✉️ info&#64;lepotain-sprostitev.si</li>
+        <li>📍 Ljubljanska 42, 1000 Ljubljana</li>
+      </ul>
+    </div>
+
+    <div class="footer-links">
+      <h4>Delovni čas</h4>
+      <ul>
+        <li>Pon–Pet: {{ salon.openHour }}–{{ salon.closeHour }}</li>
+        <li>Sobota: 8.00–13.00</li>
+        <li>Nedelja: zaprto</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; {{ year }} {{ salon.salonName }}. Vse pravice pridržane.</p>
+  </div>
+</footer>

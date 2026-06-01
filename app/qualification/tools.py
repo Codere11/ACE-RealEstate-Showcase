@@ -61,13 +61,24 @@ def _next_working_day() -> str:
     return d.strftime("%Y-%m-%d")
 
 def _get_booked_slots(date_str: str) -> set:
-    """Query real bookings table for taken slots on a date. Uses sync engine."""
+    """Query real bookings table for taken slots on a date. Excludes current lead's own bookings."""
     if not _db_ctx:
         return set()
     try:
         from app.core.db import SessionLocal
         from sqlalchemy import text
         with SessionLocal() as db:
+            sid = _db_ctx.get("sid")
+            if sid:
+                lead_row = db.execute(text(
+                    "SELECT id FROM leads WHERE organization_id = :oid AND sid = :sid"
+                ), {"oid": _db_ctx["org_id"], "sid": sid}).fetchone()
+                if lead_row:
+                    result = db.execute(
+                        text("SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled' AND (lead_id IS NULL OR lead_id != :lid)"),
+                        {"oid": _db_ctx["org_id"], "d": date_str, "lid": lead_row[0]}
+                    )
+                    return {(row[0], row[1]) for row in result.all()}
             result = db.execute(
                 text("SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled'"),
                 {"oid": _db_ctx["org_id"], "d": date_str}
@@ -244,10 +255,26 @@ def execute_tool(name: str, args: dict) -> str:
                     from app.core.db import SessionLocal
                     from sqlalchemy import text
                     with SessionLocal() as db:
+                        # Look up lead_id for this sid so we can exclude their own bookings
+                        lead_id = None
+                        sid = _db_ctx.get("sid")
+                        if sid:
+                            lead_row = db.execute(text(
+                                "SELECT id FROM leads WHERE organization_id = :oid AND sid = :sid"
+                            ), {"oid": _db_ctx["org_id"], "sid": sid}).fetchone()
+                            if lead_row:
+                                lead_id = lead_row[0]
+
                         # Lock all bookings for this org+date to prevent race-condition double-booking
-                        rows = db.execute(text(
-                            "SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled' FOR UPDATE"
-                        ), {"oid": _db_ctx["org_id"], "d": datum}).all()
+                        # Exclude current lead's own bookings (they can rebook the same slot)
+                        if lead_id:
+                            rows = db.execute(text(
+                                "SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled' AND (lead_id IS NULL OR lead_id != :lid) FOR UPDATE"
+                            ), {"oid": _db_ctx["org_id"], "d": datum, "lid": lead_id}).all()
+                        else:
+                            rows = db.execute(text(
+                                "SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled' FOR UPDATE"
+                            ), {"oid": _db_ctx["org_id"], "d": datum}).all()
                         bookings = {(r[0], r[1]) for r in rows}
 
                         # Check overlap (under lock)
@@ -265,12 +292,12 @@ def execute_tool(name: str, args: dict) -> str:
 
                         # Insert booking (under same lock)
                         result = db.execute(text("""
-                            INSERT INTO bookings (organization_id, service_id, service_name, duration_min, price_eur,
+                            INSERT INTO bookings (organization_id, lead_id, service_id, service_name, duration_min, price_eur,
                                 booking_date, booking_time, customer_name, customer_phone, customer_email, status)
-                            VALUES (:oid, :sid, :sname, :dur, :price, :bdate, :btime, :cname, :cphone, :cemail, 'confirmed')
+                            VALUES (:oid, :lid, :sid, :sname, :dur, :price, :bdate, :btime, :cname, :cphone, :cemail, 'confirmed')
                             RETURNING id
                         """), {
-                            "oid": _db_ctx["org_id"], "sid": service["id"], "sname": service["name"],
+                            "oid": _db_ctx["org_id"], "lid": lead_id, "sid": service["id"], "sname": service["name"],
                             "dur": service["duration_min"], "price": service["price_eur"],
                             "bdate": datum, "btime": ura, "cname": ime,
                             "cphone": _db_ctx.get("lead_phone"), "cemail": _db_ctx.get("lead_email"),
