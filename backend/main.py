@@ -69,6 +69,10 @@ from routes_admin import router as admin_router
 app.include_router(chat_router)
 app.include_router(admin_router)
 
+# Public payment pages
+from app.api.public_payments import router as public_payments_router
+app.include_router(public_payments_router)
+
 # SPA fallback: serve index.html for all non-API routes
 from fastapi.responses import FileResponse, HTMLResponse
 static_dir = os.path.join(os.path.dirname(__file__), "static")

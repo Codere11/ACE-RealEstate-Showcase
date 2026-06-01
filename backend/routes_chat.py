@@ -164,6 +164,91 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
                 "options": ["Nega obraza", "Masaža", "Manikura", "Pedikura", "Depilacija", "Nekaj drugega"]},
                 "completionTitle": None, "completionSubtitle": None}
 
+# ══════ CHAT (STREAMING) ══════
+from fastapi.responses import StreamingResponse
+
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
+    slug = req.tenant_slug or (req.meta.get("organization_slug", "demo") if req.meta else "demo")
+    org = await get_org_by_slug(db, str(slug))
+    lead = await get_or_create_lead(db, org.id, req.sid)
+    await db.flush()
+
+    if not req.message.strip():
+        greeting = "Dober dan! Dobrodošli. Kako vam lahko pomagamo?"
+        async def _greet():
+            yield f"data: {_json.dumps({'token': greeting})}\n\n"
+            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
+        return StreamingResponse(_greet(), media_type="text/event-stream")
+
+    await save_message(db, lead, ConvRole.USER, req.message)
+    await db.commit()
+
+    if lead.takeover_active:
+        async def _silent():
+            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
+        return StreamingResponse(_silent(), media_type="text/event-stream")
+
+    qualifier = (await db.execute(select(Qualifier).where(Qualifier.organization_id == org.id, Qualifier.status == "live"))).scalar_one_or_none()
+
+    import re
+    if not lead.phone:
+        phone_match = re.search(r'(\+?\d[\d\s]{7,}\d)', req.message)
+        if phone_match:
+            lead.phone = phone_match.group(1).strip()
+    if not lead.email:
+        email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.+-]+', req.message)
+        if email_match:
+            lead.email = email_match.group(0).strip()
+    if lead.phone or lead.email:
+        await db.commit()
+    set_db_context(org.id, lead.sid, lead.phone, lead.email)
+
+    async def _stream():
+        if not qualifier:
+            reply = "Katero storitev iščete? (Nega obraza, Masaža, Manikura, Pedikura...)"
+            await save_message(db, lead, ConvRole.ASSISTANT, reply)
+            await db.commit()
+            yield f"data: {_json.dumps({'token': reply})}\n\n"
+            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
+            return
+
+        try:
+            from app.qualification.graph import run_qualification_graph_stream
+            from app.services.llm_service import LLMService
+            from types import SimpleNamespace
+            llm = LLMService()
+            q = SimpleNamespace(**{k: getattr(qualifier, k, None) for k in ["name","slug","status","system_prompt","assistant_style","goal_definition","field_schema","required_fields","scoring_rules","band_thresholds","confidence_thresholds","takeover_rules","video_offer_rules","rag_enabled","knowledge_source_ids","max_clarifying_questions","contact_capture_policy","version","version_notes"]})
+            msgs_result = await db.execute(select(ConversationMessage).where(ConversationMessage.lead_id == lead.id).order_by(desc(ConversationMessage.created_at)).limit(8))
+            recent = [{"role": m.role, "text": m.text} for m in reversed(msgs_result.scalars().all())]
+
+            full_reply = []
+            for token in run_qualification_graph_stream(llm=llm, qualifier=q, latest_message=req.message, recent_messages=recent, profile_before=lead.qualifier_profile or {}):
+                full_reply.append(token)
+                yield f"data: {_json.dumps({'token': token})}\n\n"
+
+            reply = "".join(full_reply).strip()
+            if not reply:
+                reply = "Hvala za vaše sporočilo."
+
+            profile = dict(lead.qualifier_profile or {})
+            profile["last_booking_id"] = profile.get("last_booking_id")
+            lead.qualifier_profile = profile
+            await save_message(db, lead, ConvRole.ASSISTANT, reply)
+            await db.commit()
+
+            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            fallback = "Oprostite, AI trenutno ni na voljo. Ekipa vas bo kontaktirala kmalu."
+            await save_message(db, lead, ConvRole.ASSISTANT, fallback)
+            await db.commit()
+            yield f"data: {_json.dumps({'token': fallback})}\n\n"
+            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
+
+
 # ══════ STAFF TAKEOVER ══════
 @router.post("/chat/staff")
 async def staff_message(req: StaffMessageRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -261,6 +346,9 @@ async def end_takeover(org_id: int, sid: str, user: User = Depends(get_current_u
 async def delete_lead(org_id: int, sid: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await check_org_access(user, org_id)
     lead = await get_lead(db, org_id, sid)
+    # Detach bookings before deleting lead (FK constraint)
+    from sqlalchemy import update as _update
+    await db.execute(_update(Booking).where(Booking.lead_id == lead.id).values(lead_id=None))
     await publish_event(org_id, sid, "lead.deleted", {"sid": sid, "deleted": True})
     await db.delete(lead)
     await db.commit()

@@ -122,6 +122,26 @@ class LLMService:
             logger.warning("llm tool call failed err=%s", e)
             return {"text": ""}
 
+    def stream_reply(self, system_prompt: str, messages: list, *, temperature: float = 0.2):
+        """Stream tokens for the final reply. Yields token strings."""
+        client = self._client_or_none()
+        if client is None:
+            yield ""
+            return
+        try:
+            full_msgs = [{"role": "system", "content": system_prompt}] + messages
+            full_msgs.append({"role": "user", "content": "Odgovori v slovenščini, z vikanjem, 1-3 stavke. Bodi kratek in naraven."})
+            stream = client.chat.completions.create(
+                model=self.model_name, temperature=temperature, stream=True, messages=full_msgs,
+            )
+            for chunk in stream:
+                delta = (chunk.choices or [None])[0]
+                if delta and delta.delta and delta.delta.content:
+                    yield delta.delta.content
+        except Exception as e:
+            logger.warning("llm stream failed err=%s", e)
+            yield ""
+
     def call_json_response(self, system_prompt: str, messages: list, *, temperature: float = 0) -> str:
         """Final call to get JSON {"rep": "..."} after tool loop."""
         client = self._client_or_none()

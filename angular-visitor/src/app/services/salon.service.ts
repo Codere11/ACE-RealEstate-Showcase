@@ -123,28 +123,46 @@ export class SalonService implements OnDestroy {
 
   async sendMessage(text: string) {
     this.addMsg('user', text);
-    const loadingId = nextId();
-    this.messages.update(msgs => [...msgs, { id: loadingId, role: 'ai', text: '__LOADING__' }]);
+    const msgId = nextId();
+    this.messages.update(msgs => [...msgs, { id: msgId, role: 'ai', text: '' }]);
     this.aiLoading.set(true);
-    try {
-      const res = await firstValueFrom(this.api.sendMessage(this.sid, text));
-      this.sid = res.sid;
-      // Remove loading placeholder, add reply (dedup: event might have arrived first)
-      this.messages.update(msgs => {
-        const withoutLoading = msgs.filter(m => m.id !== loadingId);
-        if (res.reply && !withoutLoading.some(m => m.text === res.reply)) {
-          return [...withoutLoading, { id: nextId(), role: 'ai' as const, text: res.reply }];
+
+    this.api.sendMessageStream(this.sid, text).subscribe({
+      next: (token) => {
+        if (token.startsWith('__SID__:')) {
+          this.sid = token.slice(8);
+          sessionStorage?.setItem('ace_sid', this.sid);
+          return;
         }
-        return withoutLoading;
-      });
-      if (res.reply && this.staffState() === 'connected') {
-        this.staffState.set('idle');
-      }
-    } catch {
-      this.messages.update(msgs => msgs.filter(m => m.id !== loadingId));
-      this.addMsg('system', 'Strežnik trenutno ni dosegljiv.');
-    }
-    this.aiLoading.set(false);
+        this.messages.update(msgs => msgs.map(m =>
+          m.id === msgId ? { ...m, text: m.text + token } : m
+        ));
+      },
+      error: () => {
+        this.messages.update(msgs => {
+          const filtered = msgs.filter(m => m.id !== msgId || (m.id === msgId && m.text));
+          if (filtered.length === msgs.filter(m => m.id !== msgId).length) {
+            return [...filtered, { id: nextId(), role: 'system' as const, text: 'Strežnik trenutno ni dosegljiv.' }];
+          }
+          return filtered;
+        });
+        this.aiLoading.set(false);
+      },
+      complete: () => {
+        this.aiLoading.set(false);
+        // Detect payment links in the reply and add as action buttons
+        this.messages.update(msgs => msgs.map(m => {
+          if (m.id === msgId && m.text) {
+            const payMatch = m.text.match(/https?:\/\/[^\s]+\/pay\/[\w-]+/);
+            if (payMatch) {
+              return { ...m, actions: [{ label: '💳 Plačaj', type: 'pay', payload: payMatch[0] }] };
+            }
+          }
+          return m;
+        }));
+        if (this.staffState() === 'connected') this.staffState.set('idle');
+      },
+    });
   }
 
   // ══════ MESSAGES ══════

@@ -74,7 +74,7 @@ export class ReceptionistChatComponent implements AfterViewChecked {
     this.minimized.update(v => !v);
   }
 
-  onAction(actionType: string): void {
+  onAction(actionType: string, payload?: any): void {
     switch (actionType) {
       case 'request-staff':
         this.salon.requestStaff();
@@ -88,6 +88,9 @@ export class ReceptionistChatComponent implements AfterViewChecked {
         break;
       case 'deny-staff':
         this.salon.denyStaff();
+        break;
+      case 'pay':
+        if (payload) window.open(payload, '_blank');
         break;
     }
   }

@@ -83,6 +83,7 @@ TVOJA NALOGA:
 5. Če stranka želi preklicati — pokliči salon_cancel_booking.
 6. Če stranka želi osebje — pokliči salon_request_staff.
 7. Če je stranka samo potrdila, se strinja, ali sprejema brez sprememb ("ok", "v redu", "bom potem brez", "super", "hvala") — NE kliči nobenega orodja. Samo kratko potrdi ali se zahvali.
+8. Če stranka želi plačati, vpraša o ceni, ali želi depozit/predplačilo — pokliči salon_create_invoice z ustreznim zneskom in namenom. V odgovoru posreduj povezavo za plačilo.
 
 POMEMBNO: Če stranka omenja dopolnitev ki je NI na seznamu za izbrano storitev — NE vključi je v booking. Orodje salon_book_appointment bo samo preverilo dodatke in vrnilo rezultat. Preberi njegovo sporočilo in ga posreduj stranki.
 
@@ -91,27 +92,20 @@ Bodi kratek (1-3 stavke), naraven, vikanje."""
     return prompt
 
 
-def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
-    """ONE LLM call with full context + all tools. No keyword gating — trust the prompt."""
-    llm = LLMService()
+def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
+    """Run LLM with tools, execute any tool calls, return (system, msgs, had_tools, blocked_booking)."""
     latest = state.get("latest_message", "")
-    recent = state.get("recent_messages", []) or []
-
     system = _build_agent_prompt(state)
     msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
 
-    # Contact status for guarding
     contact = json.loads(execute_tool("salon_check_contact", {}))
     has_contact = contact.get("ok")
 
-    # Always auto mode with all tools — LLM decides based on the prompt
     tools = SALON_TOOLS
     resp = llm.call_with_tools(system, msgs, tools, required=False)
     tcs = resp.get("tool_calls")
-    tool_results = {}
     all_tcs = []
 
-    # Guard: reject booking if no contact — inject a forced message instead
     blocked_booking = False
     if tcs:
         if not has_contact:
@@ -123,7 +117,6 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     if tcs:
         for tc in tcs:
             result = execute_tool(tc["name"], tc["args"])
-            tool_results[tc["id"]] = result
             all_tcs.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
             if tc["name"] == "salon_book_appointment":
                 r = json.loads(result)
@@ -143,32 +136,66 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
             ]})
             msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
-    # If booking was blocked, inject a mandatory ask-for-contact message
     if blocked_booking:
         msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati brez kontakta. Vljudno prosi za telefonsko številko ali email."})
 
-    # Generate final response
+    # Guard: if no tool called but user message clearly asks for action (date + contact), force second pass
+    if not all_tcs and has_contact:
+        import re as _re
+        has_date = bool(_re.search(r'\d{1,2}\.\d{1,2}\.|\d{4}-\d{2}-\d{2}|jutri|danes|pojutrišnjem|ponedeljek|torek|sredo|sreda|četrtek|petek|soboto|nedeljo|naslednji teden|ta teden', latest.lower()))
+        has_time = bool(_re.search(r'ob\s+\d|\d{1,2}:\d{2}|\d{1,2}\.00|opoldne|dopoldne|popoldne|zjutraj|dopoldan|popoldan|enih|dveh|treh|štirih|petih|šestih|sedmih|osmih|devetih|desetih|enajstih|dvanajstih', latest.lower()))
+        if has_date or has_time:
+            msgs.append({"role": "user", "content": "MORAŠ poklicati orodje (salon_book_appointment). Ne smeš samo reči da boš uredil — dejansko pokliči orodje."})
+            resp2 = llm.call_with_tools(system, msgs, [t for t in tools if t["function"]["name"] != "salon_check_contact"], required=True)
+            tcs2 = resp2.get("tool_calls")
+            if tcs2:
+                second_results = []
+                for tc in tcs2:
+                    if not has_contact and tc["name"] == "salon_book_appointment":
+                        continue
+                    result = execute_tool(tc["name"], tc["args"])
+                    second_results.append((tc, result))
+                    all_tcs.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
+                    if tc["name"] == "salon_book_appointment":
+                        r = json.loads(result)
+                        if r.get("potrjeno"):
+                            state["booking_confirmed"] = True
+                            state["booking_date"] = tc["args"].get("datum", "")
+                            state["booking_time"] = tc["args"].get("ura", "")
+                            state["last_booking_id"] = r.get("id")
+                    if tc["name"] == "salon_cancel_booking":
+                        r = json.loads(result)
+                        if r.get("preklicano"):
+                            state["booking_confirmed"] = False
+                for tc, result in second_results:
+                    msgs.append({"role": "assistant", "content": None, "tool_calls": [
+                        {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
+                    ]})
+                    msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
+
+    return system, msgs, bool(all_tcs), blocked_booking
+
+
+def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
+    """ONE LLM call with full context + all tools. No keyword gating — trust the prompt."""
+    llm = LLMService()
+    latest = state.get("latest_message", "")
+
+    system, msgs, had_tools, blocked_booking = _run_tools_phase(state, llm)
+
+    # Generate final response (non-streaming)
     reply = llm.call_json_response(system, msgs)
     reply = _unwrap_reply(reply)
     if not reply:
-        # Fallback: build prompt with tool results so LLM has full context
-        if all_tcs:
-            tool_summary = "\n".join(f"Orodje {tc['name']} je vrnilo: {tc['result'][:500]}" for tc in all_tcs)
-            fallback_user = f"{tool_summary}\n\nStranka pravi: {json.dumps(latest, ensure_ascii=False)}\n\nKaj odgovoriš stranki? Odgovori v slovenščini, z vikanjem, 1-3 stavke."
-        else:
-            fallback_user = json.dumps(latest, ensure_ascii=False)
+        fallback_user = json.dumps(latest, ensure_ascii=False)
         reply = llm.call_text(system, fallback_user)
-    if not reply:
-        reply = resp.get("text", "") if not tcs else ""
-    reply = _unwrap_reply(reply)
     if not reply:
         reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
 
-    # Update state flags
     if not state.get("hours_mentioned"):
         state["hours_mentioned"] = True
     state["services_presented"] = True
-    state["conversation_stage"] = "idle"  # Agent handles everything, no stage tracking needed
+    state["conversation_stage"] = "idle"
 
     state["decision"] = TurnDecision(
         reply=reply,
@@ -233,6 +260,69 @@ def run_qualification_graph(
     state = _load_runtime_context(state)
     state = _retrieve_knowledge(state)
     return _agent_node(state)
+
+
+def run_qualification_graph_stream(
+    *,
+    llm: LLMService,
+    qualifier: Any,
+    latest_message: str,
+    recent_messages: List[Dict[str, str]],
+    profile_before: Dict[str, Any],
+    spatial_context: Optional[Dict[str, Any]] = None,
+):
+    """Streaming variant — yields (state_dict, token) tuples during final reply."""
+    state: QualificationGraphState = {
+        "qualifier": qualifier,
+        "latest_message": latest_message,
+        "recent_messages": recent_messages,
+        "profile_before": profile_before,
+        "spatial_context": spatial_context,
+        "conversation_stage": profile_before.get("conversation_stage") or "",
+        "hours_mentioned": profile_before.get("hours_mentioned", False),
+        "services_presented": profile_before.get("services_presented", False),
+        "service_interest": profile_before.get("service_interest", ""),
+        "booking_date": profile_before.get("booking_date", ""),
+        "booking_time": profile_before.get("booking_time", ""),
+        "booking_confirmed": False,
+        "last_booking_id": profile_before.get("last_booking_id"),
+    }
+    state = _load_runtime_context(state)
+    state = _retrieve_knowledge(state)
+
+    # Run tool phase (blocking)
+    system, msgs, tcs_executed, blocked_booking = _run_tools_phase(state, llm)
+    
+    # Stream final reply
+    reply_parts = []
+    for token in llm.stream_reply(system, msgs):
+        if token:
+            reply_parts.append(token)
+            yield token
+    
+    reply = "".join(reply_parts).strip()
+    if not reply:
+        reply = state.get("decision", {}).get("reply", "") if "decision" in state else ""
+    if not reply:
+        reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+        yield reply  # yield fallback as single token
+
+    # Finalize state
+    if not state.get("hours_mentioned"):
+        state["hours_mentioned"] = True
+    state["services_presented"] = True
+    state["conversation_stage"] = "idle"
+    state["decision"] = TurnDecision(
+        reply=reply,
+        recommended_next_action="continue_conversation",
+        funnel_stage="agent",
+        qualification_band="warm",
+        qualification_score=55,
+        confidence_overall=0.5,
+        used_llm=True,
+        model_name=llm.model_name,
+    )
+    state["tool_messages"] = msgs
 
 
 def _load_runtime_context(state: QualificationGraphState) -> QualificationGraphState:

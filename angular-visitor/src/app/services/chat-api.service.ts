@@ -68,7 +68,82 @@ export class ChatApiService {
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * Send a message to the AI receptionist.
+   * Send a message and receive the reply as a stream of tokens.
+   * Returns an Observable that emits each token string, then completes.
+   */
+  sendMessageStream(sid: string | undefined, message: string): Observable<string> {
+    const body: ChatRequest = {
+      sid,
+      message,
+      tenant_slug: this.tenantSlug,
+    };
+
+    return new Observable<string>((observer) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
+      fetch(`${this.baseUrl}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            clearTimeout(timeout);
+            observer.error(new ApiError('sendMessageStream', `HTTP ${response.status}`, response.status));
+            return;
+          }
+          const reader = response.body?.getReader();
+          if (!reader) {
+            clearTimeout(timeout);
+            observer.error(new ApiError('sendMessageStream', 'No response body', 0));
+            return;
+          }
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let finalSid = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.token) {
+                    observer.next(data.token);
+                  }
+                  if (data.sid) {
+                    finalSid = data.sid;
+                  }
+                  if (data.done && finalSid) {
+                    observer.next('__SID__:' + finalSid);
+                  }
+                } catch { /* skip malformed */ }
+              }
+            }
+          }
+          clearTimeout(timeout);
+          observer.complete();
+        })
+        .catch((err) => {
+          clearTimeout(timeout);
+          observer.error(new ApiError('sendMessageStream', err.message || 'Network error', 0));
+        });
+
+      return () => {
+        clearTimeout(timeout);
+        controller.abort();
+      };
+    });
+  }
+
+  /**
+   * Send a message to the AI receptionist (non-streaming fallback).
    * Retries up to environment.retryCount times with exponential backoff on 5xx errors.
    */
   sendMessage(sid: string | undefined, message: string): Observable<ChatResponse> {

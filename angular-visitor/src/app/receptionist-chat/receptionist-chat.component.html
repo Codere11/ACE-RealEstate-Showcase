@@ -39,7 +39,7 @@
                 <div class="message-badge">Osebje</div>
               }
               <div class="message-text">
-                @if (msg.text === '__LOADING__') {
+                @if (!msg.text && msg.role === 'ai') {
                   <div class="loading-dots"><span></span><span></span><span></span></div>
                 } @else {
                   {{ msg.text }}
@@ -48,7 +48,7 @@
               @if (msg.actions && msg.actions.length) {
                 <div class="message-actions">
                   @for (action of msg.actions; track action.label) {
-                    <button class="action-btn" (click)="onAction(action.type)">
+                    <button class="action-btn" (click)="onAction(action.type, action.payload)">
                       {{ action.label }}
                     </button>
                   }

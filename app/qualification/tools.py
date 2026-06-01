@@ -199,6 +199,14 @@ SALON_TOOLS = [
             "booking_id": {"type": "integer", "description": "ID rezervacije za preklic"},
         }, "required": ["booking_id"]},
     }},
+    {"type": "function", "function": {
+        "name": "salon_create_invoice",
+        "description": "Ustvari račun/povezavo za plačilo. Uporabi ko stranka želi plačati, vpraša o ceni, ali po rezervaciji za depozit. Znesek je v centih (npr. 4500 = 45.00€).",
+        "parameters": {"type": "object", "properties": {
+            "znesek_centi": {"type": "integer", "description": "Znesek v centih, npr. 4500 za 45€"},
+            "namen": {"type": "string", "description": "Namen plačila, npr. 'Nega obraza - depozit' ali 'Maska obraza'"},
+        }, "required": ["znesek_centi", "namen"]},
+    }},
 ]
 
 def execute_tool(name: str, args: dict) -> str:
@@ -468,6 +476,37 @@ def execute_tool(name: str, args: dict) -> str:
                 }, ensure_ascii=False)
             except Exception as e:
                 logger.warning(f"Failed to cancel booking: {e}")
+                return json.dumps({"napaka": str(e)[:200]}, ensure_ascii=False)
+
+        if name == "salon_create_invoice":
+            znesek_centi = args.get("znesek_centi", 0)
+            namen = args.get("namen", "Plačilo")
+            if not _db_ctx:
+                return json.dumps({"napaka": "DB ni na voljo"}, ensure_ascii=False)
+            try:
+                from app.services.payment_service import service as payment_service
+                from app.core.db import SessionLocal as SyncSession
+                with SyncSession() as db:
+                    znesek_eur = round(znesek_centi / 100, 2)
+                    req = payment_service.create_payment_request(
+                        db=db,
+                        organization_id=_db_ctx["org_id"],
+                        sid=_db_ctx.get("sid", "*"),
+                        created_by_user_id=None,
+                        amount=znesek_eur,
+                        currency="EUR",
+                        purpose=namen,
+                        note="Avtomatsko ustvarjeno preko AI receptorja",
+                    )
+                    return json.dumps({
+                        "ustvarjeno": True,
+                        "znesek_eur": znesek_eur,
+                        "namen": namen,
+                        "povezava": req.payment_url,
+                        "sporocilo": f"Povezava za plačilo {znesek_eur}€ ({namen}): {req.payment_url}"
+                    }, ensure_ascii=False)
+            except Exception as e:
+                logger.warning(f"Failed to create invoice: {e}")
                 return json.dumps({"napaka": str(e)[:200]}, ensure_ascii=False)
 
         return json.dumps({"napaka": f"Neznano orodje: {name}"}, ensure_ascii=False)

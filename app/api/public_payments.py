@@ -61,7 +61,7 @@ def public_payment_page(public_token: str, db: Session = Depends(get_db)):
         return RedirectResponse(payment_request.payment_url, status_code=302)
 
     note = f"<div class='note'>{payment_request.note}</div>" if payment_request.note else ""
-    expired = payment_request.expires_at and payment_request.expires_at < datetime.utcnow()
+    expired = payment_request.expires_at and payment_request.expires_at.replace(tzinfo=None) < datetime.utcnow()
     if expired:
         return _page(
             "Zahtevek je potekel",
