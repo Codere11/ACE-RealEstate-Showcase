@@ -139,8 +139,10 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
     if blocked_booking:
         msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati brez kontakta. Vljudno prosi za telefonsko številko ali email."})
 
-    # Guard: if no tool called but user message clearly asks for action (date + contact), force second pass
-    if not all_tcs and has_contact:
+    # Guard: if no booking/cancel tool was called but user message clearly asks for action (date + contact), force second pass
+    booking_tool_names = {"salon_book_appointment", "salon_cancel_booking", "salon_add_addon"}
+    had_booking_tool = any(tc["name"] in booking_tool_names for tc in all_tcs)
+    if not had_booking_tool and has_contact:
         import re as _re
         has_date = bool(_re.search(r'\d{1,2}\.\d{1,2}\.|\d{4}-\d{2}-\d{2}|jutri|danes|pojutrišnjem|ponedeljek|torek|sredo|sreda|četrtek|petek|soboto|nedeljo|naslednji teden|ta teden', latest.lower()))
         has_time = bool(_re.search(r'ob\s+\d|\d{1,2}:\d{2}|\d{1,2}\.00|opoldne|dopoldne|popoldne|zjutraj|dopoldan|popoldan|enih|dveh|treh|štirih|petih|šestih|sedmih|osmih|devetih|desetih|enajstih|dvanajstih', latest.lower()))
@@ -293,19 +295,39 @@ def run_qualification_graph_stream(
     # Run tool phase (blocking)
     system, msgs, tcs_executed, blocked_booking = _run_tools_phase(state, llm)
     
-    # Stream final reply
-    reply_parts = []
-    for token in llm.stream_reply(system, msgs):
-        if token:
-            reply_parts.append(token)
-            yield token
+    latest = state.get("latest_message", "")
+    reply = ""
     
-    reply = "".join(reply_parts).strip()
-    if not reply:
-        reply = state.get("decision", {}).get("reply", "") if "decision" in state else ""
-    if not reply:
-        reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
-        yield reply  # yield fallback as single token
+    if tcs_executed:
+        # Tools were called — use non-streaming final reply (DeepSeek re-emits tool XML in stream)
+        reply = llm.call_json_response(system, msgs)
+        reply = _unwrap_reply(reply)
+        if not reply:
+            summary_parts = []
+            for m in msgs:
+                if m.get("role") == "tool":
+                    try:
+                        r = json.loads(m["content"])
+                        summary_parts.append(r.get("sporocilo", m["content"][:300]))
+                    except Exception:
+                        summary_parts.append(m["content"][:300])
+            fallback_user = ("Rezultati orodij: " + " | ".join(summary_parts)) if summary_parts else json.dumps(latest, ensure_ascii=False)
+            reply = llm.call_text(system, fallback_user) or reply
+        if not reply:
+            reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+        for ch in reply:
+            yield ch
+    else:
+        # No tools — stream directly from LLM
+        stream_msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
+        for token in llm.stream_reply(system, stream_msgs):
+            if token:
+                reply += token
+                yield token
+        reply = reply.strip()
+        if not reply:
+            reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+            yield reply
 
     # Finalize state
     if not state.get("hours_mentioned"):

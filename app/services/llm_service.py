@@ -17,26 +17,34 @@ except Exception:  # pragma: no cover
 
 
 class LLMService:
-    """Thin LLM client for qualification graph nodes."""
+    """Thin LLM client for qualification graph nodes. Supports OpenAI and DeepSeek."""
+
+    PROVIDER_CONFIG = {
+        "openai": {"base_url": None, "key_env": "OPENAI_API_KEY"},
+        "deepseek": {"base_url": "https://api.deepseek.com", "key_env": "DEEPSEEK_API_KEY"},
+    }
 
     def __init__(self) -> None:
         self.provider = os.getenv("ACE_LLM_PROVIDER", "none").strip().lower()
         self.model_name = os.getenv("ACE_LLM_MODEL", "gpt-4.1-mini").strip()
-        self.api_key = (
-            os.getenv("OPENAI_API_KEY")
-            or os.getenv("ACE_OPENAI_API_KEY")
-            or ""
-        ).strip()
+        cfg = self.PROVIDER_CONFIG.get(self.provider, {})
+        self.api_key = os.getenv(cfg.get("key_env", ""), "").strip()
+        if not self.api_key:
+            self.api_key = os.getenv("OPENAI_API_KEY", "").strip()  # fallback
+        self._base_url = cfg.get("base_url")
         self._client = None
 
     def is_available(self) -> bool:
-        return self.provider == "openai" and bool(self.api_key) and OpenAI is not None
+        return self.provider in self.PROVIDER_CONFIG and bool(self.api_key) and OpenAI is not None
 
     def _client_or_none(self):
         if not self.is_available():
             return None
         if self._client is None:
-            self._client = OpenAI(api_key=self.api_key)
+            kwargs = {"api_key": self.api_key}
+            if self._base_url:
+                kwargs["base_url"] = self._base_url
+            self._client = OpenAI(**kwargs)
         return self._client
 
     def call_json(self, system_prompt: str, user_prompt: str, *, temperature: float = 0) -> Dict[str, Any]:
