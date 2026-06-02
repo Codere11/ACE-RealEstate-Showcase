@@ -85,10 +85,10 @@ Possible Step 0 things first:
 ### Architecture — Three agents, one orchestrator
 
 ```
-┌──────────────┐     POST /chat      ┌──────────────────┐
+┌──────────────┐     POST /chat       ┌──────────────────┐
 │  Customer    │ ──────────────────> │  ACE Receptionist │
 │  Simulator   │ <────────────────── │  (the real system) │
-│  (DeepSeek)  │    streaming reply  │                   │
+│  (DeepSeek)  │    JSON reply       │                   │
 └──────────────┘                     └──────────────────┘
        │                                      │
        │                              ┌───────┴──────────┐
@@ -116,36 +116,60 @@ Possible Step 0 things first:
 
 **Agent 3 — Staff Simulator:** A separate DeepSeek instance. Only activated when the conversation reaches a takeover scenario (customer clicks "Zahtevaj osebje", or the script triggers one). It plays the role of Maja the cosmetician — warm, professional, knowledgeable about services.
 
-**Orchestrator:** `scripts/simulate_conversations.py`. A Python script that:
-- Samples demographics from the distributions in `scripts/demographics.py` and assigns each conversation a unique SID
-- For each scenario, creates a new lead (unique SID)
-- Runs turn-by-turn: sends customer message → waits for receptionist reply → feeds reply to customer simulator → generates next message → repeat
-- Tracks state (stage, booking made, payment sent, etc.)
-- Records everything into the real database (leads, messages, bookings, events)
-- Handles staff takeover by switching to the staff simulator mid-conversation
-- Runs conversations sequentially (not parallel) to avoid rate limits and slot conflicts
+**Orchestrator:** `scripts/simulate_conversations.py`. Thin — just a loop. The real work already happens inside the ACE system. The orchestrator's only job is distribution tracking + running conversations:
+
+```python
+state = load_state() or {"completed": 0, "counts": {...}, "results": []}
+
+for i in range(state["completed"], 100):
+    demo = sampler.next(state["counts"])          # weighted random, targets underfilled buckets
+    sid = f"sim-{i:03d}"
+    result = run_conversation(sid, demo)           # same send_chat we already tested
+    state["results"].append(result)
+    state["counts"] = sampler.update_counts(state["counts"], demo, result)
+    state["completed"] = i + 1
+    save_state(state)
+```
+
+Key properties:
+- Runs conversations sequentially — no parallelism, no rate limit issues, no slot conflicts
+- Each conversation gets a **fresh customer**: clean SID, clean conversation history, no context leaking from previous runs
+- The Customer Simulator has no memory of previous conversations — it's a new DeepSeek call with only the current demographics prompt + this conversation's history
+
+**Sampler:** `scripts/demographics.py`. The interesting part. Not just `random.choice()` — it tracks cumulative counts and weights draws toward underrepresented buckets so the final distribution matches the targets:
+
+| Dimension | Mechanism |
+|-----------|-----------|
+| Age, Gender, Channel, Service interest, Budget | Weighted random draw — each pick reduces the weight for that bucket next time |
+| Booking disposition | Same weighted draw across 3 levels |
+| Behavior quirks | Sampled independently (cross-mixed with everything above) |
+| Name, phone, email | Pulled from a pool of realistic Slovenian names/numbers |
+
+All dimensions are **independent draws**. A 55-year-old VIP can be "just browsing." A 22-year-old with payment anxiety can be "eager to book." The sampler output is a plain JSON demographics card — the same format we tested in `test_single_conversation.py`.
 
 ### Conversation flow per turn
 
 ```
-1. Orchestrator calls Customer Simulator:
-   "You are [demographics]. Conversation so far: [...]. What do you say next?"
+1. Orchestrator calls Customer Simulator (DeepSeek):
+   System prompt: natural-language instructions built from sampled demographics card
+   User prompt: conversation history so far + "Kaj rečeš naslednje? Odgovori SAMO z sporočilom."
    → Customer message generated
 
-2. Orchestrator POSTs to /chat/stream with the message + persona's SID
-   → ACE Receptionist processes (LLM + tools), streams reply
+2. Orchestrator POSTs to /chat with {"message": ..., "sid": sid, "tenant_slug": "demo"}
+   → ACE Receptionist processes (LLM + tools), returns JSON with "reply"
 
-3. Orchestrator collects the full reply
+3. Orchestrator reads the reply, appends to history
 
-4. If reply contains a booking confirmation → Orchestrator records it
-   If reply contains a payment link → Orchestrator follows it and completes payment
-   If reply mentions staff takeover → Orchestrator switches to Staff Simulator
-   If reply is a question → go to step 1 for next turn
+4. Side effects detected from reply text or DB queries after the turn:
+   - Payment URL found → follow it via POST /pay/{token}/complete
+   - Staff takeover triggered → switch to Staff Simulator for remaining turns
 
 5. Conversation ends when:
-   - Customer drops off (says goodbye or stops replying)
-   - Booking is completed and customer is satisfied
+   - Customer says goodbye (detected via keyword match: "adijo", "nasvidenje", "hvala lepa")
+   - Booking + payment completed
    - Max turns reached (10)
+
+6. Next conversation: fresh SID, fresh demographics sample, no context carried over
 ```
 
 ### Customer demographics system
@@ -218,10 +242,20 @@ Each conversation starts with a demographics card sampled from the distributions
 
 ### Implementation plan
 
-1. `scripts/simulate_conversations.py` — orchestrator
-2. `scripts/demographics.py` — distributions and sampling logic (age, channel, budget sensitivity, disposition, quirks)
-3. Customer Simulator uses `openai` Python client → DeepSeek API (separate from the ACE system's LLMService)
-4. Staff Simulator also uses `openai` → DeepSeek, sends messages via POST /chat/staff
-5. Orchestrator sends visitor messages via `requests.post` to http://localhost:8000/chat/stream
-6. Payment links followed via `requests.post` to /pay/{token}/complete
-7. No slot_allocation.json — slots are determined by live conversation with the calendar
+Already tested and working (`test_single_conversation.py` proves the full pipeline):
+
+1. ✅ `POST /chat` — booking, payment, messages, leads all persist in PostgreSQL
+2. ✅ DeepSeek Customer Simulator — generates natural Slovenian replies from demographics prompt
+3. ✅ Payment completion — `POST /pay/{token}/complete` marks payment as `paid`
+4. ✅ Dashboard visibility — leads appear at `http://localhost:8000/demo/dashboard`
+
+What remains to build:
+
+1. `scripts/demographics.py` — Sampler class with weighted distributions, cumulative tracking, independent cross-mixing
+2. `scripts/simulate_conversations.py` — Orchestrator: thin loop calling sampler + `run_conversation()` + state save
+3. `scripts/person_pool.json` — ~100 realistic Slovenian names, phone numbers, email addresses (pulled by sampler)
+4. Staff Simulator — reuse same DeepSeek pattern as Customer Simulator, just different system prompt. Activated when the conversation triggers a takeover (customer says "želim osebje" or clicks staff button). Sends messages via `POST /chat/staff`.
+5. Resume support — trivial JSON state file, deterministic SIDs (`sim-000` through `sim-099`)
+6. Summary generation — after all 100 complete, query PostgreSQL for `{total, booked, dropped, payment_issues, staff_takeovers, add_ons_sold, avg_turns, etc.}`
+
+> The heavy lift is already done. The orchestrator is ~50 lines of Python. The sampler is the only piece with real logic.
