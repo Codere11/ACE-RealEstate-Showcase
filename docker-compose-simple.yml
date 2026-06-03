@@ -33,6 +33,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://ace_user:test_password_123@postgres:5432/ace_platform
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - ACE_LLM_PROVIDER=${ACE_LLM_PROVIDER:-openai}
       - ACE_LLM_MODEL=${ACE_LLM_MODEL:-gpt-4.1-mini}
       - ACE_SECRET=${ACE_SECRET:-dev-secret-change-me}

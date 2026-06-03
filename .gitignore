@@ -37,3 +37,7 @@ ace-mobile/
 
 # Angular build output (served from Java static)
 java-platform/src/main/resources/static/
+
+# Simulation state (generated at runtime)
+scripts/sim_state.json
+scripts/test_conv_*.json

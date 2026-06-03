@@ -185,6 +185,16 @@ SALON_TOOLS = [
         }, "required": ["storitev_id"]},
     }},
     {"type": "function", "function": {
+        "name": "salon_update_booking",
+        "description": "Spremeni obstoječo rezervacijo (datum, uro ali storitev). Uporabi ko stranka želi prestaviti termin ali spremeniti storitev. NE uporabi za NOVO rezervacijo — za to uporabi salon_book_appointment.",
+        "parameters": {"type": "object", "properties": {
+            "booking_id": {"type": "integer", "description": "ID rezervacije. Če ni podan, se uporabi zadnja aktivna rezervacija."},
+            "datum": {"type": "string", "description": "Nov datum v formatu YYYY-MM-DD (neobvezno)"},
+            "ura": {"type": "string", "description": "Nova ura v formatu HH:MM (neobvezno)"},
+            "storitev_id": {"type": "string", "enum": ["nega-obraza", "maska-obraza", "ciscenje-obraza"], "description": "Nova storitev (neobvezno)"},
+        }, "required": []},
+    }},
+    {"type": "function", "function": {
         "name": "salon_add_addon",
         "description": "Dodaj dopolnitev k obstoječi rezervaciji. Uporabi SAMO ko je stranka rezervirala in se strinja z dopolnitvijo.",
         "parameters": {"type": "object", "properties": {
@@ -397,6 +407,103 @@ def execute_tool(name: str, args: dict) -> str:
             svc = args.get("storitev_id", "")
             addons = ADDONS.get(svc, [])
             return json.dumps({"storitev_id": svc, "dopolnitve": addons}, ensure_ascii=False)
+
+        if name == "salon_update_booking":
+            booking_id = args.get("booking_id")
+            nov_datum = args.get("datum")
+            nova_ura = args.get("ura")
+            nova_storitev_id = args.get("storitev_id")
+            if not _db_ctx:
+                return json.dumps({"napaka": "DB ni na voljo"}, ensure_ascii=False)
+            if not any([nov_datum, nova_ura, nova_storitev_id]):
+                return json.dumps({"napaka": "Navedi vsaj eno spremembo (datum, ura ali storitev)."}, ensure_ascii=False)
+            try:
+                from app.core.db import SessionLocal
+                from sqlalchemy import text
+                with SessionLocal() as db:
+                    # Auto-find last confirmed booking if no booking_id
+                    if not booking_id:
+                        row = db.execute(text(
+                            "SELECT id FROM bookings WHERE organization_id = :oid AND status = 'confirmed' ORDER BY id DESC LIMIT 1"
+                        ), {"oid": _db_ctx["org_id"]}).fetchone()
+                        if row:
+                            booking_id = row[0]
+                    if not booking_id:
+                        return json.dumps({"napaka": "Ni najdene aktivne rezervacije za urejanje."}, ensure_ascii=False)
+
+                    booking = db.execute(text(
+                        "SELECT id, service_id, service_name, booking_date, booking_time, duration_min, price_eur, status FROM bookings WHERE id = :bid AND organization_id = :oid"
+                    ), {"bid": booking_id, "oid": _db_ctx["org_id"]}).fetchone()
+                    if not booking:
+                        return json.dumps({"napaka": "Rezervacija ne obstaja."}, ensure_ascii=False)
+
+                    changes = []
+                    old_date, old_time = booking[3], booking[4]
+                    new_svc = booking[1]
+                    new_svc_name = booking[2]
+                    new_dur = booking[5]
+                    new_price = booking[6]
+
+                    if nova_storitev_id:
+                        svc = next((s for s in SERVICES if s["id"] == nova_storitev_id), None)
+                        if not svc:
+                            return json.dumps({"napaka": f"Neznana storitev: {nova_storitev_id}"}, ensure_ascii=False)
+                        new_svc = svc["id"]
+                        new_svc_name = svc["name"]
+                        new_dur = svc["duration_min"]
+                        new_price = svc["price_eur"]
+                        changes.append(f"storitev → {svc['name']} ({svc['duration_min']}min, {svc['price_eur']}€)")
+
+                    check_date = nov_datum or old_date
+                    check_time = nova_ura or old_time
+
+                    # Check slot availability (exclude this booking itself)
+                    rows = db.execute(text(
+                        "SELECT booking_time, duration_min FROM bookings WHERE organization_id = :oid AND booking_date = :d AND status != 'cancelled' AND id != :bid FOR UPDATE"
+                    ), {"oid": _db_ctx["org_id"], "d": check_date, "bid": booking_id}).all()
+                    existing = {(r[0], r[1]) for r in rows}
+                    if _slot_overlaps(check_time, new_dur, existing):
+                        free = [s["time"] for s in _free_slots_from_bookings(check_date, new_dur, existing)[:5]]
+                        db.rollback()
+                        return json.dumps({"napaka": f"Termin {check_date} ob {check_time} ni prost. Prosti termini: {free}"}, ensure_ascii=False)
+
+                    if nov_datum:
+                        changes.append(f"datum: {old_date} → {nov_datum}")
+                        db.execute(text("UPDATE bookings SET booking_date = :d WHERE id = :bid"),
+                                   {"d": nov_datum, "bid": booking_id})
+
+                    if nova_ura:
+                        changes.append(f"ura: {old_time} → {nova_ura}")
+                        db.execute(text("UPDATE bookings SET booking_time = :t WHERE id = :bid"),
+                                   {"t": nova_ura, "bid": booking_id})
+
+                    if nova_storitev_id:
+                        db.execute(text(
+                            "UPDATE bookings SET service_id = :sid, service_name = :sn, duration_min = :dur, price_eur = :pr WHERE id = :bid"
+                        ), {"sid": new_svc, "sn": new_svc_name, "dur": new_dur, "pr": new_price, "bid": booking_id})
+
+                    # Publish event
+                    db.execute(text("""
+                        INSERT INTO lead_events (organization_id, sid, event_type, payload_json)
+                        VALUES (:oid, :sid, :etype, :payload)
+                    """), {
+                        "oid": _db_ctx["org_id"], "sid": _db_ctx.get("sid", "*"),
+                        "etype": "booking.updated",
+                        "payload": json.dumps({"id": booking_id, "spremembe": changes}),
+                    })
+                    db.commit()
+
+                return json.dumps({
+                    "posodobljeno": True,
+                    "id": booking_id,
+                    "spremembe": changes,
+                    "nov_datum": nov_datum or old_date,
+                    "nova_ura": nova_ura or old_time,
+                    "sporocilo": f"Rezervacija #{booking_id} posodobljena: {'; '.join(changes)}.",
+                }, ensure_ascii=False)
+            except Exception as e:
+                logger.warning(f"Failed to update booking: {e}")
+                return json.dumps({"napaka": str(e)[:200]}, ensure_ascii=False)
 
         if name == "salon_add_addon":
             booking_id = args.get("booking_id")

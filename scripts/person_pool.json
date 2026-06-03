@@ -1,0 +1,38 @@
+{
+  "female_names": [
+    "Mojca", "Nina", "Maja", "Ana", "Tina", "Petra", "Katja", "Barbara", "Mateja", "Tjaša",
+    "Urška", "Katarina", "Andreja", "Sabina", "Simona", "Tanja", "Anja", "Nataša", "Špela", "Polona",
+    "Saša", "Alenka", "Marta", "Darja", "Renata", "Eva", "Lara", "Sara", "Maša", "Lea",
+    "Irena", "Vesna", "Brigita", "Helena", "Marjana", "Nika", "Karmen", "Silva", "Zala", "Klara",
+    "Ema", "Lana", "Hana", "Pia", "Tara", "Vida", "Mia", "Ela", "Zoja", "Neža",
+    "Ajda", "Brina", "Cvetka", "Danica", "Milena", "Mojca", "Slavka", "Metka", "Ivanka", "Marija",
+    "Anica", "Breda", "Duška", "Frančiška", "Jožica", "Lucija", "Marinka", "Nada", "Olga", "Pavla",
+    "Rozi", "Stanka", "Terezija", "Zdenka"
+  ],
+  "male_names": [
+    "Tilen", "Bojan", "Rok", "Luka", "Jan", "Miha", "Marko", "Gregor", "Aleš", "Peter",
+    "Matej", "Andrej", "Tomaž", "Blaž", "Jure", "Žiga", "David", "Primož", "Gašper", "Uroš",
+    "Dejan", "Simon", "Boris", "Janko", "Brane", "Srečko", "Marjan", "Igor", "Franc", "Jožef",
+    "Anton", "Ivan", "Milan", "Slavko", "Vinko", "Drago", "Stane", "Janez", "Ciril", "Vid",
+    "Nik", "Tim", "Lan", "Gal", "Maj", "Ožbej", "Lovro", "Filip", "Nejc", "Jakob"
+  ],
+  "last_names": [
+    "Novak", "Horvat", "Kovačič", "Krajnc", "Zupančič", "Potočnik", "Kovač", "Mlakar", "Vidmar", "Kos",
+    "Golob", "Turk", "Kralj", "Božič", "Korošec", "Bizjak", "Hribar", "Kotnik", "Rozman", "Petek",
+    "Kastelic", "Kolar", "Lah", "Hočevar", "Žagar", "Košir", "Koren", "Klemenčič", "Zajc", "Medved",
+    "Zupan", "Pirc", "Hrovat", "Pavlič", "Kuhar", "Petrovič", "Zorko", "Černe", "Tomšič", "Kavčič",
+    "Erjavec", "Dolenc", "Oblak", "Jerman", "Gregorič", "Jereb", "Močnik", "Rupnik", "Furlan", "Logar"
+  ],
+  "phones": [
+    "040 123 456", "040 234 567", "040 345 678", "040 456 789", "040 567 890",
+    "041 111 222", "041 222 333", "041 333 444", "041 444 555", "041 555 666",
+    "051 101 202", "051 202 303", "051 303 404", "051 404 505", "051 505 606",
+    "070 100 200", "070 200 300", "070 300 400", "070 400 500", "070 500 600",
+    "031 112 233", "031 223 344", "031 334 455", "031 445 566", "031 556 677",
+    "030 121 212", "030 232 323", "030 343 434", "030 454 545", "030 565 656",
+    "040 111 000", "040 222 000", "040 333 000", "040 444 000", "040 555 000",
+    "041 777 888", "041 888 999", "041 999 000", "041 666 777", "051 111 333",
+    "040 121 343", "040 212 454", "041 323 565", "051 434 787", "070 545 898",
+    "031 656 909", "030 767 010", "040 878 121", "041 989 232", "051 090 343"
+  ]
+}

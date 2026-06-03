@@ -78,14 +78,15 @@ STRANKA PRAVI: {json.dumps(latest, ensure_ascii=False)}
 TVOJA NALOGA:
 1. Če stranka pozdravlja — toplo pozdravi, omeni da si na voljo, vprašaj kako lahko pomagaš.
 2. Če stranka sprašuje o storitvah — odgovori direktno, opiši kar jo zanima.
-3. Če stranka želi rezervirati NOV termin — pokliči salon_book_appointment. Vključi dodatke v polje 'dodatki'.
-4. Če stranka želi dodati dopolnitev k OBSTOJEČI rezervaciji (že ima booking ID) — pokliči salon_add_addon. NE kliči salon_book_appointment.
-5. Če stranka želi preklicati — pokliči salon_cancel_booking.
-6. Če stranka želi osebje — pokliči salon_request_staff.
-7. Če je stranka samo potrdila, se strinja, ali sprejema brez sprememb ("ok", "v redu", "bom potem brez", "super", "hvala") — NE kliči nobenega orodja. Samo kratko potrdi ali se zahvali.
-8. Če stranka želi plačati, vpraša o ceni, ali želi depozit/predplačilo — pokliči salon_create_invoice z ustreznim zneskom in namenom. V odgovoru posreduj povezavo za plačilo.
+3. NOVA REZERVACIJA: Če stranka želi rezervirati termin in ZADNJA REZERVACIJA ID je prazen — pokliči salon_book_appointment. To je POST (create).
+4. SPREMEMBA REZERVACIJE: Če stranka želi prestaviti termin, spremeniti uro ali storitev OBSTOJEČE rezervacije (ZADNJA REZERVACIJA ID že obstaja) — pokliči salon_update_booking. To je PUT (edit).
+5. DOPOLNITVE: Če stranka želi dodati dopolnitev k obstoječi rezervaciji — pokliči salon_add_addon.
+6. Če stranka želi preklicati — pokliči salon_cancel_booking.
+7. Če stranka želi osebje — pokliči salon_request_staff.
+8. Če je stranka samo potrdila, se strinja ("ok", "super", "hvala") — NE kliči nobenega orodja. Samo kratko potrdi.
+9. Če stranka želi plačati — pokliči salon_create_invoice.
 
-POMEMBNO: Če stranka omenja dopolnitev ki je NI na seznamu za izbrano storitev — NE vključi je v booking. Orodje salon_book_appointment bo samo preverilo dodatke in vrnilo rezultat. Preberi njegovo sporočilo in ga posreduj stranki.
+KLJUČNO PRAVILO: Če ZADNJA REZERVACIJA ID ni prazen → NIKOLI ne kliči salon_book_appointment. Uporabi salon_update_booking za spremembe ali salon_add_addon za dopolnitve.
 
 Bodi kratek (1-3 stavke), naraven, vikanje."""
 
@@ -139,10 +140,13 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
     if blocked_booking:
         msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati brez kontakta. Vljudno prosi za telefonsko številko ali email."})
 
-    # Guard: if no booking/cancel tool was called but user message clearly asks for action (date + contact), force second pass
+    # Guard: if no booking/cancel tool was called in THIS turn but user message
+    # contains date/time keywords, force a second tool pass.
+    # SKIP if a booking was already confirmed in a previous turn (last_booking_id).
     booking_tool_names = {"salon_book_appointment", "salon_cancel_booking", "salon_add_addon"}
     had_booking_tool = any(tc["name"] in booking_tool_names for tc in all_tcs)
-    if not had_booking_tool and has_contact:
+    already_booked = bool(state.get("last_booking_id"))
+    if not had_booking_tool and has_contact and not already_booked:
         import re as _re
         has_date = bool(_re.search(r'\d{1,2}\.\d{1,2}\.|\d{4}-\d{2}-\d{2}|jutri|danes|pojutrišnjem|ponedeljek|torek|sredo|sreda|četrtek|petek|soboto|nedeljo|naslednji teden|ta teden', latest.lower()))
         has_time = bool(_re.search(r'ob\s+\d|\d{1,2}:\d{2}|\d{1,2}\.00|opoldne|dopoldne|popoldne|zjutraj|dopoldan|popoldan|enih|dveh|treh|štirih|petih|šestih|sedmih|osmih|devetih|desetih|enajstih|dvanajstih', latest.lower()))
