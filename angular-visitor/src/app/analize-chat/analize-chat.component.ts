@@ -1,5 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component, signal, computed } from '@angular/core';
+import { DatePipe, JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 interface Message {
@@ -19,7 +19,7 @@ interface Persona {
 @Component({
   selector: 'app-analize-chat',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, JsonPipe],
   templateUrl: './analize-chat.component.html',
   styleUrl: './analize-chat.component.scss',
 })
@@ -66,6 +66,17 @@ export class AnalizeChatComponent {
   messages = signal<Message[]>([]);
   inputText = '';
   sending = false;
+  debugOpen = signal(false);
+
+  // Live debug state — updates in real-time as data flows through
+  debugState = computed(() => ({
+    activePersona: this.activePersona(),
+    messages: this.messages(),
+    sending: this.sending,
+    // labeled conversations will appear here as backend wires in
+    labels: null,
+    jobProgress: null,
+  }));
 
   selectPersona(p: Persona) {
     this.activePersona.set(p);

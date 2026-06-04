@@ -61,6 +61,9 @@
           <div class="chat-header-name">{{ activePersona()!.name }}</div>
           <div class="chat-header-subtitle">{{ activePersona()!.subtitle }}</div>
         </div>
+        <button class="debug-toggle" (click)="debugOpen.set(!debugOpen())" [class.on]="debugOpen()">
+          &#123; &#125; <span class="debug-dot"></span>
+        </button>
       </div>
 
       <!-- Messages -->
@@ -92,6 +95,13 @@
           </div>
         }
       </div>
+
+      <!-- Debug panel -->
+      @if (debugOpen()) {
+        <div class="debug-panel">
+          <pre>{{ debugState() | json }}</pre>
+        </div>
+      }
 
       <!-- Input area -->
       <div class="chat-input">

@@ -1,6 +1,6 @@
 import { Component, signal, OnInit, OnDestroy, inject, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DecimalPipe, DatePipe } from '@angular/common';
+import { DecimalPipe, DatePipe, JsonPipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { OrgDashboardService } from '../services/org-dashboard.service';
 import { AnalizeChatComponent } from '../analize-chat/analize-chat.component';
@@ -9,7 +9,7 @@ import { Room, RoomEvent, LocalVideoTrack, RemoteParticipant, RemoteTrack, Remot
 
 @Component({
   standalone: true,
-  imports: [FormsModule, DecimalPipe, DatePipe, AnalizeChatComponent],
+  imports: [FormsModule, DecimalPipe, DatePipe, JsonPipe, AnalizeChatComponent],
   templateUrl: './org-dashboard.component.html',
   styleUrl: './org-dashboard.component.scss',
 })
@@ -23,6 +23,9 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   messages = signal<any[]>([]);
   selectedSid = ''; takeoverActive = signal(false); takeoverText = '';
   activeTab = 'leads';
+  showDebugData = true;
+  expandedLeads = signal<Set<string>>(new Set());
+  debugLoading = false;
   filters = { search: '', staffRequested: false, workingHours: true, takeoverOnly: false };
 
   // Rezervacije tab state — loaded from API
@@ -129,6 +132,36 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  async loadAllMessages() {
+    if (!this.orgId || this.debugLoading) return;
+    this.debugLoading = true;
+    const leads = this.allLeads();
+    // Load in batches of 5
+    for (let i = 0; i < leads.length; i += 5) {
+      const batch = leads.slice(i, i + 5);
+      const batchResults = await Promise.all(
+        batch.map(async (lead: any) => {
+          try {
+            const msgs = await firstValueFrom(this.api.getMessages(this.orgId, lead.sid));
+            return { ...lead, messages: msgs };
+          } catch {
+            return { ...lead, messages: null };
+          }
+        })
+      );
+      // Merge into allLeads in-place
+      this.allLeads.update(current => {
+        const copy = [...current];
+        for (const enriched of batchResults) {
+          const idx = copy.findIndex(l => l.sid === enriched.sid);
+          if (idx !== -1) copy[idx] = enriched;
+        }
+        return copy;
+      });
+    }
+    this.debugLoading = false;
+  }
+
   private async resolveOrg() {
     try {
       const orgs = await firstValueFrom(this.api.getOrgs());
@@ -143,6 +176,12 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     try {
       let list = await firstValueFrom(this.api.getLeads(this.orgId));
       list.sort((a: any, b: any) => (b.staffRequested ? 1 : 0) - (a.staffRequested ? 1 : 0) || (b.lastSeenSec || 0) - (a.lastSeenSec || 0));
+      // Preserve loaded messages across polling refreshes
+      const prev = this.allLeads();
+      for (const lead of list) {
+        const existing = prev.find(l => l.sid === lead.sid);
+        if (existing?.messages) lead.messages = existing.messages;
+      }
       this.allLeads.set(list); this.applyFilters();
     } catch(e: any) { console.error(e); if (e?.status === 401) this.error.set('Prijava je potekla. <a href="/login">Prijavite se</a>.'); }
   }
@@ -219,6 +258,18 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   async deleteSelected() { await this.deleteLead(this.selectedSid); }
 
   selectedLeadName() { return this.allLeads().find(l => l.sid === this.selectedSid)?.name || 'Visitor'; }
+  get now() { return new Date().toISOString(); }
+  toggleLead(sid: string) {
+    this.expandedLeads.update(set => {
+      const next = new Set(set);
+      if (next.has(sid)) next.delete(sid); else next.add(sid);
+      return next;
+    });
+  }
+
+  isExpanded(sid: string): boolean {
+    return this.expandedLeads().has(sid);
+  }
 
   // ══════ REZERVACIJE HELPERS ══════
 
