@@ -312,6 +312,26 @@ select.inline-edit { width:100%; }
   white-space: nowrap;
 }
 
+.debug-lead-turns {
+  color: #6B7280;
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+.debug-lead-osip {
+  color: #f87171;
+  font-size: 10px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.debug-lead-source {
+  color: #34d399;
+  font-size: 10px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
 .debug-lead-json {
   margin: 0 0 4px 42px;
   padding: 8px 14px;

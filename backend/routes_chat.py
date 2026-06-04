@@ -298,6 +298,7 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
     booked_lead_ids: set[int] = set()
     lead_amounts: dict[int, int] = {}
     lead_booking_time: dict[int, str] = {}
+    lead_addons: dict[int, list] = {}
     booking_rows = (await db.execute(
         select(Booking.lead_id, Booking.price_eur, Booking.addons, Booking.booking_date, Booking.booking_time).where(
             Booking.organization_id == org_id,
@@ -314,6 +315,7 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
             addon_total = sum(a.get('price_eur', 0) for a in addons)
         lead_amounts[bid] = lead_amounts.get(bid, 0) + base_price + addon_total
         lead_booking_time[bid] = f"{bdate} {btime}"
+        lead_addons[bid] = addons_json if addons_json else []
 
     # ── Automatic labels: discussed EUR + discussed service from messages ──
     import re
@@ -328,12 +330,14 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
         .order_by(ConversationMessage.lead_id, ConversationMessage.created_at)
     )).all()
 
-    # Per-lead: last discussed EUR + services mentioned
+    # Per-lead: last discussed EUR + services mentioned + turn count
     discussed_eur: dict[int, int | None] = {}
     discussed_services: dict[int, list[str]] = {}
+    turn_counts: dict[int, int] = {}
     for (lid, text) in all_msgs:
         if not text:
             continue
+        turn_counts[lid] = turn_counts.get(lid, 0) + 1
         # Extract EUR amounts (keep last one seen)
         for m in eur_re.finditer(text):
             discussed_eur[lid] = int(m.group(1))
@@ -387,6 +391,8 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
             "booked": booked,
             "eur_amount": eur,
             "booking_time": lead_booking_time.get(lid, None),
+            "addons": lead_addons.get(lid, None),
+            "turn_count": turn_counts.get(lid, 0),
             "discussed_services": normalized_services.get(lid, []),
         })
     return result

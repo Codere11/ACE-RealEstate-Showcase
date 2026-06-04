@@ -281,7 +281,16 @@ Za vsak pogovor vrni SAMO JSON s temi oznakami:
 {
   "je_rezerviral": true/false — ali je stranka rezervirala termin,
   "je_placal": true/false — ali je stranka plačala,
-  "sentiment": "pozitiven / nevtralen / negativen / navdušen / razočaran"
+  "sentiment": "pozitiven / nevtralen / negativen / navdušen / razočaran",
+  "osip_razlog": null če je rezerviral/a. Če ni rezerviral/a, izberi ENEGA od:
+    "ghost_po_pozdravu" — pozdravil/a, dobil/a odgovor, nato tišina
+    "narobna_storitev" — želel/a storitev ki je salon ne ponuja (nohti, masaža, depilacija...)
+    "predrago" — ugovarjal/a ceni in odšel/a
+    "kontaktni_loop" — bot je večkrat prosil za kontakt, stranka je obupala
+    "izgubil_interes" — pogovor je zamrl brez jasnega razloga
+    "drugo" — nič od naštetega,
+  "source": null ali kako je stranka našla salon — preberi iz pogovora:
+    "instagram", "google", "priporočilo", "facebook", "mimoidoči", null če ni omenjeno
 }"""
 
 

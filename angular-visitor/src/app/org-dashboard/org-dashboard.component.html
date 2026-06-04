@@ -504,6 +504,15 @@
                 }
                 @if (lead.labels) {
                   <span class="debug-lead-labels">{{ lead.labels.je_rezerviral ? '📅' : '🚫' }} {{ lead.labels.je_placal ? '💳' : '' }} {{ lead.labels.sentiment || '' }}</span>
+                  @if (lead.labels.osip_razlog) {
+                    <span class="debug-lead-osip">{{ lead.labels.osip_razlog }}</span>
+                  }
+                  @if (lead.labels.source) {
+                    <span class="debug-lead-source">{{ lead.labels.source }}</span>
+                  }
+                }
+                @if (lead.turn_count) {
+                  <span class="debug-lead-turns">{{ lead.turn_count }} turns</span>
                 }
               </div>
               @if (isExpanded(lead.sid)) {
