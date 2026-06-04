@@ -38,4 +38,7 @@ export class OrgDashboardService {
   analize(orgId: number) {
     return this.http.post<any>('/api/organizations/' + orgId + '/analize', {});
   }
+  labelLead(orgId: number, sid: string, messages: any[]) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/analize/label', { sid, messages });
+  }
 }

@@ -470,7 +470,7 @@
         <div class="debug-data-header" (click)="showDebugData = !showDebugData">
           <div>
             <strong style="font-size:14px;">📋 Podatki v živo</strong>
-            <small style="color:#6B7280;margin-left:8px;">{{ allLeads().length }} leadov{{ allLeads()[0]?.messages ? ' · sporočila naložena' : '' }} · osvežuje na 3s</small>
+            <small style="color:#6B7280;margin-left:8px;">{{ allLeads().length }} leadov · ✅ {{ bookedCount() }} · ❌ {{ allLeads().length - bookedCount() }} · 💶 {{ totalEur() }}€ · 🏷️ {{ leadsWithServices() }} s storitvijo{{ allLeads()[0]?.messages ? ' · sporočila naložena' : '' }} · osvežuje na 3s</small>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             @if (!allLeads()[0]?.messages) {
@@ -484,13 +484,26 @@
         @if (showDebugData) {
           <div class="debug-data-body">
             @for (lead of allLeads(); track lead.sid) {
-              <div class="debug-lead-row">
+              <div class="debug-lead-row" [class.booked]="lead.booked">
                 <span class="debug-toggle" (click)="toggleLead(lead.sid)">{{ isExpanded(lead.sid) ? '▼' : '▶' }}</span>
+                <span class="debug-booked-badge">{{ lead.booked ? '✅' : '❌' }}</span>
                 <span class="debug-lead-label">{{ lead.sid }}</span>
                 <span class="debug-lead-name">{{ lead.name || '—' }}</span>
                 <span class="debug-lead-status">{{ lead.status }}</span>
+                @if (lead.eur_amount != null) {
+                  <span class="debug-lead-eur">{{ lead.eur_amount }}€</span>
+                }
+                @if (lead.discussed_services?.length) {
+                  <span class="debug-lead-svcs">{{ lead.discussed_services.join(', ') }}</span>
+                }
                 @if (lead.messages) {
                   <span class="debug-lead-msgs">{{ lead.messages.length }} msg</span>
+                }
+                @if (lead.booking_time) {
+                  <span class="debug-lead-btime">🕐 {{ lead.booking_time }}</span>
+                }
+                @if (lead.labels) {
+                  <span class="debug-lead-labels">{{ lead.labels.je_rezerviral ? '📅' : '🚫' }} {{ lead.labels.je_placal ? '💳' : '' }} {{ lead.labels.sentiment || '' }}</span>
                 }
               </div>
               @if (isExpanded(lead.sid)) {

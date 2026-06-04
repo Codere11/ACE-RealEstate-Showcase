@@ -288,8 +288,86 @@ async def poll_events(sid: str, since: int = 0, timeout: float = 1, limit: int =
 async def list_leads(org_id: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await check_org_access(user, org_id)
     leads = (await db.execute(select(Lead).where(Lead.organization_id == org_id).order_by(desc(Lead.staff_requested), desc(Lead.last_message_at)))).scalars().all()
+
+    if not leads:
+        return []
+
+    lead_ids = [l.id for l in leads]
+
+    # ── Automatic label: booked + eur_amount + booking time from bookings ──
+    booked_lead_ids: set[int] = set()
+    lead_amounts: dict[int, int] = {}
+    lead_booking_time: dict[int, str] = {}
+    booking_rows = (await db.execute(
+        select(Booking.lead_id, Booking.price_eur, Booking.addons, Booking.booking_date, Booking.booking_time).where(
+            Booking.organization_id == org_id,
+            Booking.lead_id.in_(lead_ids),
+            Booking.status != 'cancelled'
+        )
+    )).all()
+    for row in booking_rows:
+        bid, base_price, addons_json, bdate, btime = row
+        booked_lead_ids.add(bid)
+        addon_total = 0
+        if addons_json:
+            addons = addons_json if isinstance(addons_json, list) else []
+            addon_total = sum(a.get('price_eur', 0) for a in addons)
+        lead_amounts[bid] = lead_amounts.get(bid, 0) + base_price + addon_total
+        lead_booking_time[bid] = f"{bdate} {btime}"
+
+    # ── Automatic labels: discussed EUR + discussed service from messages ──
+    import re
+    eur_re = re.compile(r'(\d+)\s*(?:€|EUR|eur|evrov)', re.IGNORECASE)
+    service_names = ['nega obraza', 'maska obraza', 'čiščenje obraza', 'ciscenje obraza',
+                     'nohti', 'manikura', 'masaža', 'masaza', 'depilacija',
+                     'trajno ličenje', 'trajno licenje']
+
+    all_msgs = (await db.execute(
+        select(ConversationMessage.lead_id, ConversationMessage.text)
+        .where(ConversationMessage.lead_id.in_(lead_ids))
+        .order_by(ConversationMessage.lead_id, ConversationMessage.created_at)
+    )).all()
+
+    # Per-lead: last discussed EUR + services mentioned
+    discussed_eur: dict[int, int | None] = {}
+    discussed_services: dict[int, list[str]] = {}
+    for (lid, text) in all_msgs:
+        if not text:
+            continue
+        # Extract EUR amounts (keep last one seen)
+        for m in eur_re.finditer(text):
+            discussed_eur[lid] = int(m.group(1))
+        # Extract service mentions
+        lower = text.lower()
+        for svc in service_names:
+            if svc in lower:
+                discussed_services.setdefault(lid, []).append(svc)
+
+    # Deduplicate and normalize service lists
+    # Canonical names only — no partial matches
+    canonical = ['nega obraza', 'maska obraza', 'čiščenje obraza',
+                 'nohti', 'manikura', 'masaža', 'depilacija', 'trajno ličenje']
+    canonical_lower = [s.lower() for s in canonical]
+    normalized_services: dict[int, list[str]] = {}
+    for lid, svcs in discussed_services.items():
+        seen = set()
+        unique = []
+        for s in svcs:
+            # Map to canonical name
+            for canon, canon_lower in zip(canonical, canonical_lower):
+                if canon_lower in s or s in canon_lower:
+                    if canon not in seen:
+                        seen.add(canon)
+                        unique.append(canon)
+                    break
+        normalized_services[lid] = unique
+
     result = []
     for l in leads:
+        lid = l.id
+        booked = lid in booked_lead_ids
+        # eur_amount: booked amount if booked, otherwise last discussed price
+        eur = lead_amounts.get(lid) if booked else discussed_eur.get(lid)
         score = l.qualification_score or l.survey_progress or 0
         interest = "High" if score >= 70 else "Medium" if score >= 40 else "Low"
         result.append({
@@ -305,7 +383,11 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
             "surveyProgress": l.survey_progress or 0,
             "takeoverActive": l.takeover_active,
             "status": l.status.value if l.status else "OPEN_CHAT",
-            "staffRequested": l.staff_requested
+            "staffRequested": l.staff_requested,
+            "booked": booked,
+            "eur_amount": eur,
+            "booking_time": lead_booking_time.get(lid, None),
+            "discussed_services": normalized_services.get(lid, []),
         })
     return result
 

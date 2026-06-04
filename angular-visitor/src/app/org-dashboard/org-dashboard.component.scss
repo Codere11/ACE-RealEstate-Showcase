@@ -220,6 +220,21 @@ select.inline-edit { width:100%; }
   background: rgba(255, 255, 255, 0.03);
 }
 
+.debug-lead-row.booked {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.debug-lead-row.booked:hover {
+  background: rgba(34, 197, 94, 0.09);
+}
+
+.debug-booked-badge {
+  font-size: 11px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
 .debug-toggle {
   display: inline-flex;
   align-items: center;
@@ -263,6 +278,38 @@ select.inline-edit { width:100%; }
   color: #C1A46C;
   font-size: 10px;
   margin-left: auto;
+}
+
+.debug-lead-eur {
+  color: #22c55e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.debug-lead-svcs {
+  color: #6B7280;
+  font-size: 10px;
+  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-lead-labels {
+  color: #a78bfa;
+  font-size: 10px;
+  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.debug-lead-btime {
+  color: #60a5fa;
+  font-size: 10px;
+  margin-left: 8px;
+  white-space: nowrap;
 }
 
 .debug-lead-json {

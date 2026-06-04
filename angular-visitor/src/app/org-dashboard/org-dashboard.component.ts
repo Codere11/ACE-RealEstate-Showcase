@@ -136,7 +136,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     if (!this.orgId || this.debugLoading) return;
     this.debugLoading = true;
     const leads = this.allLeads();
-    // Load in batches of 5
+    // Load messages in batches of 5
     for (let i = 0; i < leads.length; i += 5) {
       const batch = leads.slice(i, i + 5);
       const batchResults = await Promise.all(
@@ -149,7 +149,6 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
           }
         })
       );
-      // Merge into allLeads in-place
       this.allLeads.update(current => {
         const copy = [...current];
         for (const enriched of batchResults) {
@@ -159,6 +158,28 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
         return copy;
       });
     }
+
+    // Now label each lead that has messages
+    const enriched = this.allLeads();
+    let labeled = 0;
+    for (const lead of enriched) {
+      if (!lead.messages || !lead.messages.length) continue;
+      try {
+        const res = await firstValueFrom(this.api.labelLead(this.orgId, lead.sid, lead.messages));
+        lead.labels = res.labels;
+        labeled++;
+      } catch {
+        lead.labels = { napaka: 'labeling failed' };
+      }
+      // Update in signal so debug tree shows progress live
+      this.allLeads.update(current => {
+        const copy = [...current];
+        const idx = copy.findIndex(l => l.sid === lead.sid);
+        if (idx !== -1) copy[idx] = { ...lead };
+        return copy;
+      });
+    }
+    console.log(`Labeled ${labeled} leads`);
     this.debugLoading = false;
   }
 
@@ -269,6 +290,22 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
 
   isExpanded(sid: string): boolean {
     return this.expandedLeads().has(sid);
+  }
+
+  bookedCount(): number {
+    return this.allLeads().filter(l => l.booked).length;
+  }
+
+  totalEur(): number {
+    return this.allLeads().reduce((sum, l) => sum + (l.eur_amount || 0), 0);
+  }
+
+  leadsWithEur(): number {
+    return this.allLeads().filter(l => l.eur_amount != null).length;
+  }
+
+  leadsWithServices(): number {
+    return this.allLeads().filter(l => l.discussed_services?.length).length;
   }
 
   // ══════ REZERVACIJE HELPERS ══════

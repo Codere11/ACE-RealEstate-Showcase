@@ -263,3 +263,71 @@ async def run_analize(
         "data": data,
         "analysis": analysis,
     }
+
+
+# ═══════════════════════════════════════════════════════════
+#  Per-lead labeling — called by frontend after loading messages
+# ═══════════════════════════════════════════════════════════
+
+from pydantic import BaseModel
+
+class LabelRequest(BaseModel):
+    sid: str
+    messages: list[dict]  # [{role, text}, ...]
+
+_label_system = """Ti si analitik pogovorov za kozmetični salon.
+Za vsak pogovor vrni SAMO JSON s temi oznakami:
+
+{
+  "je_rezerviral": true/false — ali je stranka rezervirala termin,
+  "je_placal": true/false — ali je stranka plačala,
+  "sentiment": "pozitiven / nevtralen / negativen / navdušen / razočaran"
+}"""
+
+
+def _label_one_lead(sid: str, messages: list[dict]) -> dict:
+    """Send one lead's messages to DeepSeek, return labels."""
+    if not DEEPSEEK_API_KEY:
+        return {"napaka": "DEEPSEEK_API_KEY not set"}
+
+    convo_text = "\n".join(
+        f"[{'STRANKA' if m.get('role') == 'user' else 'RECEPTOR' if m.get('role') == 'assistant' else m.get('role', '?').upper()}]: {m.get('text', '')}"
+        for m in messages
+    )
+
+    user_prompt = f"""Analiziraj ta pogovor. SID: {sid}
+
+{convo_text}
+
+Vrni SAMO JSON z oznakami, nič drugega."""
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
+        resp = client.chat.completions.create(
+            model="deepseek-chat",
+            temperature=0.2,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": _label_system},
+                {"role": "user", "content": user_prompt},
+            ],
+            timeout=30,
+        )
+        content = resp.choices[0].message.content.strip()
+        return json.loads(content)
+    except Exception as e:
+        return {"napaka": str(e)[:200]}
+
+
+@router.post("/api/organizations/{org_id}/analize/label")
+async def label_lead(
+    org_id: int,
+    body: LabelRequest,
+    user: User = Depends(get_current_user),
+):
+    if user.role != "PLATFORM_ADMIN" and user.organization_id != org_id:
+        raise HTTPException(403, "Access denied")
+
+    labels = _label_one_lead(body.sid, body.messages)
+    return {"sid": body.sid, "labels": labels}
