@@ -124,6 +124,7 @@
   background: #FAFAF8;
   position: relative;
   min-width: 0;
+  overflow: hidden;
 }
 
 /* Empty state */
@@ -178,6 +179,34 @@
 .chat-header-subtitle {
   font-size: 12px;
   color: #9CA3AF;
+}
+
+/* Label progress pill */
+.label-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(193, 164, 108, 0.12);
+  color: #C1A46C;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.label-progress-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(193, 164, 108, 0.3);
+  border-top-color: #C1A46C;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Start hint */
@@ -284,6 +313,15 @@
 
 .message-bubble.user .message-time {
   color: rgba(30, 33, 38, 0.55);
+}
+
+.message-text strong {
+  font-weight: 800;
+  color: inherit;
+}
+
+.message-text em {
+  font-style: italic;
 }
 
 /* Typing dots */

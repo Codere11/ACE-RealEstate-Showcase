@@ -41,4 +41,7 @@ export class OrgDashboardService {
   labelLead(orgId: number, sid: string, messages: any[]) {
     return this.http.post<any>('/api/organizations/' + orgId + '/analize/label', { sid, messages });
   }
+  personaChat(orgId: number, personaId: string, message: string, leads: any[], history: any[]) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/analize/chat', { persona_id: personaId, message, leads, history });
+  }
 }

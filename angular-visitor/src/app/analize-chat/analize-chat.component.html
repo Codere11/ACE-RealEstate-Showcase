@@ -61,6 +61,12 @@
           <div class="chat-header-name">{{ activePersona()!.name }}</div>
           <div class="chat-header-subtitle">{{ activePersona()!.subtitle }}</div>
         </div>
+        @if (labelProgress) {
+          <div class="label-progress-pill">
+            <span class="label-progress-spinner"></span>
+            {{ labelProgress }}
+          </div>
+        }
         <button class="debug-toggle" (click)="debugOpen.set(!debugOpen())" [class.on]="debugOpen()">
           &#123; &#125; <span class="debug-dot"></span>
         </button>
@@ -81,7 +87,7 @@
               <div class="message-avatar">{{ activePersona()!.emoji }}</div>
             }
             <div class="message-bubble" [class.ai]="msg.role === 'ai'" [class.user]="msg.role === 'user'">
-              <div class="message-text">{{ msg.text }}</div>
+              <div class="message-text" [innerHTML]="formatText(msg.text)"></div>
               <div class="message-time">{{ msg.time | date:'HH:mm' }}</div>
             </div>
           </div>

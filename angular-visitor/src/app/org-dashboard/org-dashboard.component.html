@@ -464,7 +464,7 @@
 
     <!-- ════════════════ ANALIZE TAB ════════════════ -->
     @if (activeTab === 'analize') {
-      <app-analize-chat />
+      <app-analize-chat [orgId]="orgId" [leads]="allLeads()" [labelProgress]="labelProgress()" />
 
       <div class="card debug-data-card">
         <div class="debug-data-header" (click)="showDebugData = !showDebugData">

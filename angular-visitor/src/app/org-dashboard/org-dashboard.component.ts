@@ -26,6 +26,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   showDebugData = true;
   expandedLeads = signal<Set<string>>(new Set());
   debugLoading = false;
+  labelProgress = signal('');
   filters = { search: '', staffRequested: false, workingHours: true, takeoverOnly: false };
 
   // Rezervacije tab state — loaded from API
@@ -136,6 +137,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     if (!this.orgId || this.debugLoading) return;
     this.debugLoading = true;
     const leads = this.allLeads();
+    const total = leads.length;
     // Load messages in batches of 5
     for (let i = 0; i < leads.length; i += 5) {
       const batch = leads.slice(i, i + 5);
@@ -161,13 +163,14 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
 
     // Now label each lead that has messages
     const enriched = this.allLeads();
+    const withMsgs = enriched.filter(l => l.messages?.length);
     let labeled = 0;
-    for (const lead of enriched) {
-      if (!lead.messages || !lead.messages.length) continue;
+    for (const lead of withMsgs) {
+      labeled++;
+      this.labelProgress.set(`${labeled}/${withMsgs.length}`);
       try {
         const res = await firstValueFrom(this.api.labelLead(this.orgId, lead.sid, lead.messages));
         lead.labels = res.labels;
-        labeled++;
       } catch {
         lead.labels = { napaka: 'labeling failed' };
       }
@@ -179,6 +182,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
         return copy;
       });
     }
+    this.labelProgress.set('');
     console.log(`Labeled ${labeled} leads`);
     this.debugLoading = false;
   }
@@ -197,11 +201,12 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     try {
       let list = await firstValueFrom(this.api.getLeads(this.orgId));
       list.sort((a: any, b: any) => (b.staffRequested ? 1 : 0) - (a.staffRequested ? 1 : 0) || (b.lastSeenSec || 0) - (a.lastSeenSec || 0));
-      // Preserve loaded messages across polling refreshes
+      // Preserve loaded messages + labels across polling refreshes
       const prev = this.allLeads();
       for (const lead of list) {
         const existing = prev.find(l => l.sid === lead.sid);
         if (existing?.messages) lead.messages = existing.messages;
+        if (existing?.labels) lead.labels = existing.labels;
       }
       this.allLeads.set(list); this.applyFilters();
     } catch(e: any) { console.error(e); if (e?.status === 401) this.error.set('Prijava je potekla. <a href="/login">Prijavite se</a>.'); }
