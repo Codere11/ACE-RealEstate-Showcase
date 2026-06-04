@@ -1,0 +1,113 @@
+<div class="analize-shell">
+  <!-- LEFT SIDEBAR — Persona list -->
+  <aside class="persona-sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">ANALIZE</span>
+    </div>
+
+    <div class="persona-list">
+      <!-- Advisors section -->
+      <div class="section-label">Svetovalci</div>
+      @for (p of personas; track p.id) {
+        @if (p.section === 'advisor') {
+          <button
+            class="persona-row"
+            [class.active]="activePersona()?.id === p.id"
+            (click)="selectPersona(p)"
+          >
+            <div class="persona-avatar">{{ p.emoji }}</div>
+            <div class="persona-info">
+              <div class="persona-name">{{ p.name }}</div>
+              <div class="persona-subtitle">{{ p.subtitle }}</div>
+            </div>
+          </button>
+        }
+      }
+
+      <!-- Customer personas section -->
+      <div class="section-label">Osebe</div>
+      @for (p of personas; track p.id) {
+        @if (p.section === 'customer') {
+          <button
+            class="persona-row"
+            [class.active]="activePersona()?.id === p.id"
+            (click)="selectPersona(p)"
+          >
+            <div class="persona-avatar">{{ p.emoji }}</div>
+            <div class="persona-info">
+              <div class="persona-name">{{ p.name }}</div>
+              <div class="persona-subtitle">{{ p.subtitle }}</div>
+            </div>
+          </button>
+        }
+      }
+    </div>
+  </aside>
+
+  <!-- RIGHT — Chat area -->
+  <main class="chat-area">
+    @if (!activePersona()) {
+      <!-- Empty state -->
+      <div class="chat-empty">
+        <div class="empty-icon">💬</div>
+        <div class="empty-title">Izberite osebo na levi</div>
+        <div class="empty-subtitle">Začnite pogovor s svetovalcem ali osebo.</div>
+      </div>
+    } @else {
+      <!-- Chat header -->
+      <div class="chat-header">
+        <div class="persona-avatar large">{{ activePersona()!.emoji }}</div>
+        <div class="chat-header-info">
+          <div class="chat-header-name">{{ activePersona()!.name }}</div>
+          <div class="chat-header-subtitle">{{ activePersona()!.subtitle }}</div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" #scrollContainer>
+        @if (messages().length === 0) {
+          <div class="chat-start">
+            <div class="start-avatar">{{ activePersona()!.emoji }}</div>
+            <div class="start-name">{{ activePersona()!.name }}</div>
+            <div class="start-hint">Začni pogovor spodaj.</div>
+          </div>
+        }
+        @for (msg of messages(); track msg.time) {
+          <div class="message-row" [class.mine]="msg.role === 'user'">
+            @if (msg.role === 'ai') {
+              <div class="message-avatar">{{ activePersona()!.emoji }}</div>
+            }
+            <div class="message-bubble" [class.ai]="msg.role === 'ai'" [class.user]="msg.role === 'user'">
+              <div class="message-text">{{ msg.text }}</div>
+              <div class="message-time">{{ msg.time | date:'HH:mm' }}</div>
+            </div>
+          </div>
+        }
+        @if (sending) {
+          <div class="message-row">
+            <div class="message-avatar">{{ activePersona()!.emoji }}</div>
+            <div class="message-bubble ai typing">
+              <div class="typing-dots"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Input area -->
+      <div class="chat-input">
+        <textarea
+          [(ngModel)]="inputText"
+          placeholder="Napiši sporočilo..."
+          rows="1"
+          (keydown)="onKeydown($event)"
+        ></textarea>
+        <button class="send-btn" (click)="send()" [disabled]="!inputText.trim() || sending">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    }
+  </main>
+</div>

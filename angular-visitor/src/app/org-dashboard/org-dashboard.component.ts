@@ -3,12 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { OrgDashboardService } from '../services/org-dashboard.service';
+import { AnalizeChatComponent } from '../analize-chat/analize-chat.component';
 import { firstValueFrom } from 'rxjs';
 import { Room, RoomEvent, LocalVideoTrack, RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track, createLocalVideoTrack } from 'livekit-client';
 
 @Component({
   standalone: true,
-  imports: [FormsModule, DecimalPipe, DatePipe],
+  imports: [FormsModule, DecimalPipe, DatePipe, AnalizeChatComponent],
   templateUrl: './org-dashboard.component.html',
   styleUrl: './org-dashboard.component.scss',
 })
@@ -348,4 +349,5 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   get contactCount() { return this.allLeads().filter(l => l.phone || l.email).length; }
   get openChatCount() { return this.allLeads().filter(l => l.status === 'OPEN_CHAT').length; }
   get humanCount() { return this.allLeads().filter(l => l.status === 'HUMAN_TAKEOVER').length; }
+
 }

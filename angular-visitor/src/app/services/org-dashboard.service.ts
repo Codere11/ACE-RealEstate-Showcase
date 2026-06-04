@@ -35,4 +35,7 @@ export class OrgDashboardService {
   deleteBooking(orgId: number, bookingId: number) {
     return this.http.delete('/api/organizations/' + orgId + '/bookings/' + bookingId);
   }
+  analize(orgId: number) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/analize', {});
+  }
 }

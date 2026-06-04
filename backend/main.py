@@ -66,8 +66,10 @@ async def ws_endpoint(ws: WebSocket, slug: str):
 
 from routes_chat import router as chat_router
 from routes_admin import router as admin_router
+from analize import router as analize_router
 app.include_router(chat_router)
 app.include_router(admin_router)
+app.include_router(analize_router)
 
 # Public payment pages
 from app.api.public_payments import router as public_payments_router
