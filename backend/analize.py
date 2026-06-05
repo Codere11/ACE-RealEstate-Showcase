@@ -348,6 +348,14 @@ def _execute_analyze_tool(name: str, args: dict, leads: list[dict]) -> str:
 
     elif name == "search_leads":
         filters = args.get("filters", {})
+        # Handle double-encoded JSON strings from LLM
+        if isinstance(filters, str):
+            try:
+                filters = json.loads(filters)
+            except Exception:
+                filters = {}
+        if not isinstance(filters, dict):
+            filters = {}
         results = []
         for l in leads:
             match = True
@@ -429,7 +437,10 @@ def _run_agent(system_prompt: str, user_message: str, history: list[dict], leads
             break
         # Execute tools, add results
         for tc in tcs:
-            result = _execute_analyze_tool(tc["name"], tc["args"], leads)
+            try:
+                result = _execute_analyze_tool(tc["name"], tc["args"], leads)
+            except Exception as e:
+                result = json.dumps({"napaka": str(e)[:200]})
             msgs.append({"role": "assistant", "content": None, "tool_calls": [{
                 "id": tc["id"], "type": "function",
                 "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}

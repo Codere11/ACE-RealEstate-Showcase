@@ -43,7 +43,7 @@ export class AnalizeChatComponent {
     {
       id: 'marketingar',
       emoji: '📣',
-      name: 'Marketingar',
+      name: 'Marketing svetovalec',
       subtitle: 'konverzije · A/B · jezik',
       section: 'advisor',
     },
