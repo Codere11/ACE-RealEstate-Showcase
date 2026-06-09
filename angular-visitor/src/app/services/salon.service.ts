@@ -191,7 +191,7 @@ export class SalonService implements OnDestroy {
 
   // ══════ HELPERS ══════
 
-  defaultGreeting() { return 'Pozdravljeni! Smo ACE — pomagamo podjetjem avtomatizirati sprejem strank z AI-jem. Kako vam lahko pomagamo?'; }
+  defaultGreeting() { return 'Hej! Smo ACE — pomagamo podjetjem avtomatizirati sprejem strank z AI. Kaj vas je pripeljalo k nam?'; }
 
   requestStaffAction(): ChatAction { return { label: '📞 Prosim ekipo', type: 'request-staff' }; }
   private getTenantSlug(): string {

@@ -12,104 +12,55 @@ from app.services.llm_service import LLMService
 from app.qualification.tools import ACE_TOOLS, execute_tool
 
 
-# ═══════════════════════════════════════════════════════════
-#  Agent — ONE LLM call with full context + all tools
-# ═══════════════════════════════════════════════════════════
-
 def _build_agent_prompt(state: QualificationGraphState) -> str:
-    """Build a single rich prompt with everything the LLM needs."""
     latest = state.get("latest_message", "")
     recent = state.get("recent_messages", []) or []
     last_booking_id = state.get("last_booking_id")
-    profile_before = state.get("profile_before", {}) or {}
 
-    # Business hours
     biz = json.loads(execute_tool("ace_get_context", {}))
-
-    # Contact status
     contact = json.loads(execute_tool("ace_check_contact", {}))
     has_contact = contact.get("ok")
 
-    # Build qualification profile — what we've learned and what's missing
-    fields = [
-        ("use_case", "kaj potrebujejo / kateri ACE produkt jih zanima"),
-        ("company_type", "tip podjetja / industrija / velikost"),
-        ("scale", "obseg — koliko strank, klicev, uporabnikov dnevno"),
-        ("current_system", "kaj uporabljajo zdaj za sprejem strank"),
-        ("timeline", "časovnica — do kdaj bi radi rešitev"),
-    ]
-    captured = []
-    missing = []
-    for key, label in fields:
-        val = profile_before.get(key, "")
-        if val:
-            captured.append(f"  ✅ {label}: {val}")
-        else:
-            missing.append(label)
-
-    ready_for_call = has_contact and len(captured) >= 2 and not last_booking_id
-
-    # Conversation history
     if recent:
         history = "\n".join(
-            f"  {m.get('role','?')}: {m.get('text','')[:200]}"
-            for m in recent[-6:]
+            f"  {m.get('role','?')}: {m.get('text','')[:300]}"
+            for m in recent
         )
     else:
-        history = "(prazen — prvi stik)"
+        history = "(prazen - prvi stik)"
 
-    prompt = f"""Ti si AI Svetovalec za ACE — podjetje, ki razvija AI recepcijske rešitve za avtomatizacijo sprejema strank.
-ACE ponuja: AI Reception (avtomatska kvalifikacija, booking, handoff), Analytics (dashboard, konverzijske metrike), Integrations (LiveKit, koledar, plačila), AI Lead Scoring (samodejno ocenjevanje leadov).
-Si prijazen, direkten, posloven. Govoriš naravno slovenščino.
-STROGO UPORABLJAJ VIKANJE (vi, vas, vaš, sporočite, izberite).
-NIKOLI ne uporabljaj tikanja.
+    call_info = f"Klic ze dogovorjen (ID: {last_booking_id})" if last_booking_id else ""
 
-TRENUTNO STANJE:
-  Status: {biz.get('status','')}
-  Delovni čas: {biz.get('delovni_cas','')}
-  Danes: {biz.get('danes','')}
-  Naslednji delovni dan: {biz.get('naslednji_delovni_dan','')}
+    prompt = f"""Ti si AI Svetovalec za ACE - pomagas podjetjem avtomatizirati sprejem strank z AI-jem.
+ACE ponuja: AI Reception, Analytics, Integrations, AI Lead Scoring.
+Si sprošcen, direkten, pogovoren - kot dober prodajni svetovalec na kavi. Govoris naravno slovenscino.
+VIKAJ (vi, vas, vas), nikoli tikaj.
 
-PROFIL STRANKE:
-  Kontakt: {'✅ IMA (tel. ali email)' if has_contact else '❌ ŠE NIMA — MORAŠ pridobiti pred klicem'}
-  {'✅' if captured else '❌'} Že izveščeno ({len(captured)}/5):\n"""
-    for c in captured:
-        prompt += f"{c}\n"
-    if missing:
-        prompt += f"  ❓ Še manjka ({len(missing)}): " + ", ".join(missing) + "\n"
-    prompt += f"""
-{{"ZADNJI KLIC ID: " + str(last_booking_id) if last_booking_id else "Ni še dogovorjenega klica."}}
+DELOVNI CAS: {biz.get('status','')} ({biz.get('delovni_cas','')})
+Naslednji delovni dan: {biz.get('naslednji_delovni_dan','')}
+Kontakt: {'IMA' if has_contact else 'SE NIMA - vprasaj ko pogovor stece, ne takoj'}
+{call_info}
 
-ZGODOVINA POGOVORA (zadnjih 6):
+CELOTEN POGOVOR (tvoj spomin - beri ga!):
 {history}
 
 STRANKA PRAVI: {json.dumps(latest, ensure_ascii=False)}
 
-TVOJA NALOGA:
-1. Če stranka pozdravlja — toplo pozdravi, na kratko predstavi ACE, vprašaj kako lahko pomagaš.
-2. Če stranka opisuje potrebe — poslušaj in postavi ENO naravno vprašanje iz seznama ❓ Še manjka. NE sprašuj vsega naenkrat — eno stvar naenkrat, vtkaj v pogovor.
-3. Če je podjetje zaprto — povej da bomo odgovorili naslednji delovni dan, prosi za kontakt.
-4. Če je stranka potrdila, se strinja ("ok", "super", "hvala") — kratko potrdi, NE sprašuj ničesar."""
+NALOGA:
+- Preberi celoten pogovor. NE ponavljaj vprasanj na katere je stranka ze odgovorila!
+- Prvi stik: pozdravi, na kratko povej kaj ACE pocne, vprasaj kaj jih je pripeljalo.
+- Skozi pogovor spoznavaj: kaj potrebujejo, tip podjetja, obseg, kaj zdaj uporabljajo.
+- Kontakt vprasaj sele po 2-3 izmenjavah, ne takoj.
+- Ko imas dovolj info IN kontakt - ponudi klic (ace_schedule_call).
+- Ce je zaprto - povej da se slisimo naslednji delovni dan.
+- Ce stranka potrdi ("ok", "super", "ja") - kratko potrdi, ne sprasuj naprej.
 
-    if ready_for_call:
-        prompt += f"""
-5. ⚠️ STRANKA JE PRIPRAVLJENA ZA KLIC! Ima kontakt in dovolj informacij. PONUDI klic z ekipo in pokliči ace_schedule_call. Predlagaj naslednji delovni dan."""
-    elif has_contact and missing:
-        prompt += f"""
-5. Stranka ima kontakt — nadaljuj s spoznavanjem. Naravno vprašaj ENO stvar ki še manjka."""
-    elif not has_contact:
-        prompt += f"""
-5. Stranka še nima kontakta — to je prioriteta. Ko bo priložnost, naravno prosi za telefon ali email."""
-
-    prompt += """
-
-Bodi kratek (1-3 stavke), naraven, vikanje. Ne izmišljuj si cen. Ne sili v klic prezgodaj. Eno vprašanje naenkrat."""
+Bodi sproscen, 1-3 stavke. Ne ponavljaj se. Ne izmisljuj si cen."""
 
     return prompt
 
 
 def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
-    """Run LLM with tools, execute any tool calls, return (system, msgs, had_tools, blocked_booking)."""
     latest = state.get("latest_message", "")
     system = _build_agent_prompt(state)
     msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
@@ -141,13 +92,6 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
                     state["booking_date"] = tc["args"].get("datum", "")
                     state["booking_time"] = tc["args"].get("ura", "")
                     state["last_booking_id"] = r.get("id")
-            if tc["name"] == "ace_update_profile":
-                r = json.loads(result)
-                captured = r.get("zajeto", {})
-                if captured:
-                    profile = dict(state.get("profile_before", {}))
-                    profile.update(captured)
-                    state["profile_before"] = profile
 
         for tc in all_tcs:
             msgs.append({"role": "assistant", "content": None, "tool_calls": [
@@ -156,27 +100,24 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
             msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
     if blocked_booking:
-        msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati klica brez kontakta. Vljudno prosi za telefonsko številko ali email."})
+        msgs.append({"role": "user", "content": "POZOR: Stranka se nima kontakta. Ne smes rezervirati klica brez kontakta. Vljudno prosi za telefonsko stevilko ali email."})
 
-    # Guard: if no booking tool was called but user mentions time/date, force a second tool pass
     booking_tool_names = {"ace_schedule_call"}
     had_booking_tool = any(tc["name"] in booking_tool_names for tc in all_tcs)
     already_booked = bool(state.get("last_booking_id"))
     if not had_booking_tool and has_contact and not already_booked:
         import re as _re
-        has_date = bool(_re.search(r'\d{1,2}\.\d{1,2}\.|\d{4}-\d{2}-\d{2}|jutri|danes|pojutrišnjem|ponedeljek|torek|sredo|sreda|četrtek|petek|soboto|nedeljo|naslednji teden|ta teden', latest.lower()))
-        has_time = bool(_re.search(r'ob\s+\d|\d{1,2}:\d{2}|\d{1,2}\.00|opoldne|dopoldne|popoldne|zjutraj|dopoldan|popoldan|enih|dveh|treh|štirih|petih|šestih|sedmih|osmih|devetih|desetih|enajstih|dvanajstih', latest.lower()))
+        has_date = bool(_re.search(r'\d{1,2}\.\d{1,2}\.|\d{4}-\d{2}-\d{2}|jutri|danes|pojutrisnjem|ponedeljek|torek|sredo|sreda|cetrtek|petek|soboto|nedeljo|naslednji teden|ta teden', latest.lower()))
+        has_time = bool(_re.search(r'ob\s+\d|\d{1,2}:\d{2}|\d{1,2}\.00|opoldne|dopoldne|popoldne|zjutraj|dopoldan|popoldan|enih|dveh|treh|stirih|petih|sestih|sedmih|osmih|devetih|desetih|enajstih|dvanajstih', latest.lower()))
         if has_date or has_time:
-            msgs.append({"role": "user", "content": "MORAŠ poklicati orodje (ace_schedule_call). Ne smeš samo reči da boš uredil — dejansko pokliči orodje."})
+            msgs.append({"role": "user", "content": "MORAS poklicati orodje (ace_schedule_call). Ne smes samo reci da bos uredil - dejansko poklici orodje."})
             resp2 = llm.call_with_tools(system, msgs, [t for t in tools if t["function"]["name"] != "ace_check_contact"], required=True)
             tcs2 = resp2.get("tool_calls")
             if tcs2:
-                second_results = []
                 for tc in tcs2:
                     if not has_contact and tc["name"] == "ace_schedule_call":
                         continue
                     result = execute_tool(tc["name"], tc["args"])
-                    second_results.append((tc, result))
                     all_tcs.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
                     if tc["name"] == "ace_schedule_call":
                         r = json.loads(result)
@@ -185,7 +126,6 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
                             state["booking_date"] = tc["args"].get("datum", "")
                             state["booking_time"] = tc["args"].get("ura", "")
                             state["last_booking_id"] = r.get("id")
-                for tc, result in second_results:
                     msgs.append({"role": "assistant", "content": None, "tool_calls": [
                         {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
                     ]})
@@ -195,25 +135,18 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
 
 
 def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
-    """ONE LLM call with full context + all tools. No keyword gating — trust the prompt."""
     llm = LLMService()
     latest = state.get("latest_message", "")
 
     system, msgs, had_tools, blocked_booking = _run_tools_phase(state, llm)
 
-    # Generate final response (non-streaming)
     reply = llm.call_json_response(system, msgs)
     reply = _unwrap_reply(reply)
     if not reply:
         fallback_user = json.dumps(latest, ensure_ascii=False)
         reply = llm.call_text(system, fallback_user)
     if not reply:
-        reply = "Pozdravljeni! Smo ACE. Kako vam lahko pomagamo?"
-
-    if not state.get("hours_mentioned"):
-        state["hours_mentioned"] = True
-    state["services_presented"] = True
-    state["conversation_stage"] = "idle"
+        reply = "Hej! Smo ACE. Kako vam lahko pomagamo?"
 
     state["decision"] = TurnDecision(
         reply=reply,
@@ -229,10 +162,6 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     return state
 
 
-# ═══════════════════════════════════════════════════════════
-#  Helpers
-# ═══════════════════════════════════════════════════════════
-
 def _unwrap_reply(text: str) -> str:
     if not text:
         return ""
@@ -245,10 +174,6 @@ def _unwrap_reply(text: str) -> str:
             pass
     return text
 
-
-# ═══════════════════════════════════════════════════════════
-#  Entry point
-# ═══════════════════════════════════════════════════════════
 
 def run_qualification_graph(
     *,
@@ -274,7 +199,6 @@ def run_qualification_graph(
         "booking_confirmed": False,
         "last_booking_id": profile_before.get("last_booking_id"),
     }
-
     state = _load_runtime_context(state)
     state = _retrieve_knowledge(state)
     return _agent_node(state)
@@ -289,7 +213,6 @@ def run_qualification_graph_stream(
     profile_before: Dict[str, Any],
     spatial_context: Optional[Dict[str, Any]] = None,
 ):
-    """Streaming variant — yields tokens during final reply."""
     state: QualificationGraphState = {
         "qualifier": qualifier,
         "latest_message": latest_message,
@@ -308,14 +231,12 @@ def run_qualification_graph_stream(
     state = _load_runtime_context(state)
     state = _retrieve_knowledge(state)
 
-    # Run tool phase (blocking)
     system, msgs, tcs_executed, blocked_booking = _run_tools_phase(state, llm)
-    
+
     latest = state.get("latest_message", "")
     reply = ""
-    
+
     if tcs_executed:
-        # Tools were called — use non-streaming final reply
         reply = llm.call_json_response(system, msgs)
         reply = _unwrap_reply(reply)
         if not reply:
@@ -330,11 +251,10 @@ def run_qualification_graph_stream(
             fallback_user = ("Rezultati orodij: " + " | ".join(summary_parts)) if summary_parts else json.dumps(latest, ensure_ascii=False)
             reply = llm.call_text(system, fallback_user) or reply
         if not reply:
-            reply = "Pozdravljeni! Smo ACE. Kako vam lahko pomagamo?"
+            reply = "Hej! Smo ACE. Kako vam lahko pomagamo?"
         for ch in reply:
             yield ch
     else:
-        # No tools — stream directly from LLM
         stream_msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
         for token in llm.stream_reply(system, stream_msgs):
             if token:
@@ -342,14 +262,9 @@ def run_qualification_graph_stream(
                 yield token
         reply = reply.strip()
         if not reply:
-            reply = "Pozdravljeni! Smo ACE. Kako vam lahko pomagamo?"
+            reply = "Hej! Smo ACE. Kako vam lahko pomagamo?"
             yield reply
 
-    # Finalize state
-    if not state.get("hours_mentioned"):
-        state["hours_mentioned"] = True
-    state["services_presented"] = True
-    state["conversation_stage"] = "idle"
     state["decision"] = TurnDecision(
         reply=reply,
         recommended_next_action="continue_conversation",

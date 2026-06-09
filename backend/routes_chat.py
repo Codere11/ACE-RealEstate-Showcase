@@ -71,7 +71,7 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     await db.flush()  # ensure lead.id is available
     
     if not req.message.strip():
-        return {"sid": lead.sid, "reply": "Dober dan! Dobrodošli. Kako vam lahko pomagamo?", 
+        return {"sid": lead.sid, "reply": "Hej! Smo ACE — pomagamo podjetjem avtomatizirati sprejem strank z AI. Kaj vas je pripeljalo k nam?", 
                 "chatMode": "open", "storyComplete": False, "surveyProgress": 100,
                 "currentStep": None, "completionTitle": None, "completionSubtitle": None}
     
@@ -106,7 +106,7 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             from types import SimpleNamespace
             llm = LLMService()
             q = SimpleNamespace(**{k: getattr(qualifier, k, None) for k in ["name","slug","status","system_prompt","assistant_style","goal_definition","field_schema","required_fields","scoring_rules","band_thresholds","confidence_thresholds","takeover_rules","video_offer_rules","rag_enabled","knowledge_source_ids","max_clarifying_questions","contact_capture_policy","version","version_notes"]})
-            msgs_result = await db.execute(select(ConversationMessage).where(ConversationMessage.lead_id == lead.id).order_by(desc(ConversationMessage.created_at)).limit(8))
+            msgs_result = await db.execute(select(ConversationMessage).where(ConversationMessage.lead_id == lead.id).order_by(desc(ConversationMessage.created_at)).limit(20))
             recent = [{"role": m.role, "text": m.text} for m in reversed(msgs_result.scalars().all())]
             
             state = run_qualification_graph(llm=llm, qualifier=q, latest_message=req.message, recent_messages=recent, profile_before=lead.qualifier_profile or {})
@@ -179,7 +179,7 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     await db.flush()
 
     if not req.message.strip():
-        greeting = "Dober dan! Dobrodošli. Kako vam lahko pomagamo?"
+        greeting = "Hej! Smo ACE — pomagamo podjetjem avtomatizirati sprejem strank z AI. Kaj vas je pripeljalo k nam?"
         async def _greet():
             yield f"data: {_json.dumps({'token': greeting})}\n\n"
             yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
@@ -223,7 +223,7 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             from types import SimpleNamespace
             llm = LLMService()
             q = SimpleNamespace(**{k: getattr(qualifier, k, None) for k in ["name","slug","status","system_prompt","assistant_style","goal_definition","field_schema","required_fields","scoring_rules","band_thresholds","confidence_thresholds","takeover_rules","video_offer_rules","rag_enabled","knowledge_source_ids","max_clarifying_questions","contact_capture_policy","version","version_notes"]})
-            msgs_result = await db.execute(select(ConversationMessage).where(ConversationMessage.lead_id == lead.id).order_by(desc(ConversationMessage.created_at)).limit(8))
+            msgs_result = await db.execute(select(ConversationMessage).where(ConversationMessage.lead_id == lead.id).order_by(desc(ConversationMessage.created_at)).limit(20))
             recent = [{"role": m.role, "text": m.text} for m in reversed(msgs_result.scalars().all())]
 
             full_reply = []
