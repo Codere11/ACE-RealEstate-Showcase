@@ -1,0 +1,69 @@
+{
+  "completed": 2,
+  "results": [
+    {
+      "sid": "b2b-000",
+      "index": 0,
+      "name": "Tomas",
+      "role": "IT vodja v proizvodnem podjetju",
+      "company": "Kovinarstvo Novak, 50 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 2,
+      "outcome": "dropped_off",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "history": [
+        {
+          "customer": "Dober dan, rabili bi modernizacijo nase spletne strani in mogoce ta AI sprejem. A lahko pomagate?",
+          "receptionist": "Hvala za povpraševanje. Modernizacijo spletne strani sicer ne pokrivamo, lahko pa vam pomagamo z AI sprejemom. Ker smo trenutno zaprti, vam bomo odgovorili jutri. Bi se lahko dogovorili za kratek klic, da vam vse pokažemo?"
+        },
+        {
+          "customer": "Aha, sej prav – spletne strani ne delate. Potem pa ne vem, če se splača izgubljat čas. Hvala za info, bom iskal naprej. Lp",
+          "receptionist": "Razumem. Če si premislite, smo tukaj za AI sprejem strank. Lep pozdrav."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-001",
+      "index": 1,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 6,
+      "outcome": "max_turns",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Hvala za zanimanje! Vse podrobnosti o delovanju AI receptorja vam z veseljem predstavimo na kratkem klicu. Mi lahko zaupate svoj e-poštni naslov ali telefon, da se dogovoriva za termin?"
+        },
+        {
+          "customer": "Ampak povej mi vsaj na hitro, kaj točno rešuje. A je to chatbot za stranke, ali kaj drugega? Rad bi vedel, preden se usedem na klic.",
+          "receptionist": "Razumem, vse podrobnosti o delovanju in prednostih ACE bomo pokrili na klicu. Mi lahko zaupate svoj e-poštni naslov ali telefon, da se dogovoriva za termin?"
+        },
+        {
+          "customer": "Aha, že drugič me usmerjaš na klic. Ampak iskreno, ne bom se usedel na klic, če sploh ne vem, kaj ponujate. A je to neki osnovni chatbot ali kaj več? Samo na hitro, v dveh stavkih – kaj ACE rešuje?",
+          "receptionist": "Razumem, vse podrobnosti o ACE bomo pokrili na klicu. Mi lahko zaupate svoj e-poštni naslov ali telefon, da se dogovoriva za termin?"
+        },
+        {
+          "customer": "Aha, pa smo spet tam. Brez osnovnega opisa ne vidim smisla v klicu. Hvala, se poslavljam.",
+          "receptionist": "Razumem, oprostite. Če si premislite, mi prosim pustite e-pošto in vam pošljem konkretne informacije. Lep pozdrav."
+        },
+        {
+          "customer": "Razumem, ampak žal mi tvoj pristop ne ustreza. Brez osnovnega opisa ne morem presoditi, ali ste sploh relevantni zame. Hvala in lep pozdrav.",
+          "receptionist": "Razumem, oprostite. Če si premislite, mi prosim pustite e-pošto in vam pošljem konkretne informacije. Lep pozdrav."
+        },
+        {
+          "customer": "Hvala za tvoj čas, ampak brez osnovnega opisa ne grem naprej. Lep pozdrav.",
+          "receptionist": "Razumem, oprostite. Če si premislite, mi prosim pustite e-pošto in vam pošljem konkretne informacije. Lep pozdrav."
+        }
+      ]
+    }
+  ]
+}
