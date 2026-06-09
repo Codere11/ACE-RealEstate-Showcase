@@ -118,46 +118,31 @@
                   <div class="lead-actions">
                     <button class="btn danger" (click)="deleteLead(l.sid); $event.stopPropagation()">Delete lead</button>
                   </div>
+                  <!-- Thread expands inline under this lead -->
+                  @if (l.sid === selectedSid) {
+                    <div class="inline-thread">
+                      <div class="thread">
+                        @for (m of messages(); track $index) {
+                          <div class="bubble" [class]="'bubble ' + m.role">
+                            <div class="meta">{{ m.role === 'user' ? 'Stranka' : m.role === 'staff' ? 'Osebje' : m.role === 'system' ? 'Sistem' : 'AI' }}</div>
+                            <div class="bubble__body">{{ m.text }}</div>
+                          </div>
+                        }
+                      </div>
+                      <div class="composer">
+                        <textarea [(ngModel)]="takeoverText" placeholder="Write a takeover message…" (keyup.enter)="sendTakeover()"></textarea>
+                        <div class="actions">
+                          <button class="btn primary" (click)="sendTakeover()">{{ takeoverActive() ? 'Send manager reply' : 'Start takeover + send message' }}</button>
+                          @if (takeoverActive()) { <button class="btn danger" (click)="endTakeover()">End takeover</button> }
+                        </div>
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </div>
           </div>
 
-          <div class="thread-panel">
-            @if (!selectedSid) {
-              <div class="empty-card">Select a lead above to inspect the thread and manage the takeover.</div>
-            } @else {
-              <div class="stack" style="height:100%;grid-template-rows:auto 1fr auto;">
-                <div class="lead-head">
-                  <div><h3 style="margin:0 0 8px;">{{ selectedLeadName() }}</h3>
-                    <div class="status-row">
-                      @if (takeoverActive()) { <span class="pill success">Human takeover active</span> }
-                      @else { <span class="pill warn">Bot-guided flow</span> }
-                    </div>
-                  </div>
-                  <div class="lead-actions">
-                    <button class="btn danger" (click)="deleteSelected()">Delete lead</button>
-                  </div>
-                </div>
-                <div class="thread">
-                  @for (m of messages(); track $index) {
-                    <div class="bubble" [class]="'bubble ' + m.role">
-                      <div class="meta">{{ m.role === 'user' ? 'Stranka' : m.role === 'staff' ? 'Osebje' : m.role === 'system' ? 'Sistem' : 'AI' }}</div>
-                      <div class="bubble__body">{{ m.text }}</div>
-                    </div>
-                  }
-                </div>
-                <div class="composer">
-                  <textarea [(ngModel)]="takeoverText" placeholder="Write a takeover message as the manager…" (keyup.enter)="sendTakeover()"></textarea>
-                  <div class="error-text" style="display:none;"></div>
-                  <div class="actions">
-                    <button class="btn primary" (click)="sendTakeover()">{{ takeoverActive() ? 'Send manager reply' : 'Start takeover + send message' }}</button>
-                    @if (takeoverActive()) { <button class="btn danger" (click)="endTakeover()">End takeover</button> <button class="btn ghost push-right">Send payment request</button> }
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
         </main>
       </div>
     }
