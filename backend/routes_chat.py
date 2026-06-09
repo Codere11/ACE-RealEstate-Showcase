@@ -115,6 +115,10 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             
             # Persist conversation stage so context carries across turns
             profile = dict(lead.qualifier_profile or {})
+            # Merge updated profile fields from graph (inline qualification)
+            updated_profile = state.get("profile_before", {})
+            if updated_profile:
+                profile.update(updated_profile)
             profile["conversation_stage"] = state.get("conversation_stage", "")
             profile["hours_mentioned"] = state.get("hours_mentioned", False)
             profile["services_presented"] = state.get("services_presented", False)

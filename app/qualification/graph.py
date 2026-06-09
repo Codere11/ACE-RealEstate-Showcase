@@ -21,24 +21,48 @@ def _build_agent_prompt(state: QualificationGraphState) -> str:
     latest = state.get("latest_message", "")
     recent = state.get("recent_messages", []) or []
     last_booking_id = state.get("last_booking_id")
+    profile_before = state.get("profile_before", {}) or {}
 
     # Business hours
     biz = json.loads(execute_tool("ace_get_context", {}))
 
     # Contact status
     contact = json.loads(execute_tool("ace_check_contact", {}))
+    has_contact = contact.get("ok")
+
+    # Build qualification profile — what we've learned and what's missing
+    fields = [
+        ("use_case", "kaj potrebujejo / kateri ACE produkt jih zanima"),
+        ("company_type", "tip podjetja / industrija / velikost"),
+        ("scale", "obseg — koliko strank, klicev, uporabnikov dnevno"),
+        ("current_system", "kaj uporabljajo zdaj za sprejem strank"),
+        ("timeline", "časovnica — do kdaj bi radi rešitev"),
+    ]
+    captured = []
+    missing = []
+    for key, label in fields:
+        val = profile_before.get(key, "")
+        if val:
+            captured.append(f"  ✅ {label}: {val}")
+        else:
+            missing.append(label)
+
+    ready_for_call = has_contact and len(captured) >= 2 and not last_booking_id
 
     # Conversation history
-    history = "\n".join(
-        f"  {m.get('role','?')}: {m.get('text','')[:200]}"
-        for m in (recent or [])[-8:]
-    )
+    if recent:
+        history = "\n".join(
+            f"  {m.get('role','?')}: {m.get('text','')[:200]}"
+            for m in recent[-6:]
+        )
+    else:
+        history = "(prazen — prvi stik)"
 
     prompt = f"""Ti si AI Svetovalec za ACE — podjetje, ki razvija AI recepcijske rešitve za avtomatizacijo sprejema strank.
 ACE ponuja: AI Reception (avtomatska kvalifikacija, booking, handoff), Analytics (dashboard, konverzijske metrike), Integrations (LiveKit, koledar, plačila), AI Lead Scoring (samodejno ocenjevanje leadov).
 Si prijazen, direkten, posloven. Govoriš naravno slovenščino.
 STROGO UPORABLJAJ VIKANJE (vi, vas, vaš, sporočite, izberite).
-NIKOLI ne uporabljaj tikanja (ti, te, tvoj, sporoči, izberi).
+NIKOLI ne uporabljaj tikanja.
 
 TRENUTNO STANJE:
   Status: {biz.get('status','')}
@@ -46,27 +70,40 @@ TRENUTNO STANJE:
   Danes: {biz.get('danes','')}
   Naslednji delovni dan: {biz.get('naslednji_delovni_dan','')}
 
-KONTAKT STRANKE:
-  {'Stranka JE podala kontakt (telefon ali email).' if contact.get('ok') else 'Stranka ŠE NI podala kontakta. Pred klicem ga MORAŠ pridobiti (telefon ali email).'}
+PROFIL STRANKE:
+  Kontakt: {'✅ IMA (tel. ali email)' if has_contact else '❌ ŠE NIMA — MORAŠ pridobiti pred klicem'}
+  {'✅' if captured else '❌'} Že izveščeno ({len(captured)}/5):\n"""
+    for c in captured:
+        prompt += f"{c}\n"
+    if missing:
+        prompt += f"  ❓ Še manjka ({len(missing)}): " + ", ".join(missing) + "\n"
+    prompt += f"""
+{{"ZADNJI KLIC ID: " + str(last_booking_id) if last_booking_id else "Ni še dogovorjenega klica."}}
 
-{"ZADNJI KLIC ID: " + str(last_booking_id) if last_booking_id else "Ni še dogovorjenega klica v tem pogovoru."}
-
-ZGODOVINA POGOVORA:
-{history if history else '(prazen — prvi stik)'}
+ZGODOVINA POGOVORA (zadnjih 6):
+{history}
 
 STRANKA PRAVI: {json.dumps(latest, ensure_ascii=False)}
 
 TVOJA NALOGA:
-1. Če stranka pozdravlja — toplo pozdravi, na kratko predstavi ACE (1 stavek), vprašaj kako lahko pomagaš.
-2. Če stranka sprašuje o storitvah — odgovori direktno, opiši kaj ACE ponuja.
-3. Če stranka opisuje svoje potrebe — postavi vprašanja za kvalifikacijo: koliko strank, kakšen sistem zdaj, kakšne so njihove potrebe.
-4. Če je stranka dovolj kvalificirana (je opisala potrebe) in IMA KONTAKT — ponudi klic z ekipo. Pokliči ace_schedule_call. Datum naj bo naslednji delovni dan.
-5. Če ZADNJI KLIC ID že obstaja, NE kliči ace_schedule_call ponovno.
-6. Če stranka želi govoriti z osebo — pokliči ace_request_team.
-7. Če je podjetje zaprto — povej da bomo odgovorili naslednji delovni dan, prosi za kontakt če ga še ni.
-8. Če je stranka samo potrdila, se strinja ("ok", "super", "hvala") — NE kliči nobenega orodja. Samo kratko potrdi.
+1. Če stranka pozdravlja — toplo pozdravi, na kratko predstavi ACE, vprašaj kako lahko pomagaš.
+2. Če stranka opisuje potrebe — poslušaj in postavi ENO naravno vprašanje iz seznama ❓ Še manjka. NE sprašuj vsega naenkrat — eno stvar naenkrat, vtkaj v pogovor.
+3. Če je podjetje zaprto — povej da bomo odgovorili naslednji delovni dan, prosi za kontakt.
+4. Če je stranka potrdila, se strinja ("ok", "super", "hvala") — kratko potrdi, NE sprašuj ničesar."""
 
-Bodi kratek (1-3 stavke), naraven, vikanje. Ne izmišljuj si cen ali paketov."""
+    if ready_for_call:
+        prompt += f"""
+5. ⚠️ STRANKA JE PRIPRAVLJENA ZA KLIC! Ima kontakt in dovolj informacij. PONUDI klic z ekipo in pokliči ace_schedule_call. Predlagaj naslednji delovni dan."""
+    elif has_contact and missing:
+        prompt += f"""
+5. Stranka ima kontakt — nadaljuj s spoznavanjem. Naravno vprašaj ENO stvar ki še manjka."""
+    elif not has_contact:
+        prompt += f"""
+5. Stranka še nima kontakta — to je prioriteta. Ko bo priložnost, naravno prosi za telefon ali email."""
+
+    prompt += """
+
+Bodi kratek (1-3 stavke), naraven, vikanje. Ne izmišljuj si cen. Ne sili v klic prezgodaj. Eno vprašanje naenkrat."""
 
     return prompt
 
@@ -104,6 +141,13 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
                     state["booking_date"] = tc["args"].get("datum", "")
                     state["booking_time"] = tc["args"].get("ura", "")
                     state["last_booking_id"] = r.get("id")
+            if tc["name"] == "ace_update_profile":
+                r = json.loads(result)
+                captured = r.get("zajeto", {})
+                if captured:
+                    profile = dict(state.get("profile_before", {}))
+                    profile.update(captured)
+                    state["profile_before"] = profile
 
         for tc in all_tcs:
             msgs.append({"role": "assistant", "content": None, "tool_calls": [

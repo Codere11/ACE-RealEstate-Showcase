@@ -64,6 +64,17 @@ ACE_TOOLS = [
             "razlog": {"type": "string", "description": "Brief reason for the request"},
         }, "required": ["razlog"]},
     }},
+    {"type": "function", "function": {
+        "name": "ace_update_profile",
+        "description": "Record what you learned about the prospect. Call this whenever the visitor shares useful information. You can update one or more fields at once. Only include fields you actually learned this turn.",
+        "parameters": {"type": "object", "properties": {
+            "use_case": {"type": "string", "description": "What they need — which ACE product, what problem they're solving"},
+            "company_type": {"type": "string", "description": "Type of company / industry / size"},
+            "scale": {"type": "string", "description": "Scale — how many customers, calls, users per day"},
+            "current_system": {"type": "string", "description": "What they currently use for customer reception"},
+            "timeline": {"type": "string", "description": "When they need a solution by"},
+        }, "required": []},
+    }},
 ]
 
 
@@ -164,6 +175,19 @@ def execute_tool(name: str, args: dict) -> str:
             return json.dumps({
                 "uspesno": True,
                 "sporocilo": "Team requested. Someone will join the conversation shortly.",
+            }, ensure_ascii=False)
+
+        if name == "ace_update_profile":
+            # Return the captured fields — graph will merge them into state
+            captured = {}
+            for field in ["use_case", "company_type", "scale", "current_system", "timeline"]:
+                val = args.get(field, "")
+                if val:
+                    captured[field] = val
+            return json.dumps({
+                "posodobljeno": True,
+                "zajeto": captured,
+                "sporocilo": f"Profile updated: {', '.join(captured.keys())}",
             }, ensure_ascii=False)
 
         return json.dumps({"napaka": f"Unknown tool: {name}"}, ensure_ascii=False)
