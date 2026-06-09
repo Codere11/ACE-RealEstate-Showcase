@@ -2,30 +2,23 @@
   ACE Reception Services — Startup Runbook
 ============================================================
 
-STACK (one process, one SPA):
-  Python backend  : backend/main.py (FastAPI + LangGraph)
-  Frontend        : angular-visitor (Angular 19, pre-built to backend/static)
-  Database        : PostgreSQL 15 (docker)
-  Video           : LiveKit (docker)
+STACK (all in Docker):
+  Backend         : FastAPI + LangGraph (Docker ace-backend container)
+  Frontend        : Angular 19 SPA (built inside Docker image, served by backend)
+  Database        : PostgreSQL 15 (Docker ace-postgres)
+  Video           : LiveKit (Docker ace-livekit)
   NO ace-mobile, NO Java, NO separate dev servers.
 
 ============================================================
-1. INFRASTRUCTURE
+1. QUICK START (Docker — recommended)
 ============================================================
 
   docker compose -f docker-compose-simple.yml up -d
 
-  Waits for:
+  Starts everything:
     PostgreSQL  →  localhost:5433
     LiveKit     →  localhost:7880
-
-============================================================
-2. BACKEND
-============================================================
-
-  cd backend
-  source ../venv/bin/activate
-  PYTHONPATH=.. uvicorn main:app --port 8000 --reload
+    Backend     →  localhost:8000
 
   Auto-seeds on first run:
     - Demo org (slug: demo)
@@ -35,7 +28,7 @@ STACK (one process, one SPA):
   Health check:  curl -sf http://127.0.0.1:8000/
 
 ============================================================
-3. OPEN IN BROWSER
+2. OPEN IN BROWSER
 ============================================================
 
   Everything is served from http://localhost:8000
@@ -46,6 +39,20 @@ STACK (one process, one SPA):
   Admin dashboard  →  http://localhost:8000/admin/dashboard
 
   Credentials:  admin / test123
+
+============================================================
+3. LOCAL DEV MODE (without Docker backend)
+============================================================
+
+  First stop the Docker backend container:
+    docker compose -f docker-compose-simple.yml stop backend
+
+  Then run the backend locally:
+    cd backend
+    source ../venv/bin/activate
+    PYTHONPATH=.. uvicorn main:app --port 8000 --reload
+
+  This gives you auto-reload on Python changes.
 
 ============================================================
 4. ANGULAR DEV (only if editing frontend)
@@ -66,11 +73,16 @@ STACK (one process, one SPA):
 5. REBUILD FRONTEND (after Angular changes)
 ============================================================
 
-  cd angular-visitor
-  npm run build
-  cp -r dist/angular-visitor/browser/* ../backend/static/
+  For Docker deployment:
+    docker compose -f docker-compose-simple.yml build backend
+    docker compose -f docker-compose-simple.yml up -d backend
 
-  Restart backend or reload the page.
+  For local dev (no Docker backend):
+    cd angular-visitor
+    npm run build
+    cp -r dist/angular-visitor/browser/* ../backend/static/
+
+  Either way, restart/reload after rebuilding.
 
 ============================================================
 KEY ENDPOINTS

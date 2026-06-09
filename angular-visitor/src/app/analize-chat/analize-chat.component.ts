@@ -57,15 +57,15 @@ export class AnalizeChatComponent {
     {
       id: 'ig-brskalka',
       emoji: '👤',
-      name: 'Instagram brskalka',
-      subtitle: 'vizualna · radovedna · neobvezna',
+      name: 'LinkedIn raziskovalec',
+      subtitle: 'poslovna · radovedna · neobvezna',
       section: 'customer',
     },
     {
       id: 'vip',
       emoji: '👤',
-      name: 'VIP zahtevnež',
-      subtitle: 'premium · paketi · najboljše',
+      name: 'Enterprise kupec',
+      subtitle: 'celovita rešitev · najboljše',
       section: 'customer',
     },
   ];

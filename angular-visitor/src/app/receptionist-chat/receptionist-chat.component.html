@@ -1,84 +1,98 @@
 <div class="page-wrapper">
   <app-header></app-header>
-  <app-service-cards></app-service-cards>
-  <app-staff-video></app-staff-video>
-  <app-footer></app-footer>
-</div>
-<section class="chat-section" id="chat-section">
-  <div class="chat-card" [class.minimized]="minimized()">
-    <div class="chat-header" (click)="toggleMinimize()" [class.header-staff]="salon.staffState() === 'connected'">
-      <span class="chat-title">{{ salon.staffState() === 'connected' ? 'Osebje' : salon.staffState() === 'offering' ? 'Osebje na voljo' : 'AI Receptor' }}</span>
-      @if (unreadCount()) {
-        <span class="unread-badge" (click)="scrollToBottom(); $event.stopPropagation()">{{ unreadCount() }}</span>
-      }
-      <span class="chat-status" [class.online]="salon.staffState() === 'connected' || salon.status() === 'open'"></span>
-      <button class="staff-btn" (click)="onAction('request-staff'); $event.stopPropagation()">Zahtevaj osebje</button>
-      <span class="minimize-icon">{{ minimized() ? '▲' : '▼' }}</span>
-    </div>
 
-    @if (!minimized()) {
-      <!-- Connection status banner -->
+  <!-- HERO: two-column layout -->
+  <section class="hero-section">
+    <div class="hero-inner">
+      <!-- LEFT: service cards -->
+      <div class="hero-left">
+        <app-service-cards></app-service-cards>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="hero-divider"></div>
+
+      <!-- RIGHT: explanation -->
+      <div class="hero-right">
+        <p class="hero-explanation">
+          We are happy to tailor to your needs. Please describe in which areas
+          you see our possible partnership. If we are a good fit, a team member
+          of ours will join the conversation very quickly, and we can discuss
+          it human-to-human <span class="smiley">:)</span>
+        </p>
+        @if (salon.status() !== 'open') {
+          <p class="hero-closed-note">
+            🌙 Currently outside working hours (Mon–Fri, 9:00–17:00).
+            Leave us a message and we'll get back to you first thing in the morning.
+          </p>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAT — fills remaining page -->
+  <div class="chat-fullpage">
+    <div class="chat-messages" #chatContainer (scroll)="onScroll()">
       @if (salon.connectionStatus() === 'connecting') {
-        <div class="connection-banner connecting">⏳ Povezovanje s strežnikom...</div>
+        <div class="connection-banner connecting">⏳ Connecting to server...</div>
       } @else if (salon.connectionStatus() === 'error') {
         <div class="connection-banner error">
-          ⚠️ {{ salon.errorMessage() || 'Povezava ni uspela.' }}
-          <button class="retry-btn" (click)="retryConnection()">Poskusi znova</button>
+          ⚠️ {{ salon.errorMessage() || 'Connection failed.' }}
+          <button class="retry-btn" (click)="retryConnection()">Retry</button>
         </div>
       }
 
-      <div class="chat-messages" #chatContainer (scroll)="onScroll()">
-        <!-- Messages -->
-        @for (msg of salon.messages(); track $index) {
-          <div class="message-row" [class]="rowClass(msg)">
-            @if (msg.role !== 'user') {
-              <div class="avatar" [class.avatar-staff]="msg.role === 'staff'">{{ avatarFor(msg) }}</div>
+      @for (msg of salon.messages(); track $index) {
+        <div class="message-row" [class]="rowClass(msg)">
+          @if (msg.role !== 'user') {
+            <div class="avatar" [class.avatar-staff]="msg.role === 'staff'">{{ avatarFor(msg) }}</div>
+          }
+          <div class="message-bubble" [class]="messageClass(msg)">
+            @if (msg.role === 'staff') {
+              <div class="message-badge">Team</div>
             }
-            <div class="message-bubble" [class]="messageClass(msg)">
-              @if (msg.role === 'staff') {
-                <div class="message-badge">Osebje</div>
-              }
-              <div class="message-text">
-                @if (!msg.text && msg.role === 'ai') {
-                  <div class="loading-dots"><span></span><span></span><span></span></div>
-                } @else {
-                  {{ msg.text }}
-                }
-              </div>
-              @if (msg.actions && msg.actions.length) {
-                <div class="message-actions">
-                  @for (action of msg.actions; track action.label) {
-                    <button class="action-btn" (click)="onAction(action.type, action.payload)">
-                      {{ action.label }}
-                    </button>
-                  }
-                </div>
+            <div class="message-text">
+              @if (!msg.text && msg.role === 'ai') {
+                <div class="loading-dots"><span></span><span></span><span></span></div>
+              } @else {
+                {{ msg.text }}
               }
             </div>
+            @if (msg.actions && msg.actions.length) {
+              <div class="message-actions">
+                @for (action of msg.actions; track action.label) {
+                  <button class="action-btn" (click)="onAction(action.type, action.payload)">
+                    {{ action.label }}
+                  </button>
+                }
+              </div>
+            }
           </div>
-        }
+        </div>
+      }
 
-        <!-- Calendar picker -->
-        @if (showCalendar()) {
-          <app-calendar-picker
-            (slotSelected)="onSlotSelected($event)"
-            (close)="onCalendarClose()"
-          ></app-calendar-picker>
-        }
-      </div>
+      @if (showCalendar()) {
+        <app-calendar-picker
+          (slotSelected)="onSlotSelected($event)"
+          (close)="onCalendarClose()"
+        ></app-calendar-picker>
+      }
+    </div>
 
-      <div class="chat-input-row">
-        <input
-          type="text"
-          class="chat-input"
-          [placeholder]="salon.staffState() === 'connected' ? 'Pišite osebju ...' : 'Vpišite sporočilo ...'"
-          [(ngModel)]="inputText"
-          (keyup.enter)="send()"
-        />
-        <button class="send-btn" (click)="send()" [disabled]="!inputText.trim()">
-          Pošlji
-        </button>
-      </div>
-    }
+    <div class="chat-input-row">
+      <input
+        type="text"
+        class="chat-input"
+        [placeholder]="salon.staffState() === 'connected' ? 'Message the team ...' : 'Describe what you need ...'"
+        [(ngModel)]="inputText"
+        (keyup.enter)="send()"
+      />
+      <button class="send-btn" (click)="send()" [disabled]="!inputText.trim()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
   </div>
-</section>
+</div>

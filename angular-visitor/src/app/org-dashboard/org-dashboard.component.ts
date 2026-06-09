@@ -42,7 +42,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   bookingView = signal<'day' | 'week'>('day');
   bookingDate = signal<string>(new Date().toISOString().slice(0, 10));
   showNewBooking = false;
-  newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
+  newBooking = { name: '', phone: '', email: '', service: 'discovery-call', date: new Date().toISOString().slice(0, 10), time: '', notes: '' };
   newBookingError = '';
   bookingsLoading = false;
 
@@ -330,7 +330,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     return { count: all.length, totalMin: all.reduce((s, b) => s + b.durationMin, 0), totalEur: all.filter(b => b.status !== 'cancelled').reduce((s, b) => s + b.priceEur, 0), confirmed: all.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, cancelled: 0 };
   }
   get weekStats() { return { count: this.bookings().length, confirmed: this.bookings().filter(b => b.status === 'confirmed' || b.status === 'in_progress').length, inProgress: this.bookings().filter(b => b.status === 'in_progress').length, completed: this.bookings().filter(b => b.status === 'completed').length, noShow: this.bookings().filter(b => b.status === 'no_show').length }; }
-  get allServices() { return [{ id: 'nega-obraza', name: 'Nega obraza (45 min, 35€)' }, { id: 'maska-obraza', name: 'Maska obraza (30 min, 25€)' }, { id: 'ciscenje-obraza', name: 'Čiščenje obraza (60 min, 50€)' }]; }
+  get allServices() { return [{ id: 'discovery-call', name: 'Discovery Call' }]; }
   timeSlots = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
   get freeSlots() { const taken = this.todaysBookings.map(b => b.bookingTime); return this.timeSlots.filter(t => !taken.includes(t) && t !== '12:00'); }
 
@@ -372,9 +372,9 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   cancelEditField() { this.editField = null; }
   onEditServiceChangeInline(b: any) {
     const sid = b.serviceId;
-    b.serviceName = sid === 'nega-obraza' ? 'Nega obraza' : sid === 'maska-obraza' ? 'Maska obraza' : 'Čiščenje obraza';
-    b.durationMin = sid === 'nega-obraza' ? 45 : sid === 'maska-obraza' ? 30 : 60;
-    b.priceEur = sid === 'nega-obraza' ? 35 : sid === 'maska-obraza' ? 25 : 50;
+    b.serviceName = 'Discovery Call';
+    b.durationMin = 30;
+    b.priceEur = 0;
   }
   deleteBooking(b: any) { this.api.deleteBooking(this.orgId, b.id).subscribe({ next: () => this.loadBookings(), error: () => {} }); this.selectedBooking = null; this.cancelEdit(); }
   weekDays() { const [y,m,day] = this.bookingDate().split('-').map(Number); const d = new Date(Date.UTC(y, m-1, day)); const dow = d.getUTCDay(); const mon = new Date(Date.UTC(y, m-1, day - (dow === 0 ? 6 : dow - 1))); return Array.from({ length: 6 }, (_, i) => { const dt = new Date(mon); dt.setUTCDate(mon.getUTCDate() + i); return dt.toISOString().slice(0, 10); }); }
@@ -423,16 +423,15 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       booking_date: this.newBooking.date, booking_time: this.newBooking.time, notes: this.newBooking.notes
     }).subscribe({
       next: () => { this.loadBookings(); this.showNewBooking = false; this.newBookingError = '';
-        this.newBooking = { name: '', phone: '', email: '', service: 'nega-obraza', date: new Date().toISOString().slice(0, 10), time: '', notes: '' }; },
+        this.newBooking = { name: '', phone: '', email: '', service: 'discovery-call', date: new Date().toISOString().slice(0, 10), time: '', notes: '' }; },
       error: (e) => { this.newBookingError = e?.error?.detail || 'Napaka pri rezervaciji.'; }
     });
   }
   onEditServiceChange() {
     if (!this.editingBooking) return;
-    const sid = this.editingBooking.serviceId;
-    this.editingBooking.serviceName = sid === 'nega-obraza' ? 'Nega obraza' : sid === 'maska-obraza' ? 'Maska obraza' : 'Čiščenje obraza';
-    this.editingBooking.durationMin = sid === 'nega-obraza' ? 45 : sid === 'maska-obraza' ? 30 : 60;
-    this.editingBooking.priceEur = sid === 'nega-obraza' ? 35 : sid === 'maska-obraza' ? 25 : 50;
+    this.editingBooking.serviceName = 'Discovery Call';
+    this.editingBooking.durationMin = 30;
+    this.editingBooking.priceEur = 0;
   }
 
   get visibleCount() { return this.leads().length; }

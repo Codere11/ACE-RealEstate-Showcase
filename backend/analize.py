@@ -67,9 +67,9 @@ async def _query_analytics(db: AsyncSession, org_id: int) -> dict:
             JOIN leads l ON cm.lead_id = l.id
             WHERE l.organization_id = :oid AND cm.role = 'user'
         """), {"oid": org_id})).fetchall()
-        service_keywords = ["nega", "maska", "čiščenje", "storitev", "cena", "koliko stane", "ponujate", "imate", "delate", "nudite"]
+        service_keywords = ["AI", "avtomatizacij", "recepcij", "klepetalni bot", "chatbot", "integracij", "sistem", "rešitev", "software", "platformo", "orodje"]
         avail_keywords = ["prost", "termin", "kda", "teden", "jutri", "danes", "ponedeljek", "torek", "sredo", "četrtek", "petek"]
-        book_keywords = ["rezerv", "želim", "bi se naročil", "bi se naročila", "hočem", "rabim termin"]
+        book_keywords = ["klic", "demo", "sestanek", "pogovor", "termin", "kontaktiraj", "pokličite"]
         for (msg_text,) in all_msgs:
             if not msg_text: continue
             lower = msg_text.lower()
@@ -136,7 +136,7 @@ def _run_llm_analysis(data: dict) -> str:
     if not DEEPSEEK_API_KEY:
         return "❌ DEEPSEEK_API_KEY not set."
 
-    system = """Ti si poslovni analitik za kozmetični salon Lepota & Sprostitev. 
+    system = """Ti si poslovni analitik za ACE poslovni analitik ACE. 
 Tvoj odgovor je v slovenščini. Bodi direkten, konkreten, brez floskul."""
     data_json = json.dumps(data, ensure_ascii=False, indent=2)
     user = f"""Analiziraj te podatke ... PODATKI:\n{data_json}\n\nVrni SAMO JSON, nič drugega."""
@@ -174,14 +174,14 @@ class LabelRequest(BaseModel):
     sid: str
     messages: list[dict]
 
-_label_system = """Ti si analitik pogovorov za kozmetični salon.
+_label_system = """Ti si analitik pogovorov za ACE poslovni analitik.
 Za vsak pogovor vrni SAMO JSON s temi oznakami:
 {
   "je_rezerviral": true/false,
   "je_placal": true/false,
   "sentiment": "pozitiven / nevtralen / negativen / navdušen / razočaran",
   "osip_razlog": null če je rezerviral/a. Če ni, izberi: ghost_po_pozdravu, narobna_storitev, predrago, kontaktni_loop, izgubil_interes, drugo,
-  "source": null ali kako je stranka našla salon: instagram, google, priporočilo, facebook, mimoidoči
+  "source": null ali kako je stranka našla ACE: linkedin, google, priporočilo, konferenca, oglas
 }"""
 
 
@@ -189,7 +189,7 @@ def _label_one_lead(sid: str, messages: list[dict]) -> dict:
     if not DEEPSEEK_API_KEY:
         return {"napaka": "DEEPSEEK_API_KEY not set"}
     convo_text = "\n".join(
-        f"[{'STRANKA' if m.get('role') == 'user' else 'RECEPTOR'}]: {m.get('text', '')}"
+        f"[{'STRANKA' if m.get('role') == 'user' else 'ACE'}]: {m.get('text', '')}"
         for m in messages
     )
     user_prompt = f"Analiziraj ta pogovor. SID: {sid}\n\n{convo_text}\n\nVrni SAMO JSON z oznakami, nič drugega."
@@ -226,7 +226,7 @@ class ChatRequest(BaseModel):
     history: list[dict] = []  # [{role, text}, ...]
 
 PERSONA_PROMPTS = {
-    "poslovni": """Ti si Poslovni svetovalec za kozmetični salon Lepota & Sprostitev.
+    "poslovni": """Ti si Poslovni svetovalec za ACE poslovni analitik ACE.
 Si direkten, konkreten, brez floskul. Govoriš slovenščino.
 
 Na voljo imaš ORODJA za delo s podatki o strankah:
@@ -237,27 +237,27 @@ Na voljo imaš ORODJA za delo s podatki o strankah:
 
 VEDNO UPORABI ORODJA. Ne ugibaj.""",
 
-    "marketingar": """Ti si Marketingar za kozmetični salon Lepota & Sprostitev.
+    "marketingar": """Ti si Marketingar za ACE poslovni analitik ACE.
 Specializiran/a si za konverzije, jezik, kanale in A/B testiranje. Govoriš slovenščino.
 
 Na voljo imaš ORODJA: search_leads, get_lead, get_stats, count_by.
 Si oster/a in natančen/a. VEDNO UPORABI ORODJA.""",
 
-    "cenovni-lovec": """Ti si Cenovni lovec — simuliraš stranko, ki ji je cena NAJPOMEMBNEJŠA.
-Govoriš sproščeno slovenščino. Vedno vprašaš po ceni, primerjaš s konkurenco.
+    "cenovni-lovec": """Ti si Cenovni lovec — simuliraš B2B stranko, ki jo zanima ROI in cena.
+Govoriš sproščeno slovenščino. Vedno vprašaš po ceni, ROI-ju, primerjaš s konkurenco.
 Odgovarjaš SAMO kot stranka.""",
 
-    "ig-brskalka": """Ti si Instagram brskalka — našel/našla si salon na Instagramu.
-Všeč so ti njihove objave. Govoriš sproščeno, uporabljaš 'ful', 'top'.
+    "ig-brskalka": """Ti si LinkedIn raziskovalec/ka — našel/našla si ACE na LinkedInu.
+Všeč so ti njihove objave o AI rešitvah. Govoriš sproščeno, uporabljaš 'ful', 'top'.
 Odgovarjaš SAMO kot stranka.""",
 
-    "vip": """Ti si VIP zahtevnež — hočeš najboljše kar salon ponuja. Cena ni pomembna.
+    "vip": """Ti si Enterprise kupec — iščeš celovito rešitev za večje podjetje. Cena ni problem.
 Govoriš samozavestno, vljudno ampak zahtevno. Odgovarjaš SAMO kot stranka.""",
 }
 
 
 # ═══════════════════════════════════════════════════════════
-#  ANALYZE TOOLS — completely separate from salon tools
+#  ANALYZE TOOLS — completely separate from main tools
 # ═══════════════════════════════════════════════════════════
 
 ANALYZE_TOOLS = [

@@ -148,20 +148,20 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
                     "surveyProgress": 100, "currentStep": None, "completionTitle": None, "completionSubtitle": None}
         except Exception as e:
             import traceback; traceback.print_exc()
-            fallback = "Oprostite, AI trenutno ni na voljo. Ekipa vas bo kontaktirala kmalu."
+            fallback = "Oprostite, AI trenutno ni na voljo. Naša ekipa vam bo odgovorila kmalu."
             await save_message(db, lead, ConvRole.ASSISTANT, fallback)
             await db.commit()
             return {"sid": lead.sid, "reply": fallback, "chatMode": "open", "storyComplete": False,
                     "surveyProgress": 100, "currentStep": None, "completionTitle": None, "completionSubtitle": None}
     else:
         # Survey fallback
-        reply = "Katero storitev iščete? (Nega obraza, Masaža, Manikura, Pedikura...)"
+        reply = "Kako vam lahko ACE pomaga? Opišite vaše potrebe."
         await save_message(db, lead, ConvRole.ASSISTANT, reply)
         await db.commit()
         return {"sid": lead.sid, "reply": reply, "chatMode": "guided", "storyComplete": False,
                 "surveyProgress": 0, "currentStep": {"orderIndex": 1, "questionType": "SINGLE_CHOICE",
                 "title": "Katero storitev iščete?", "description": "", "placeholder": "",
-                "options": ["Nega obraza", "Masaža", "Manikura", "Pedikura", "Depilacija", "Nekaj drugega"]},
+                "options": ["AI Reception", "Analytics", "Integrations", "Lead Scoring", "Drugo"]},
                 "completionTitle": None, "completionSubtitle": None}
 
 # ══════ CHAT (STREAMING) ══════
@@ -206,7 +206,7 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
 
     async def _stream():
         if not qualifier:
-            reply = "Katero storitev iščete? (Nega obraza, Masaža, Manikura, Pedikura...)"
+            reply = "Kako vam lahko ACE pomaga? Opišite vaše potrebe."
             await save_message(db, lead, ConvRole.ASSISTANT, reply)
             await db.commit()
             yield f"data: {_json.dumps({'token': reply})}\n\n"
@@ -240,7 +240,7 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
         except Exception as e:
             import traceback; traceback.print_exc()
-            fallback = "Oprostite, AI trenutno ni na voljo. Ekipa vas bo kontaktirala kmalu."
+            fallback = "Oprostite, AI trenutno ni na voljo. Naša ekipa vam bo odgovorila kmalu."
             await save_message(db, lead, ConvRole.ASSISTANT, fallback)
             await db.commit()
             yield f"data: {_json.dumps({'token': fallback})}\n\n"
@@ -526,9 +526,7 @@ async def list_bookings(org_id: int, date_from: Optional[str] = None, date_to: O
 async def create_booking(org_id: int, req: CreateBookingRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await check_org_access(user, org_id)
     svc = next((s for s in [
-        {"id": "nega-obraza", "name": "Nega obraza", "dur": 45, "price": 45},
-        {"id": "maska-obraza", "name": "Maska obraza", "dur": 30, "price": 30},
-        {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "dur": 60, "price": 60}
+        {"id": "discovery-call", "name": "Discovery Call", "dur": 30, "price": 0},
     ] if s["id"] == req.service_id), None)
     if not svc: raise HTTPException(400, f"Unknown service: {req.service_id}")
     # Conflict check: overlap-aware, not just exact time

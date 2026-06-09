@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as db:
         org = (await db.execute(select(Organization).where(Organization.slug == "demo"))).scalar_one_or_none()
         if not org:
-            org = Organization(name="Demo Agency", slug="demo", active=True)
+            org = Organization(name="ACE", slug="demo", active=True)
             db.add(org); await db.commit()
         admin = (await db.execute(select(User).where(User.username == "admin"))).scalar_one_or_none()
         if not admin:
@@ -33,9 +33,9 @@ async def lifespan(app: FastAPI):
             db.add(admin); await db.commit()
         qual = (await db.execute(select(Qualifier).where(Qualifier.organization_id == org.id, Qualifier.status == "live"))).scalar_one_or_none()
         if not qual:
-            qual = Qualifier(organization_id=org.id, name="AI Receptor", slug="ai-receptor", status="live",
-                system_prompt="Ti si AI Receptor za kozmetični salon. Toplo pozdravi obiskovalce, odgovarjaj na vprašanja o storitvah, pomagaj pri izbiri tretmajev in rezerviraj termine.",
-                assistant_style="prijazen, topel, profesionalen")
+            qual = Qualifier(organization_id=org.id, name="AI Svetovalec", slug="ai-receptor", status="live",
+                system_prompt="Ti si AI Svetovalec za ACE — podjetje, ki razvija AI recepcijske rešitve za avtomatizacijo sprejema strank. Toplo pozdravi obiskovalce, vprašaj jih po njihovih poslovnih potrebah (količina strank, obstoječi sistemi, urnik, proračun), kvalificiraj lead in, če je primeren, ponudi klic z ekipo. Bodi prijazen, direkten, posloven.",
+                assistant_style="prijazen, direkten, posloven")
             db.add(qual); await db.commit()
     yield
 

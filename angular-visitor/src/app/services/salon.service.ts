@@ -191,9 +191,9 @@ export class SalonService implements OnDestroy {
 
   // ══════ HELPERS ══════
 
-  defaultGreeting() { return 'Dober dan! Dobrodošli. Kako vam lahko pomagamo? 💆‍♀️'; }
+  defaultGreeting() { return 'Pozdravljeni! Smo ACE — pomagamo podjetjem avtomatizirati sprejem strank z AI-jem. Kako vam lahko pomagamo?'; }
 
-  requestStaffAction(): ChatAction { return { label: '🎥 Prosim osebje', type: 'request-staff' }; }
+  requestStaffAction(): ChatAction { return { label: '📞 Prosim ekipo', type: 'request-staff' }; }
   private getTenantSlug(): string {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('org'); if (p) return p;
@@ -203,18 +203,20 @@ export class SalonService implements OnDestroy {
   }
 
   // ══════ STUBS ══════
-  readonly salonName = 'Lepota & Sprostitev'; readonly salonSubtitle = 'Kozmetični salon';
-  readonly openHour = '09:00'; readonly closeHour = '18:00';
+  readonly salonName = 'ACE'; readonly salonSubtitle = 'AI Reception Services';
+  readonly openHour = '09:00'; readonly closeHour = '17:00';
   readonly selectedService = signal<any>(null);
   readonly selectedDate = signal<string|null>(null);
   readonly selectedSlot = signal<string|null>(null);
   services = [
-    {id:'nega-obraza',name:'Nega obraza',durationMin:45,priceEur:45,imageUrl:'',
-     addons:[{name:'Kolagenska maska',priceEur:15},{name:'Limfna drenaža',priceEur:20},{name:'LED terapija',priceEur:10}]},
-    {id:'maska-obraza',name:'Maska obraza',durationMin:30,priceEur:30,imageUrl:'',
-     addons:[{name:'Hialuronski serum',priceEur:12},{name:'Pomirjevalna krema',priceEur:8},{name:'Očesni tretma',priceEur:15}]},
-    {id:'ciscenje-obraza',name:'Čiščenje obraza',durationMin:60,priceEur:60,imageUrl:'',
-     addons:[{name:'Encimski piling',priceEur:18},{name:'LED terapija',priceEur:10},{name:'Kolagenska maska',priceEur:15}]},
+    {id:'ai-reception',name:'AI Reception',durationMin:0,priceEur:0,imageUrl:'',
+     addons:[]},
+    {id:'analytics',name:'Analytics',durationMin:0,priceEur:0,imageUrl:'',
+     addons:[]},
+    {id:'integrations',name:'Integrations',durationMin:0,priceEur:0,imageUrl:'',
+     addons:[]},
+    {id:'lead-scoring',name:'AI Lead Scoring',durationMin:0,priceEur:0,imageUrl:'',
+     addons:[]},
   ];
   addMessage(m: ChatMessage) { this.addMsg(m.role, m.text, m.actions); }
   addMessageObj(m: {role: string, text: string, actions?: ChatAction[]}) { this.addMsg(m.role as ChatMessage['role'], m.text, m.actions); }

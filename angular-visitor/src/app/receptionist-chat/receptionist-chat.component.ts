@@ -4,13 +4,11 @@ import { SalonService, ChatMessage } from '../services/salon.service';
 import { CalendarPickerComponent } from '../calendar-picker/calendar-picker.component';
 import { HeaderComponent } from '../header/header.component';
 import { ServiceCardsComponent } from '../service-cards/service-cards.component';
-import { StaffVideoComponent } from '../staff-video/staff-video.component';
-import { FooterComponent } from '../footer/footer.component';
 
 @Component({
   selector: 'app-receptionist-chat',
   standalone: true,
-  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent, StaffVideoComponent, FooterComponent],
+  imports: [FormsModule, CalendarPickerComponent, HeaderComponent, ServiceCardsComponent],
   templateUrl: './receptionist-chat.component.html',
   styleUrls: ['./receptionist-chat.component.scss'],
 })
@@ -19,13 +17,12 @@ export class ReceptionistChatComponent implements AfterViewChecked {
   private cdr = inject(ChangeDetectorRef);
   inputText = '';
   private prevLen = 0;
-  unreadCount = signal(0);
+
+  showCalendar = signal(false);
 
   constructor() {
     this.salon.onStaffMessage = () => this.cdr.detectChanges();
   }
-  showCalendar = signal(false);
-  minimized = signal(false);
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
@@ -34,44 +31,30 @@ export class ReceptionistChatComponent implements AfterViewChecked {
     if (!el) return;
     const currentLen = this.salon.messages().length;
     if (currentLen !== this.prevLen) {
-      const newMsgs = currentLen - this.prevLen;
       this.prevLen = currentLen;
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
       if (atBottom) {
         el.scrollTop = el.scrollHeight;
-        this.unreadCount.set(0);
-      } else {
-        this.unreadCount.update(c => c + Math.max(0, newMsgs));
       }
     }
   }
 
   scrollToBottom(): void {
     const el = this.chatContainer?.nativeElement;
-    if (el) { el.scrollTop = el.scrollHeight; this.unreadCount.set(0); }
+    if (el) { el.scrollTop = el.scrollHeight; }
   }
 
-  onScroll(): void {
-    const el = this.chatContainer?.nativeElement;
-    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
-      this.unreadCount.set(0);
-    }
-  }
+  onScroll(): void { }
 
   send(): void {
     const text = this.inputText.trim();
     if (!text) return;
     this.inputText = '';
-    if (this.minimized()) this.minimized.set(false);
     this.salon.sendMessage(text);
   }
 
   retryConnection(): void {
     window.location.reload();
-  }
-
-  toggleMinimize(): void {
-    this.minimized.update(v => !v);
   }
 
   onAction(actionType: string, payload?: any): void {

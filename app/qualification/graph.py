@@ -9,8 +9,7 @@ from app.qualification.state import (
     TurnDecision,
 )
 from app.services.llm_service import LLMService
-from app.qualification.tools import SALON_TOOLS, execute_tool
-from app.qualification.tools import ADDONS
+from app.qualification.tools import ACE_TOOLS, execute_tool
 
 
 # ═══════════════════════════════════════════════════════════
@@ -23,19 +22,11 @@ def _build_agent_prompt(state: QualificationGraphState) -> str:
     recent = state.get("recent_messages", []) or []
     last_booking_id = state.get("last_booking_id")
 
-    # Salon state
-    salon = json.loads(execute_tool("salon_get_context", {}))
+    # Business hours
+    biz = json.loads(execute_tool("ace_get_context", {}))
 
-    # Service + add-on info
-    service_info = []
-    for s in [
-        {"id": "nega-obraza", "name": "Nega obraza", "dur": 45, "price": 45},
-        {"id": "maska-obraza", "name": "Maska obraza", "dur": 30, "price": 30},
-        {"id": "ciscenje-obraza", "name": "Čiščenje obraza", "dur": 60, "price": 60},
-    ]:
-        addons = ADDONS.get(s["id"], [])
-        addon_str = ", ".join(f"{a['name']} (+{a['price_eur']}€, id={a['id']})" for a in addons)
-        service_info.append(f"  {s['id']}: {s['name']} ({s['dur']}min, {s['price']}€) — dopolnitve: {addon_str}")
+    # Contact status
+    contact = json.loads(execute_tool("ace_check_contact", {}))
 
     # Conversation history
     history = "\n".join(
@@ -43,32 +34,22 @@ def _build_agent_prompt(state: QualificationGraphState) -> str:
         for m in (recent or [])[-8:]
     )
 
-    # Contact status
-    contact = json.loads(execute_tool("salon_check_contact", {}))
-
-    # Use qualifier name from config, fall back to default
-    qualifier = state.get("qualifier")
-    salon_name = getattr(qualifier, "name", None) or "Lepota & Sprostitev"
-
-    prompt = f"""Ti si AI Receptor za kozmetični salon {salon_name}.
-Si prijazen, topel, profesionalen — kot izkušen receptor.
-Govoriš naravno slovenščino, kratko in jedrnato.
+    prompt = f"""Ti si AI Svetovalec za ACE — podjetje, ki razvija AI recepcijske rešitve za avtomatizacijo sprejema strank.
+ACE ponuja: AI Reception (avtomatska kvalifikacija, booking, handoff), Analytics (dashboard, konverzijske metrike), Integrations (LiveKit, koledar, plačila), AI Lead Scoring (samodejno ocenjevanje leadov).
+Si prijazen, direkten, posloven. Govoriš naravno slovenščino.
 STROGO UPORABLJAJ VIKANJE (vi, vas, vaš, sporočite, izberite).
 NIKOLI ne uporabljaj tikanja (ti, te, tvoj, sporoči, izberi).
 
-TRENUTNO STANJE SALONA:
-  Status: {salon.get('status','')}
-  Delovni čas: {salon.get('delovni_cas','')}
-  Danes: {salon.get('danes','')}
-  Naslednji delovni dan: {salon.get('naslednji_delovni_dan','')}
-
-STORITVE IN DOPOLNITVE:
-{chr(10).join(service_info)}
+TRENUTNO STANJE:
+  Status: {biz.get('status','')}
+  Delovni čas: {biz.get('delovni_cas','')}
+  Danes: {biz.get('danes','')}
+  Naslednji delovni dan: {biz.get('naslednji_delovni_dan','')}
 
 KONTAKT STRANKE:
-  {'Stranka JE podala kontakt (telefon ali email).' if contact.get('ok') else 'Stranka ŠE NI podala kontakta. Pred rezervacijo ga MORAŠ pridobiti.'}
+  {'Stranka JE podala kontakt (telefon ali email).' if contact.get('ok') else 'Stranka ŠE NI podala kontakta. Pred klicem ga MORAŠ pridobiti (telefon ali email).'}
 
-{"ZADNJA REZERVACIJA ID: " + str(last_booking_id) if last_booking_id else "Ni še rezervacije v tem pogovoru."}
+{"ZADNJI KLIC ID: " + str(last_booking_id) if last_booking_id else "Ni še dogovorjenega klica v tem pogovoru."}
 
 ZGODOVINA POGOVORA:
 {history if history else '(prazen — prvi stik)'}
@@ -76,19 +57,16 @@ ZGODOVINA POGOVORA:
 STRANKA PRAVI: {json.dumps(latest, ensure_ascii=False)}
 
 TVOJA NALOGA:
-1. Če stranka pozdravlja — toplo pozdravi, omeni da si na voljo, vprašaj kako lahko pomagaš.
-2. Če stranka sprašuje o storitvah — odgovori direktno, opiši kar jo zanima.
-3. NOVA REZERVACIJA: Če stranka želi rezervirati termin in ZADNJA REZERVACIJA ID je prazen — pokliči salon_book_appointment. To je POST (create).
-4. SPREMEMBA REZERVACIJE: Če stranka želi prestaviti termin, spremeniti uro ali storitev OBSTOJEČE rezervacije (ZADNJA REZERVACIJA ID že obstaja) — pokliči salon_update_booking. To je PUT (edit).
-5. DOPOLNITVE: Če stranka želi dodati dopolnitev k obstoječi rezervaciji — pokliči salon_add_addon.
-6. Če stranka želi preklicati — pokliči salon_cancel_booking.
-7. Če stranka želi osebje — pokliči salon_request_staff.
+1. Če stranka pozdravlja — toplo pozdravi, na kratko predstavi ACE (1 stavek), vprašaj kako lahko pomagaš.
+2. Če stranka sprašuje o storitvah — odgovori direktno, opiši kaj ACE ponuja.
+3. Če stranka opisuje svoje potrebe — postavi vprašanja za kvalifikacijo: koliko strank, kakšen sistem zdaj, kakšne so njihove potrebe.
+4. Če je stranka dovolj kvalificirana (je opisala potrebe) in IMA KONTAKT — ponudi klic z ekipo. Pokliči ace_schedule_call. Datum naj bo naslednji delovni dan.
+5. Če ZADNJI KLIC ID že obstaja, NE kliči ace_schedule_call ponovno.
+6. Če stranka želi govoriti z osebo — pokliči ace_request_team.
+7. Če je podjetje zaprto — povej da bomo odgovorili naslednji delovni dan, prosi za kontakt če ga še ni.
 8. Če je stranka samo potrdila, se strinja ("ok", "super", "hvala") — NE kliči nobenega orodja. Samo kratko potrdi.
-9. Če stranka želi plačati — pokliči salon_create_invoice.
 
-KLJUČNO PRAVILO: Če ZADNJA REZERVACIJA ID ni prazen → NIKOLI ne kliči salon_book_appointment. Uporabi salon_update_booking za spremembe ali salon_add_addon za dopolnitve.
-
-Bodi kratek (1-3 stavke), naraven, vikanje."""
+Bodi kratek (1-3 stavke), naraven, vikanje. Ne izmišljuj si cen ali paketov."""
 
     return prompt
 
@@ -99,10 +77,10 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
     system = _build_agent_prompt(state)
     msgs = [{"role": "user", "content": json.dumps(latest, ensure_ascii=False)}]
 
-    contact = json.loads(execute_tool("salon_check_contact", {}))
+    contact = json.loads(execute_tool("ace_check_contact", {}))
     has_contact = contact.get("ok")
 
-    tools = SALON_TOOLS
+    tools = ACE_TOOLS
     resp = llm.call_with_tools(system, msgs, tools, required=False)
     tcs = resp.get("tool_calls")
     all_tcs = []
@@ -110,26 +88,22 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
     blocked_booking = False
     if tcs:
         if not has_contact:
-            booking_tcs = [tc for tc in tcs if tc["name"] == "salon_book_appointment"]
+            booking_tcs = [tc for tc in tcs if tc["name"] == "ace_schedule_call"]
             if booking_tcs:
                 blocked_booking = True
-                tcs = [tc for tc in tcs if tc["name"] != "salon_book_appointment"]
+                tcs = [tc for tc in tcs if tc["name"] != "ace_schedule_call"]
 
     if tcs:
         for tc in tcs:
             result = execute_tool(tc["name"], tc["args"])
             all_tcs.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
-            if tc["name"] == "salon_book_appointment":
+            if tc["name"] == "ace_schedule_call":
                 r = json.loads(result)
                 if r.get("potrjeno"):
                     state["booking_confirmed"] = True
                     state["booking_date"] = tc["args"].get("datum", "")
                     state["booking_time"] = tc["args"].get("ura", "")
                     state["last_booking_id"] = r.get("id")
-            if tc["name"] == "salon_cancel_booking":
-                r = json.loads(result)
-                if r.get("preklicano"):
-                    state["booking_confirmed"] = False
 
         for tc in all_tcs:
             msgs.append({"role": "assistant", "content": None, "tool_calls": [
@@ -138,12 +112,10 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
             msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
 
     if blocked_booking:
-        msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati brez kontakta. Vljudno prosi za telefonsko številko ali email."})
+        msgs.append({"role": "user", "content": "POZOR: Stranka še nima kontakta. Ne smeš rezervirati klica brez kontakta. Vljudno prosi za telefonsko številko ali email."})
 
-    # Guard: if no booking/cancel tool was called in THIS turn but user message
-    # contains date/time keywords, force a second tool pass.
-    # SKIP if a booking was already confirmed in a previous turn (last_booking_id).
-    booking_tool_names = {"salon_book_appointment", "salon_cancel_booking", "salon_add_addon"}
+    # Guard: if no booking tool was called but user mentions time/date, force a second tool pass
+    booking_tool_names = {"ace_schedule_call"}
     had_booking_tool = any(tc["name"] in booking_tool_names for tc in all_tcs)
     already_booked = bool(state.get("last_booking_id"))
     if not had_booking_tool and has_contact and not already_booked:
@@ -151,28 +123,24 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
         has_date = bool(_re.search(r'\d{1,2}\.\d{1,2}\.|\d{4}-\d{2}-\d{2}|jutri|danes|pojutrišnjem|ponedeljek|torek|sredo|sreda|četrtek|petek|soboto|nedeljo|naslednji teden|ta teden', latest.lower()))
         has_time = bool(_re.search(r'ob\s+\d|\d{1,2}:\d{2}|\d{1,2}\.00|opoldne|dopoldne|popoldne|zjutraj|dopoldan|popoldan|enih|dveh|treh|štirih|petih|šestih|sedmih|osmih|devetih|desetih|enajstih|dvanajstih', latest.lower()))
         if has_date or has_time:
-            msgs.append({"role": "user", "content": "MORAŠ poklicati orodje (salon_book_appointment). Ne smeš samo reči da boš uredil — dejansko pokliči orodje."})
-            resp2 = llm.call_with_tools(system, msgs, [t for t in tools if t["function"]["name"] != "salon_check_contact"], required=True)
+            msgs.append({"role": "user", "content": "MORAŠ poklicati orodje (ace_schedule_call). Ne smeš samo reči da boš uredil — dejansko pokliči orodje."})
+            resp2 = llm.call_with_tools(system, msgs, [t for t in tools if t["function"]["name"] != "ace_check_contact"], required=True)
             tcs2 = resp2.get("tool_calls")
             if tcs2:
                 second_results = []
                 for tc in tcs2:
-                    if not has_contact and tc["name"] == "salon_book_appointment":
+                    if not has_contact and tc["name"] == "ace_schedule_call":
                         continue
                     result = execute_tool(tc["name"], tc["args"])
                     second_results.append((tc, result))
                     all_tcs.append({"id": tc["id"], "name": tc["name"], "args": tc["args"], "result": result})
-                    if tc["name"] == "salon_book_appointment":
+                    if tc["name"] == "ace_schedule_call":
                         r = json.loads(result)
                         if r.get("potrjeno"):
                             state["booking_confirmed"] = True
                             state["booking_date"] = tc["args"].get("datum", "")
                             state["booking_time"] = tc["args"].get("ura", "")
                             state["last_booking_id"] = r.get("id")
-                    if tc["name"] == "salon_cancel_booking":
-                        r = json.loads(result)
-                        if r.get("preklicano"):
-                            state["booking_confirmed"] = False
                 for tc, result in second_results:
                     msgs.append({"role": "assistant", "content": None, "tool_calls": [
                         {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
@@ -196,7 +164,7 @@ def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
         fallback_user = json.dumps(latest, ensure_ascii=False)
         reply = llm.call_text(system, fallback_user)
     if not reply:
-        reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+        reply = "Pozdravljeni! Smo ACE. Kako vam lahko pomagamo?"
 
     if not state.get("hours_mentioned"):
         state["hours_mentioned"] = True
@@ -277,7 +245,7 @@ def run_qualification_graph_stream(
     profile_before: Dict[str, Any],
     spatial_context: Optional[Dict[str, Any]] = None,
 ):
-    """Streaming variant — yields (state_dict, token) tuples during final reply."""
+    """Streaming variant — yields tokens during final reply."""
     state: QualificationGraphState = {
         "qualifier": qualifier,
         "latest_message": latest_message,
@@ -303,7 +271,7 @@ def run_qualification_graph_stream(
     reply = ""
     
     if tcs_executed:
-        # Tools were called — use non-streaming final reply (DeepSeek re-emits tool XML in stream)
+        # Tools were called — use non-streaming final reply
         reply = llm.call_json_response(system, msgs)
         reply = _unwrap_reply(reply)
         if not reply:
@@ -318,7 +286,7 @@ def run_qualification_graph_stream(
             fallback_user = ("Rezultati orodij: " + " | ".join(summary_parts)) if summary_parts else json.dumps(latest, ensure_ascii=False)
             reply = llm.call_text(system, fallback_user) or reply
         if not reply:
-            reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+            reply = "Pozdravljeni! Smo ACE. Kako vam lahko pomagamo?"
         for ch in reply:
             yield ch
     else:
@@ -330,7 +298,7 @@ def run_qualification_graph_stream(
                 yield token
         reply = reply.strip()
         if not reply:
-            reply = "Dober dan! Kako vam lahko pomagam? 💆‍♀️"
+            reply = "Pozdravljeni! Smo ACE. Kako vam lahko pomagamo?"
             yield reply
 
     # Finalize state

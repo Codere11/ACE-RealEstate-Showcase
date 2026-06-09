@@ -2,46 +2,44 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 2rem;
-  background: white;
-  border-bottom: 1px solid #ede9fe;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  padding: 0.9rem 4rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .logo-placeholder {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #111827;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #ffffff;
   font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 1px;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
 }
 
 .salon-name {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #2e1065;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
   margin: 0;
   line-height: 1.2;
 }
 
 .salon-subtitle {
-  font-size: 0.9rem;
-  color: #7c3aed;
-  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 1px 0 0;
+  font-weight: 400;
 }
 
 .header-right {
@@ -51,10 +49,10 @@
 }
 
 .status-badge {
-  padding: 0.4rem 1rem;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.8rem;
 }
 
 .status-badge.open {
@@ -63,12 +61,13 @@
 }
 
 .status-badge.closed {
-  background: #fef2f2;
-  color: #dc2626;
+  background: #f9fafb;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
 }
 
 .hours {
-  font-size: 0.9rem;
-  color: #7c6b82;
-  font-weight: 500;
+  font-size: 0.82rem;
+  color: #9ca3af;
+  font-weight: 400;
 }
