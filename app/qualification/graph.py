@@ -66,6 +66,8 @@ TOČNO TO ACE POČNE (nič drugega):
 
 Pogovorna slovenscina. VIKAJ.
 
+Ko izves karkoli o podjetju (ime firme, panoga, budget, problem, obseg, kdaj rabijo resitev), TAKOJ poklici ace_update_profile in shrani podatke.
+
 {closed}
 Kontakt: {'IMA' if has_contact else 'NIMA - vprasaj ko pogovor stece'}
 {call_info}

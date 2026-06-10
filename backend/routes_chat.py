@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from app.qualification.tools import set_db_context
 import json as _json
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models import Organization, Lead, ConversationMessage, Qualifier, LeadEvent, Booking, ConvRole, LeadStatus, new_sid
@@ -120,6 +120,32 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             updated_profile = state.get("profile_before", {})
             if updated_profile:
                 profile.update(updated_profile)
+            # Also extract profile fields from ace_update_profile tool results
+            for tm in (state.get("tool_messages") or []):
+                if tm.get("role") == "tool":
+                    try:
+                        r = _json.loads(tm["content"])
+                        captured = r.get("zajeto", {})
+                        if captured:
+                            profile.update(captured)
+                    except Exception:
+                        pass
+            # Run explicit extraction from conversation (catches fields even when tool not called)
+            try:
+                all_texts = [m["text"] for m in recent if m.get("text")]
+                combined = "\n".join(all_texts[-10:])
+                if combined.strip():
+                    extract = llm.call_json(
+                        "Extract business profile information from the conversation. Return JSON with these optional keys (omit if unknown): business_name, budget, problem, company_type, scale, current_system, timeline, use_case. Only include fields you find evidence for.",
+                        combined
+                    )
+                    if isinstance(extract, dict):
+                        print(f"[EXTRACT] result={extract}")
+                        for k, v in extract.items():
+                            if v and isinstance(v, str) and v.strip() and not profile.get(k):
+                                profile[k] = v.strip()
+            except Exception:
+                import traceback; traceback.print_exc()
             profile["conversation_stage"] = state.get("conversation_stage", "")
             profile["hours_mentioned"] = state.get("hours_mentioned", False)
             profile["services_presented"] = state.get("services_presented", False)
@@ -237,8 +263,61 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
                 reply = "Hvala za vaše sporočilo."
 
             profile = dict(lead.qualifier_profile or {})
+            # Extract business profile fields from messages using regex + LLM
+            try:
+                all_texts = [m["text"] for m in recent if m.get("text")]
+                combined = "\n".join(all_texts[-10:])
+                print(f"[PROFILE-EXTRACT] combined text: {combined[:200]}", flush=True)
+                if combined.strip():
+                    # Simple regex extraction first (always works)
+                    import re as _re
+                    # Business name patterns
+                    biz_patterns = [
+                        r'(?:sem\s+(?:iz|od)\s+podjetja|podjetje\s+se\s+imenuje|firma\s+se\s+imenuje|pri\s+podjetju|firma|podjetje|iz\s+podjetja)\s+["\u201c]?([A-Z][A-Za-z0-9\s&\-\.]{2,40})["\u201d]?',
+                        r'(?:moje\s+podjetje|naše\s+podjetje|naša\s+firma|naš\s+startup|naš\s+biznis|sem\s+iz|sem\s+od)\s+["\u201c]?([A-Z][A-Za-z0-9\s&\-\.]{2,40})["\u201d]?',
+                    ]
+                    for pat in biz_patterns:
+                        m = _re.search(pat, combined, _re.IGNORECASE)
+                        if m and not profile.get("business_name"):
+                            profile["business_name"] = m.group(1).strip()
+                            print(f"[PROFILE-EXTRACT] business_name={profile['business_name']}", flush=True)
+                            break
+                    # Budget patterns
+                    budget_pat = r'(\d+[\s.,]*\d*)\s*(?:jurj(?:ev|a|ih)?|tisoč(?:ev|a|)?|k\b|€|EUR|evr(?:ov|a)?|budget|proračun)'
+                    bm = _re.search(budget_pat, combined, _re.IGNORECASE)
+                    if bm and not profile.get("budget"):
+                        profile["budget"] = bm.group(0).strip()
+                        print(f"[PROFILE-EXTRACT] budget={profile['budget']}", flush=True)
+                    # Problem patterns - capture what they need, not the connector word
+                    prob_pat = r'(?:za|rabimo?|potrebujemo?|i[šs]čemo?|hočemo?|želimo?|nujno\s+rabimo?|implementacij[aeo]|uvedb[aeo]|izdelav[aeo]|postavitev|vzpostavitev|integracij[aeo])\s+(.{10,120}?)(?:\s*\.\s*|\s*$)'
+                    pm = _re.search(prob_pat, combined, _re.IGNORECASE)
+                    if pm and not profile.get("problem"):
+                        raw = pm.group(1).strip().rstrip('.')
+                        if raw:
+                            raw = raw[0].upper() + raw[1:]
+                        profile["problem"] = raw
+                        print(f"[PROFILE-EXTRACT] problem={profile['problem']}", flush=True)
+                    # Also try LLM for anything regex missed
+                    if not (profile.get("business_name") and profile.get("budget") and profile.get("problem")):
+                        extract_llm = LLMService()
+                        extract = extract_llm.call_json(
+                            "Extract business profile from conversation. Return JSON with optional keys (omit if unknown): business_name, budget, problem, company_type. Only include fields you found.",
+                            combined
+                        )
+                        print(f"[PROFILE-EXTRACT] LLM result={extract}", flush=True)
+                        if isinstance(extract, dict):
+                            for k, v in extract.items():
+                                if v and isinstance(v, str) and v.strip() and not profile.get(k):
+                                    profile[k] = v.strip()
+            except Exception:
+                import traceback; traceback.print_exc()
             profile["last_booking_id"] = profile.get("last_booking_id")
             lead.qualifier_profile = profile
+            # Also force via raw SQL to guarantee persistence
+            await db.execute(
+                text("UPDATE leads SET qualifier_profile = :p WHERE id = :id"),
+                {"p": _json.dumps(profile), "id": lead.id}
+            )
             await save_message(db, lead, ConvRole.ASSISTANT, reply)
             await db.commit()
 
@@ -377,11 +456,14 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
         booked = lid in booked_lead_ids
         # eur_amount: booked amount if booked, otherwise last discussed price
         eur = lead_amounts.get(lid) if booked else discussed_eur.get(lid)
+        profile = l.qualifier_profile or {}
         score = l.qualification_score or l.survey_progress or 0
         interest = "High" if score >= 70 else "Medium" if score >= 40 else "Low"
+        business_name = profile.get("business_name") or profile.get("company_type") or ""
         result.append({
             "id": l.sid, "sid": l.sid, "name": l.display_name or "Visitor",
-            "industry": (l.qualifier_profile or {}).get("industry", "Unknown"),
+            "businessName": business_name,
+            "industry": profile.get("industry", "Unknown"),
             "score": score, "stage": l.status.value if l.status else "OPEN_CHAT",
             "compatibility": l.takeover_eligible or l.video_offer_eligible,
             "interest": interest, "phoneText": l.phone, "emailText": l.email,
@@ -393,6 +475,9 @@ async def list_leads(org_id: int, user: User = Depends(get_current_user), db: As
             "takeoverActive": l.takeover_active,
             "status": l.status.value if l.status else "OPEN_CHAT",
             "staffRequested": l.staff_requested,
+            "budget": profile.get("budget") or "",
+            "problem": profile.get("problem") or profile.get("use_case") or "",
+            "interestScore": score,
             "booked": booked,
             "eur_amount": eur,
             "booking_time": lead_booking_time.get(lid, None),

@@ -98,12 +98,8 @@
                 <div class="lead-entry" [class.active]="l.sid === selectedSid" [class.staff-requested]="l.staffRequested" (click)="select(l.sid)">
                   <div class="lead-head">
                     <div>
-                      <div class="lead-title">{{ l.name }}{{ l.industry && l.industry !== 'Unknown' ? ' · ' + l.industry : '' }}</div>
+                      <div class="lead-title">{{ l.businessName || l.name }}{{ l.industry && l.industry !== 'Unknown' && !l.businessName ? ' · ' + l.industry : '' }}</div>
                       <div class="lead-subtitle">{{ l.status }} · SID {{ l.sid }}</div>
-                    </div>
-                    <div class="lead-meta">
-                      <span class="pill dark">{{ l.interest || 'Low' }}</span>
-                      <span class="pill dark score-pill">{{ l.score || 0 }}</span>
                     </div>
                   </div>
                   <div class="lead-message">{{ l.lastMessage || 'No messages yet.' }}</div>
@@ -114,6 +110,13 @@
                     @if (l.phoneText) { <span class="pill">📞 {{ l.phoneText }}</span> }
                     @if (l.emailText) { <span class="pill">✉️ {{ l.emailText }}</span> }
                   </div>
+                  @if (l.budget || l.problem || l.interestScore) {
+                    <div class="lead-info-row">
+                      @if (l.budget) { <span class="pill dark">💰 {{ l.budget }}</span> }
+                      @if (l.problem) { <span class="pill dark">📋 {{ l.problem }}</span> }
+                      @if (l.interestScore) { <span class="pill dark">⭐ {{ l.interestScore }}</span> }
+                    </div>
+                  }
                   @if (l.notes) { <div class="lead-row-note">{{ l.notes }}</div> }
                   <div class="lead-actions">
                     <button class="btn danger" (click)="deleteLead(l.sid); $event.stopPropagation()">Delete lead</button>

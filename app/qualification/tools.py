@@ -73,6 +73,9 @@ ACE_TOOLS = [
             "scale": {"type": "string", "description": "Scale — how many customers, calls, users per day"},
             "current_system": {"type": "string", "description": "What they currently use for customer reception"},
             "timeline": {"type": "string", "description": "When they need a solution by"},
+            "business_name": {"type": "string", "description": "The visitor's business or company name"},
+            "budget": {"type": "string", "description": "Budget range or amount the prospect mentioned"},
+            "problem": {"type": "string", "description": "The core problem or pain point they want to solve"},
         }, "required": []},
     }},
 ]
@@ -180,7 +183,7 @@ def execute_tool(name: str, args: dict) -> str:
         if name == "ace_update_profile":
             # Return the captured fields — graph will merge them into state
             captured = {}
-            for field in ["use_case", "company_type", "scale", "current_system", "timeline"]:
+            for field in ["use_case", "company_type", "scale", "current_system", "timeline", "business_name", "budget", "problem"]:
                 val = args.get(field, "")
                 if val:
                     captured[field] = val
