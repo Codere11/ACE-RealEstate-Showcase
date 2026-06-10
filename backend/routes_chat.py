@@ -71,6 +71,7 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     await db.flush()  # ensure lead.id is available
     
     if not req.message.strip():
+        await db.commit()
         return {"sid": lead.sid, "reply": "Hej! Smo ACE — pomagamo podjetjem avtomatizirati sprejem strank z AI. Kaj vas je pripeljalo k nam?", 
                 "chatMode": "open", "storyComplete": False, "surveyProgress": 100,
                 "currentStep": None, "completionTitle": None, "completionSubtitle": None}

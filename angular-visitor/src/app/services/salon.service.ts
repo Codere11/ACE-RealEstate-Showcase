@@ -96,7 +96,7 @@ export class SalonService implements OnDestroy {
         this.staffState.set('connected'); break;
       case 'lead.takeover.ended':
         this.staffState.set('idle');
-        this.addMsg('ai', 'Pogovor z osebjem se je zaključil.');
+        this.addMsg('ai', 'Staff conversation ended.');
         break;
       case 'live_session.started':
         this.staffState.set('connected');
@@ -173,17 +173,17 @@ export class SalonService implements OnDestroy {
 
   // ══════ STAFF ══════
 
-  staffOffering() { this.staffState.set('offering'); this.addMsg('system', 'Osebje je na voljo.', [
-    { label: '✅ Sprejmi', type: 'accept-staff' }, { label: '❌ Ne, hvala', type: 'deny-staff' },
+  staffOffering() { this.staffState.set('offering'); this.addMsg('system', 'Request staff?', [
+    { label: '✅ Yes', type: 'accept-staff' }, { label: '❌ No', type: 'deny-staff' },
   ]);}
-  acceptStaff() { this.staffState.set('connected'); this.addMsg('system', 'Povezani ste z osebjem.'); }
-  denyStaff()  { this.staffState.set('idle'); this.addMsg('ai', 'Ni problema!'); }
+  acceptStaff() { this.staffState.set('connected'); this.addMsg('system', 'Staff requested.'); }
+  denyStaff()  { this.staffState.set('idle'); this.addMsg('ai', 'No problem!'); }
   requestStaff() {
     if (this.sid) fetch('/api/public/organizations/'+this.getTenantSlug()+'/leads/'+this.sid+'/request-staff',{method:'POST'}).catch(()=>{});
     const isClosed = this.status() !== 'open';
     if (isClosed) {
       // Let the AI handle it — LLM will understand salon is closed and ask for contact
-      this.sendMessage('Prosim osebje');
+      this.sendMessage('Do you want to request staff?');
     } else {
       this.staffOffering();
     }
