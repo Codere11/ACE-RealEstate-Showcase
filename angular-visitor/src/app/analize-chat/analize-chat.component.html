@@ -46,6 +46,27 @@
 
   <!-- RIGHT — Chat area -->
   <main class="chat-area">
+    <!-- Summary stats bar -->
+    @if (leads.length > 0) {
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-value">{{ leads.length }}</span>
+          <span class="stat-label">Leads</span>
+        </div>
+        <div class="stat-card highlight">
+          <span class="stat-value">{{ staffCount() }}</span>
+          <span class="stat-label">Staff req</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ budgetCount() }}</span>
+          <span class="stat-label">Budgets</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ problemCount() }}</span>
+          <span class="stat-label">Problems</span>
+        </div>
+      </div>
+    }
     @if (!activePersona()) {
       <!-- Empty state -->
       <div class="chat-empty">

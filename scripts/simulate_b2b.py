@@ -148,23 +148,65 @@ def draw_persona(staff_bias=False):
     return PERSONAS[0][1:]
 
 
+def is_working_hours():
+    """Check if current time is within working hours (Mon-Fri 9-17)."""
+    from datetime import datetime
+    now = datetime.now()
+    return now.weekday() < 5 and 9 <= now.hour < 17
+
+
+def random_timestamp_between(start_str, end_str):
+    """Generate a random datetime between two date strings (YYYY-MM-DD)."""
+    from datetime import datetime, timedelta
+    start = datetime.strptime(start_str, "%Y-%m-%d")
+    end = datetime.strptime(end_str, "%Y-%m-%d")
+    delta = (end - start).total_seconds()
+    random_seconds = random.uniform(0, delta)
+    ts = start + timedelta(seconds=random_seconds)
+    # Bias toward working hours (9-17) but allow off-hours too
+    if random.random() < 0.7:
+        # Working hours: 9-17
+        hour = random.randint(9, 16)
+        minute = random.randint(0, 59)
+        ts = ts.replace(hour=hour, minute=minute)
+    else:
+        # Off hours
+        if random.random() < 0.5:
+            hour = random.randint(17, 23)
+        else:
+            hour = random.randint(0, 8)
+        minute = random.randint(0, 59)
+        ts = ts.replace(hour=hour, minute=minute)
+    return ts
+
+
 # ═══════════════════════════════════════════════════════════
 #  Customer Simulator
 # ═══════════════════════════════════════════════════════════
 
-def build_customer_prompt(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff):
+def build_customer_prompt(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff, is_open):
     parts = [
         f"Ti si {name}, {role} v podjetju {company}.",
         f"Tvoj problem: {pain}.",
         f"Urgenca: {urgency}. Potrpezljivost: {patience}.",
         f"Si na spletni strani ACE - podjetja za AI recepcijske resitve. Pises v njihov AI klepet.",
         f"O ACE ne ves nicesar razen tega kar ti AI svetovalec pove.",
+    ]
+
+    if not is_open:
+        parts.append("")
+        parts.append("POMEMBNO: Trenutno so ZAPRTI (delajo Pon-Pet 9-17). Ne pricakuj takojsnjega cloveskega odgovora.")
+        parts.append("Ce ti AI ponudi rezervacijo klica za naslednji delovni dan — SPREJMI ALI PUSTI KONTAKT.")
+        parts.append("Ne bodi nesramen/a ker so zaprti — to je normalno.")
+
+    parts += [
         "",
         "TVOJ TON:",
         "- Naravna pogovorna slovenscina. Nisi prevec formalen, nisi prevec sproscen.",
         "- Odgovarjas na vprasanja, postavljas svoja.",
         "- Ce ti AI svetovalec pomaga in odgovarja smiselno - ostani v pogovoru.",
-        "- Ce AI rece 'pustite email/telefon', 'posljem vam', 'se dogovorimo za klic' - TO JE ZNAK DA SI ZADOVOLJEN/A. Pusti kontakt ali sprejmi klic. NE sprasuj vec.",
+        "- POMEMBNO: Ce AI ponudi da se ekipa TAKOJ vkljuci v pogovor (npr. 'Bi zeleli da se ekipa takoj vkljuci?') — ODGOVORI NA TO VPRAŠANJE. Ali reci DA ('Super, naj se vkljucijo') ali reci da raje kasneje ('Super, ampak trenutno nimam časa. Se lahko slišiva drugič?'). NE ignoriraj tega vprašanja.",
+        "- Ce AI rece 'pustite email/telefon' ali 'se dogovorimo za klic' - TO JE ZNAK DA SI ZADOVOLJEN/A. Pusti kontakt ali sprejmi klic. NE sprasuj vec.",
         "- Ce se AI ponavlja, ne poslusa, ali sprasuje nesmiselne stvari - postani nestrpen/a in se poslovi.",
         "- Ne pusti kontakta takoj - pocakaj vsaj 2 izmenjavi da vidis ce je ACE zate.",
     ]
@@ -196,8 +238,8 @@ def build_customer_prompt(name, role, company, pain, urgency, patience, staff_li
     return "\n".join(parts)
 
 
-def customer_reply(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff):
-    system = build_customer_prompt(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff)
+def customer_reply(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff, is_open):
+    system = build_customer_prompt(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff, is_open)
     msgs = [{"role": "system", "content": system}]
     msgs.append({"role": "user", "content": "Tvoj odgovor:"})
 
@@ -255,7 +297,45 @@ def request_staff(sid):
 
 def is_call_booked(text):
     lower = text.lower()
-    signals = ["discovery call", "klic potrjen", "klic je dogovorjen", "potrjeno", "se slisimo"]
+    signals = ["discovery call", "klic potrjen", "klic je dogovorjen", "potrjeno", "se slisimo",
+               "rezerviran", "termin potrjen", "klic rezerviran", "se vidimo", "dogovorjeno"]
+    return any(s in lower for s in signals)
+
+
+def staff_takeover_offered(response_text):
+    """Detect if the AI has called ace_request_team (staff will join live) OR has sent the final closing message after takeover."""
+    lower = response_text.lower()
+    signals = [
+        "takoj vključi", "vključijo v klepet", "vključujemo", "prevzame",
+        "prevzamemo", "takoj povežem", "se povežem", "ekipo obveščam",
+        "bo prevzel", "bo prevzela", "bom povezal", "se vključuje",
+        "obveščena", "se bo vključila", "se bo vključil", "hvala za vaš čas",
+        "v kratkem", "se že vključuje", "ekipa je",
+    ]
+    return any(s in lower for s in signals)
+
+
+def customer_accepts_staff(text):
+    """Detect if customer accepts the staff takeover offer."""
+    lower = text.lower()
+    accepts = ["super", "odlično", "ja", "da", "prosim", "seveda", "z veseljem",
+               "naj se", "lahko se", "prav", "v redu", "ok", "okej", "velja"]
+    rejects = ["ampak", "trenutno nimam", "nimam časa", "ne zdaj", "drugič",
+               "kasneje", "drug termin", "raje", "bom razmislil"]
+    has_accept = any(a in lower for a in accepts)
+    has_reject = any(r in lower for r in rejects)
+    if has_reject:
+        return "defer"  # wants staff but later
+    if has_accept:
+        return "accept"  # wants staff now
+    return None
+
+
+def customer_defers_to_booking(text):
+    """Detect if customer wants to book for later instead of right now."""
+    lower = text.lower()
+    signals = ["drugič", "kasneje", "drug termin", "se slišiva", "se dogovoriva",
+               "drug dan", "naslednji teden", "klic", "termin", "rezerviraj"]
     return any(s in lower for s in signals)
 
 
@@ -324,6 +404,8 @@ def run_conversation(index, persona, staff_bias=False):
     staff_requested = False
     wants_staff = False
     outcome = "unknown"
+    is_open = is_working_hours()  # Real-time working hours check
+    conv_timestamp = random_timestamp_between("2026-05-10", "2026-06-10")
 
     # Determine if this persona will request staff
     effective_likelihood = staff_likelihood
@@ -333,7 +415,6 @@ def run_conversation(index, persona, staff_bias=False):
     for turn in range(1, MAX_TURNS + 1):
         # Decide staff request behavior
         if not staff_requested and not wants_staff and turn >= 2:
-            # High urgency + high likelihood = more likely to request staff
             urgency_mult = {"jutri": 2.0, "ta mesec": 1.2, "letos": 0.5}.get(urgency, 1.0)
             patience_mult = {"zelo visoka": 1.5, "visoka": 1.2, "srednja": 0.8, "nizka": 0.4}.get(patience, 0.8)
             chance = effective_likelihood * urgency_mult * patience_mult * 0.3
@@ -343,7 +424,7 @@ def run_conversation(index, persona, staff_bias=False):
         if turn == 1:
             customer_msg = opening
         else:
-            customer_msg = customer_reply(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff)
+            customer_msg = customer_reply(name, role, company, pain, urgency, patience, staff_likelihood, history, turn, wants_staff, is_open)
 
         if not customer_msg:
             outcome = "error"
@@ -358,13 +439,38 @@ def run_conversation(index, persona, staff_bias=False):
 
         history.append({"customer": customer_msg, "receptionist": response})
 
-        # Detect staff request from customer
+        # Detect: AI is repeating itself → break
+        if turn >= 3 and len(history) >= 2:
+            prev_response = history[-2].get("receptionist", "")
+            if response == prev_response:
+                if outcome == "unknown":
+                    # Check if this was a staff takeover that should have ended
+                    if staff_takeover_offered(response):
+                        staff_requested = True
+                        request_staff(sid)
+                        outcome = "staff_takeover"
+                    else:
+                        outcome = "stuck"
+                break
+
+        # Detect: AI offered staff takeover + customer accepted → END
+        if staff_takeover_offered(response):
+            staff_react = customer_accepts_staff(customer_msg)
+            if staff_react == "accept":
+                staff_requested = True
+                request_staff(sid)
+                outcome = "staff_takeover"
+                break
+            elif staff_react == "defer" or customer_defers_to_booking(customer_msg):
+                # Customer wants staff but not right now → they should get a booking
+                wants_staff = False  # clear, let AI book instead
+
+        # Detect staff request from customer (proactive)
         if wants_staff and customer_wants_staff(customer_msg):
             staff_requested = True
             wants_staff = False
-            # Actually hit the request-staff API
-            api_ok = request_staff(sid)
-            if api_ok:
+            request_staff(sid)
+            if outcome == "unknown":
                 outcome = "staff_requested"
 
         # Detect call booking
@@ -378,23 +484,23 @@ def run_conversation(index, persona, staff_bias=False):
         if has_contact(customer_msg) and not contact_left:
             contact_left = True
 
-        # Natural handoff: contact + AI follow-up
+        # Natural handoff
         if contact_left and is_handoff_point(response) and turn >= 3:
             if outcome == "unknown":
                 outcome = "handoff"
             break
 
-        # Goodbye / drop-off
+        # Goodbye
         if is_goodbye(customer_msg):
             dropped_off = True
             if outcome == "unknown":
                 outcome = "dropped_off"
             break
 
-        time.sleep(0.3)
+        time.sleep(0.15)
 
     if outcome == "unknown":
-        outcome = "max_turns" if not staff_requested else "staff_requested"
+        outcome = "max_turns"
 
     return {
         "sid": sid, "index": index,
@@ -402,6 +508,8 @@ def run_conversation(index, persona, staff_bias=False):
         "urgency": urgency, "patience": patience,
         "turns": len(history),
         "outcome": outcome,
+        "is_open": is_open,
+        "timestamp": conv_timestamp.isoformat(),
         "call_booked": call_booked,
         "contact_left": contact_left,
         "dropped_off": dropped_off,
@@ -439,6 +547,7 @@ def print_summary(results):
     dropped = sum(1 for r in results if r["outcome"] == "dropped_off")
     maxed = sum(1 for r in results if r["outcome"] == "max_turns")
     staff = sum(1 for r in results if r["staff_requested"])
+    takeover = sum(1 for r in results if r["outcome"] == "staff_takeover")
     avg_turns = sum(r["turns"] for r in results) / n
 
     print(f"\n{'=' * 60}")
@@ -446,6 +555,7 @@ def print_summary(results):
     print(f"{'=' * 60}")
     print(f"  Conversations:        {n}")
     print(f"  Calls booked:         {booked} ({booked/n*100:.0f}%)")
+    print(f"  Staff takeover:       {takeover} ({takeover/n*100:.0f}%)")
     print(f"  Staff requested:      {staff} ({staff/n*100:.0f}%)")
     print(f"  Handoff point:        {handoff} ({handoff/n*100:.0f}%)")
     print(f"  Contact left:         {contact} ({contact/n*100:.0f}%)")
@@ -461,6 +571,15 @@ def print_summary(results):
             c = sum(1 for r in group if r["contact_left"])
             s = sum(1 for r in group if r["staff_requested"])
             print(f"    {u:<12s} total={len(group):2d}  booked={b:2d}  contact={c:2d}  staff={s:2d}")
+
+    open_convos = [r for r in results if r.get("is_open")]
+    closed_convos = [r for r in results if not r.get("is_open")]
+    print(f"\n  BY HOURS:")
+    print(f"    Working hours:       {len(open_convos)} conversations" + (" ⬅ current" if open_convos else ""))
+    print(f"    Non-working hours:   {len(closed_convos)} conversations" + (" ⬅ current" if closed_convos else ""))
+    if closed_convos:
+        cb = sum(1 for r in closed_convos if r["call_booked"])
+        print(f"      → calls booked during off-hours: {cb}")
 
     print(f"\n  BY PATIENCE:")
     for p in ["zelo visoka", "visoka", "srednja", "nizka"]:
@@ -530,8 +649,9 @@ def main():
 
         # Build marker string
         parts = []
-        if result["call_booked"]: parts.append("CALL")
+        if result["call_booked"]: parts.append("📅CALL")
         if result["staff_requested"]: parts.append("👥STAFF")
+        if result["outcome"] == "staff_takeover": parts.append("🎯TAKEOVER")
         if result["contact_left"]: parts.append("CONT")
         if result["dropped_off"]: parts.append("DROP")
         if result["outcome"] == "handoff": parts.append("HNDF")

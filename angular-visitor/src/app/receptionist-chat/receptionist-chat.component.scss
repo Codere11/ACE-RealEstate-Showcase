@@ -280,8 +280,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  &.visible {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
   &:hover {
     background: #fffbeb;
     border-color: #fcd34d;

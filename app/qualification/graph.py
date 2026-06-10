@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from app.qualification.runtime_context import build_runtime_context, retrieve_knowledge
@@ -10,6 +11,15 @@ from app.qualification.state import (
 )
 from app.services.llm_service import LLMService
 from app.qualification.tools import ACE_TOOLS, execute_tool
+
+
+def _next_weekday(target_dow: int) -> str:
+    """Return next occurrence of given weekday (0=Mon, 6=Sun) as YYYY-MM-DD."""
+    today = datetime.now()
+    days_ahead = (target_dow - today.weekday()) % 7
+    if days_ahead == 0:
+        days_ahead = 7
+    return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
 
 
 def _build_agent_prompt(state: QualificationGraphState) -> str:
@@ -33,16 +43,30 @@ def _build_agent_prompt(state: QualificationGraphState) -> str:
 
     # Turn-based instruction
     turn_count = len(recent) // 2
-    if turn_count == 0:
-        instruction = "PRVI STIK: Pozdravi, povej kaj ACE pocne (1 stavek), vprasaj kaj jih pripeljalo."
-    elif turn_count == 1:
-        instruction = "DRUGA IZMENJAVA: Odgovori, bodi koristen, postavi ENO vprasanje o njihovih potrebah."
-    else:
-        instruction = "ZAKLJUCI! Ne odgovarjaj na tehnicna vprasanja. Reci da bomo vse pokrili na klicu. Vprasaj za email/telefon ali uporabi ace_schedule_call."
+    is_open = biz.get('odprto', True)
 
-    closed = ""
-    if not biz.get('odprto', True):
-        closed = "TRENUTNO SMO ZAPRTI (9-17). Omeni da bomo odgovorili jutri, ampak vseeno sledi navodilu zgoraj."
+    if is_open:
+        # WORKING HOURS (Mon-Fri 9-17)
+        if turn_count == 0:
+            instruction = "PRVI STIK: Pozdravi, povej kaj ACE pocne (1 stavek), vprasaj kaj jih pripeljalo. Ce omenijo budget ali problem, TAKOJ poklici ace_update_profile."
+        elif turn_count == 1:
+            instruction = "DRUGA IZMENJAVA: Odgovori, bodi koristen. Ce je lead resen (ima budget, ve kaj hoce) — TAKOJ ponudi DA SE PRODAJNA EKIPA VKLJUCI V KLEPET ZDAJ (ace_request_team). Reci nekaj takega: 'Bi želeli da se naša ekipa takoj vključi v pogovor in vam vse razloži?' NE sprasuj za email ce lahko ponudis zivo osebje."
+        elif turn_count == 2:
+            instruction = "TRETJA IZMENJAVA: Lead je ze v pogovoru. Ce se ni strinjal s takojsnjim prevzemom — ponudi ace_schedule_call za drug termin. Ce je zainteresiran za takojsnji pogovor — uporabi ace_request_team."
+        else:
+            instruction = "ZAKLJUCI: Ce lead se ni rezerviral — vprasaj za email/telefon ALI ponudi ace_schedule_call. Ne ponavljaj se. Bodi kratek."
+
+        closed_msg = ""
+    else:
+        # NON-WORKING HOURS
+        if turn_count == 0:
+            instruction = "ZAPRTI — PRVI STIK: Pozdravi, povej da smo zaprti (9-17), vprasaj kaj jih pripeljalo."
+        elif turn_count == 1:
+            instruction = "ZAPRTI — DRUGA IZMENJAVA: POKLIČI ace_schedule_call ZDAJ. Ne sprasuj za nic — kar rezerviraj. Uporabi datum jutri ob 10h ce lead ne pove drugace. Po rezervaciji povej datum/uro in vprasaj za kontakt SAMO ce ga se nimas."
+        else:
+            instruction = "ZAPRTI — ZAKLJUCI: Ce se nisi poklical/a ace_schedule_call — STORI TO ZDAJ. Ce si ga ze — povej da je rezervirano in se poslovi. NE sprasuj ponovno za kontakt."
+
+        closed_msg = "TRENUTNO smo zaprti (zdaj je izven delovnega časa). LPAK lahko rezerviraš termine za PRIHODNJE delovne dni (pon-pet 9-17). Naslednja sreda ob 11h = ODPRTO."
 
     prompt = f"""Ti si AI Svetovalec za ACE - pomagas podjetjem avtomatizirati sprejem strank z AI.
 
@@ -64,11 +88,21 @@ TOČNO TO ACE POČNE (nič drugega):
 
 Če stranka vpraša po čemerkar iz seznama NE POČNE, reci: 'Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu.'
 
+PRIORITETA: Med delovnim časom VEDNO najprej ponudi DA SE EKIPA TAKOJ VKLJUČI V KLEPET (ace_request_team). Če pokličeš ace_request_team in je bilo uspešno — KONČAJ POGOVOR. Reci SAMO: 'Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!' in NIČ VEČ. Ne ponujaj več klica, ne sprašuj za email — pogovor je končan.
+
+Če stranka noče takojšnjega pogovora — uporabi ace_schedule_call za kasnejši termin. Če ti stranka da email ali telefon in hoče klic — TAKOJ uporabi ace_schedule_call, ne sprašuj ponovno za kontakt.
+
 Pogovorna slovenscina. VIKAJ.
 
-Ko izves karkoli o podjetju (ime firme, panoga, budget, problem, obseg, kdaj rabijo resitev), TAKOJ poklici ace_update_profile in shrani podatke.
+Pogovorna slovenscina. VIKAJ.
 
-{closed}
+POMEMBNO PRAVILO ZA ORODJA:
+- Ko stranka reče 'rezerviraj', 'termin', 'klic', 'se slišiva' → MORAŠ dejansko poklicati ace_schedule_call. Ne smeš samo reči 'bom rezerviral' — POKLIČI ORODJE.
+- Vedno izračunaj pravilen datum. Danes je {datetime.now().strftime('%Y-%m-%d')} ({['pon','tor','sre','čet','pet','sob','ned'][datetime.now().weekday()]}). Naslednji torek = {_next_weekday(1)}, naslednja sreda = {_next_weekday(2)}.
+- Tudi če smo TRENUTNO zaprti, lahko rezerviraš termin za PRIHODNJI delovni čas (pon-pet 9-17). Rezervacije za delovni čas so VEDNO možne.
+- Če nimaš vseh podatkov za orodje, uporabi privzete: ime='Stranka', datum=jutri, ura='10:00'.
+
+{closed_msg}
 Kontakt: {'IMA' if has_contact else 'NIMA - vprasaj ko pogovor stece'}
 {call_info}
 
@@ -97,14 +131,6 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
     tcs = resp.get("tool_calls")
     all_tcs = []
 
-    blocked_booking = False
-    if tcs:
-        if not has_contact:
-            booking_tcs = [tc for tc in tcs if tc["name"] == "ace_schedule_call"]
-            if booking_tcs:
-                blocked_booking = True
-                tcs = [tc for tc in tcs if tc["name"] != "ace_schedule_call"]
-
     if tcs:
         for tc in tcs:
             result = execute_tool(tc["name"], tc["args"])
@@ -122,9 +148,6 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
                 {"id": tc["id"], "type": "function", "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])}}
             ]})
             msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": tc["result"]})
-
-    if blocked_booking:
-        msgs.append({"role": "user", "content": "POZOR: Stranka se nima kontakta. Ne smes rezervirati klica brez kontakta. Vljudno prosi za telefonsko stevilko ali email."})
 
     booking_tool_names = {"ace_schedule_call"}
     had_booking_tool = any(tc["name"] in booking_tool_names for tc in all_tcs)
@@ -155,14 +178,14 @@ def _run_tools_phase(state: QualificationGraphState, llm: LLMService):
                     ]})
                     msgs.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
 
-    return system, msgs, bool(all_tcs), blocked_booking
+    return system, msgs, bool(all_tcs)
 
 
 def _agent_node(state: QualificationGraphState) -> QualificationGraphState:
     llm = LLMService()
     latest = state.get("latest_message", "")
 
-    system, msgs, had_tools, blocked_booking = _run_tools_phase(state, llm)
+    system, msgs, had_tools = _run_tools_phase(state, llm)
 
     reply = llm.call_json_response(system, msgs)
     reply = _unwrap_reply(reply)
@@ -255,7 +278,7 @@ def run_qualification_graph_stream(
     state = _load_runtime_context(state)
     state = _retrieve_knowledge(state)
 
-    system, msgs, tcs_executed, blocked_booking = _run_tools_phase(state, llm)
+    system, msgs, tcs_executed = _run_tools_phase(state, llm)
 
     latest = state.get("latest_message", "")
     reply = ""

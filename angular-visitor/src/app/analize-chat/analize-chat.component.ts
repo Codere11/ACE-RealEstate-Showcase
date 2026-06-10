@@ -77,6 +77,11 @@ export class AnalizeChatComponent {
   debugOpen = signal(false);
   personaHistories: Record<string, Message[]> = {};
 
+  // Summary stats from leads
+  staffCount = computed(() => this.leads.filter(l => l.staffRequested).length);
+  budgetCount = computed(() => this.leads.filter(l => l.budget).length);
+  problemCount = computed(() => this.leads.filter(l => l.problem).length);
+
   // Live debug state — updates in real-time as data flows through
   debugState = computed(() => ({
     activePersona: this.activePersona(),

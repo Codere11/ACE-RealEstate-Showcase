@@ -50,16 +50,16 @@ ACE_TOOLS = [
     }},
     {"type": "function", "function": {
         "name": "ace_schedule_call",
-        "description": "Schedule a discovery call with the ACE team. PREREQUISITE: must have contact info (ace_check_contact must return ok:true). The call duration is always 30 minutes.",
+        "description": "Rezerviraj termin za klic s stranko. Pokliči to takoj ko stranka želi termin — ne sprašuj, kar rezerviraj. Deluje tudi brez kontaktnih podatkov. Trajanje: 30 minut.",
         "parameters": {"type": "object", "properties": {
-            "datum": {"type": "string", "description": "Date in YYYY-MM-DD format"},
-            "ura": {"type": "string", "description": "Time in HH:MM format, e.g. '10:00'"},
-            "ime": {"type": "string", "description": "Visitor name from conversation"},
-        }, "required": ["datum", "ura", "ime"]},
+            "datum": {"type": "string", "description": "Datum v obliki YYYY-MM-DD. Lahko izračunaš: danes je " + datetime.now().strftime('%Y-%m-%d') + ". Naslednji torek = " + _next_working_day()},
+            "ura": {"type": "string", "description": "Ura v obliki HH:MM, npr. '11:00' ali '14:00'"},
+            "ime": {"type": "string", "description": "Ime obiskovalca"},
+        }, "required": ["datum", "ura"]},
     }},
     {"type": "function", "function": {
         "name": "ace_request_team",
-        "description": "Request a human team member to join the conversation. Use when the visitor has a complex question or explicitly asks to speak to a person.",
+        "description": "Request a human team member to join the conversation LIVE. ONLY use this during working hours (Mon-Fri 9-17). Use when the lead is a good fit and would benefit from talking to a real person. During non-working hours, use ace_schedule_call instead to schedule a call for the next working day.",
         "parameters": {"type": "object", "properties": {
             "razlog": {"type": "string", "description": "Brief reason for the request"},
         }, "required": ["razlog"]},
@@ -79,6 +79,65 @@ ACE_TOOLS = [
         }, "required": []},
     }},
 ]
+
+
+def _parse_date(datum: str) -> str:
+    """Parse relative date strings into YYYY-MM-DD."""
+    from datetime import datetime, timedelta
+    today = datetime.now()
+    datum_lower = datum.lower().strip()
+    if datum_lower in ('jutri', 'jutrišnjem'):
+        d = today + timedelta(days=1)
+        return d.strftime("%Y-%m-%d")
+    if datum_lower in ('pojutrišnjem',):
+        d = today + timedelta(days=2)
+        return d.strftime("%Y-%m-%d")
+    day_map = {'ponedeljek': 0, 'pon': 0, 'torek': 1, 'tor': 1, 'sredo': 2, 'sreda': 2, 'sre': 2,
+               'četrtek': 3, 'cetrtek': 3, 'čet': 3, 'cet': 3, 'petek': 4, 'pet': 4,
+               'soboto': 5, 'sobota': 5, 'sob': 5, 'nedeljo': 6, 'nedelja': 6, 'ned': 6}
+    for day_name, target_dow in day_map.items():
+        if day_name in datum_lower:
+            current_dow = today.weekday()
+            days_ahead = (target_dow - current_dow) % 7
+            if days_ahead == 0:
+                days_ahead = 7
+            d = today + timedelta(days=days_ahead)
+            return d.strftime("%Y-%m-%d")
+    import re
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', datum.strip()):
+        return datum.strip()
+    if re.match(r'^\d{1,2}\.\d{1,2}\.\d{4}$', datum.strip()):
+        parts = datum.strip().split('.')
+        return f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+    return datum
+
+
+def _parse_time(ura: str) -> str:
+    """Parse time strings like 'enajstih', 'opoldne' into HH:MM."""
+    import re
+    ura_lower = ura.lower().strip()
+    if re.match(r'^\d{1,2}:\d{2}$', ura.strip()):
+        return ura.strip()
+    time_map = {
+        'enih': '13:00', 'ene': '13:00', 'dveh': '14:00', 'dve': '14:00',
+        'treh': '15:00', 'tri': '15:00', 'štirih': '16:00', 'stirih': '16:00',
+        'petih': '17:00', 'pet': '17:00', 'šestih': '18:00', 'sestih': '18:00',
+        'sedmih': '19:00', 'sedem': '19:00', 'osmih': '20:00', 'osem': '20:00',
+        'devetih': '09:00', 'devet': '09:00', 'desetih': '10:00', 'deset': '10:00',
+        'enajstih': '11:00', 'enajst': '11:00', 'dvanajstih': '12:00', 'dvanajst': '12:00',
+        'opoldne': '12:00', 'opoldan': '12:00', 'opoldneva': '12:00',
+        'dopoldne': '10:00', 'dopoldan': '10:00', 'popoldne': '15:00', 'popoldan': '15:00',
+        'zjutraj': '08:00', 'zvecer': '19:00', 'zvečer': '19:00',
+    }
+    for key, val in time_map.items():
+        if key in ura_lower:
+            return val
+    # Try to extract digits
+    digits = re.findall(r'\d+', ura)
+    if digits:
+        h = int(digits[0])
+        return f"{h:02d}:00"
+    return ura
 
 
 def execute_tool(name: str, args: dict) -> str:
@@ -101,8 +160,9 @@ def execute_tool(name: str, args: dict) -> str:
             return json.dumps({"ok": False, "ima_kontakt": False, "sporocilo": "VISITOR HAS NO CONTACT. Politely ask for a phone number or email before scheduling a call."}, ensure_ascii=False)
 
         if name == "ace_schedule_call":
-            datum = args.get("datum", "")
-            ura = args.get("ura", "")
+            datum = _parse_date(args.get("datum", ""))
+            ura_raw = args.get("ura", "")
+            ura = _parse_time(ura_raw)
             ime = args.get("ime", "Visitor")
 
             if not _db_ctx:
@@ -172,7 +232,7 @@ def execute_tool(name: str, args: dict) -> str:
             if not _is_open():
                 return json.dumps({
                     "uspesno": False,
-                    "sporocilo": "We are currently closed. The team will be available the next working day.",
+                    "sporocilo": "Currently closed (Mon-Fri 9-17). Offer to schedule a call for the next working day using ace_schedule_call instead, or ask for contact info.",
                     "naslednji_delovni_dan": _next_working_day(),
                 }, ensure_ascii=False)
             return json.dumps({

@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, OnDestroy, NgZone, ApplicationRef } from '@angular/core';
+import { Injectable, signal, computed, inject, OnDestroy, NgZone, ApplicationRef } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ChatApiService, PollEvent } from './chat-api.service';
 
@@ -23,6 +23,13 @@ export class SalonService implements OnDestroy {
   readonly status = signal<'open'|'closed'>('open');
   readonly errorMessage = signal<string|null>(null);
   readonly aiLoading = signal(false);  // true while waiting for AI reply
+  readonly leadProfile = signal<Record<string,string>>({});  // {business_name, budget, problem}
+
+  readonly canRequestStaff = computed(() => {
+    const p = this.leadProfile();
+    const filled = [p['business_name'], p['budget'], p['problem']].filter(Boolean).length;
+    return filled >= 2;
+  });
 
   private sid = '';
   private seq = 0;
@@ -132,6 +139,12 @@ export class SalonService implements OnDestroy {
         if (token.startsWith('__SID__:')) {
           this.sid = token.slice(8);
           sessionStorage?.setItem('ace_sid', this.sid);
+          return;
+        }
+        if (token.startsWith('__PROFILE__:')) {
+          try {
+            this.leadProfile.set(JSON.parse(token.slice(12)));
+          } catch {}
           return;
         }
         this.messages.update(msgs => msgs.map(m =>

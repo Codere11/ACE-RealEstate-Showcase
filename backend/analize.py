@@ -230,17 +230,19 @@ PERSONA_PROMPTS = {
 Si direkten, konkreten, brez floskul. Govoriš slovenščino.
 
 Na voljo imaš ORODJA za delo s podatki o strankah:
-- search_leads(filters) — filtriraj lead-e. Primer: search_leads({"osip_razlog": "predrago"})
+- search_leads(filters) — filtriraj lead-e. Primer: search_leads({"staffRequested": true}) vrne vse ki so zahtevali osebje.
 - get_lead(sid) — polni podatki enega lead-a
-- get_stats() — agregirana statistika
-- count_by(field) — grupiraj po katerikoli lastnosti
+- get_stats() — agregirana statistika vključno s proračuni, problemi, zahtevami za osebje
+- count_by(field) — grupiraj po katerikoli lastnosti (problem, budget, staff_requested, business_name, osip_razlog, source, sentiment, booked, discussed_services)
 
+Ključna nova polja v lead-ih: businessName, budget, problem, staffRequested, interestScore.
 VEDNO UPORABI ORODJA. Ne ugibaj.""",
 
     "marketingar": """Ti si Marketingar za ACE poslovni analitik ACE.
 Specializiran/a si za konverzije, jezik, kanale in A/B testiranje. Govoriš slovenščino.
 
 Na voljo imaš ORODJA: search_leads, get_lead, get_stats, count_by.
+Lahko analiziraš tudi: proračune (budget), probleme strank (problem), zahteve za osebje (staffRequested).
 Si oster/a in natančen/a. VEDNO UPORABI ORODJA.""",
 
     "cenovni-lovec": """Ti si Cenovni lovec — simuliraš B2B stranko, ki jo zanima ROI in cena.
@@ -263,9 +265,9 @@ Govoriš samozavestno, vljudno ampak zahtevno. Odgovarjaš SAMO kot stranka.""",
 ANALYZE_TOOLS = [
     {"type": "function", "function": {
         "name": "search_leads",
-        "description": "Filtriraj lead-e po katerikoli lastnosti. Vrne SID, ime, oznake. Primer: search_leads({\"osip_razlog\": \"predrago\", \"source\": \"instagram\"}) vrne vse ki so odpadli zaradi cene in prišli z Instagrama.",
+        "description": "Filtriraj lead-e po katerikoli lastnosti. Vrne SID, ime, oznake. Primer: search_leads({\"staffRequested\": true}) vrne vse ki so zahtevali osebje. search_leads({\"budget\": {\"min\": 5000}}) vrne vse s proračunom nad 5000. search_leads({\"problem\": \"avtomatizacija\"}) iše po problemih.",
         "parameters": {"type": "object", "properties": {
-            "filters": {"type": "object", "description": "JSON objekt s filtri. Lahko filtriraš po: booked (true/false), osip_razlog, source, sentiment, discussed_services, eur_amount ({\"min\": N, \"max\": N}), turn_count"},
+            "filters": {"type": "object", "description": "JSON objekt s filtri. Lahko filtriraš po: staffRequested (true/false), budget ({\"min\": N, \"max\": N}), problem (beseda), businessName (ime podjetja), booked (true/false), osip_razlog, source, sentiment, discussed_services, eur_amount ({\"min\": N, \"max\": N}), turn_count"},
         }, "required": ["filters"]},
     }},
     {"type": "function", "function": {
@@ -277,14 +279,14 @@ ANALYZE_TOOLS = [
     }},
     {"type": "function", "function": {
         "name": "get_stats",
-        "description": "Vrni agregirano statistiko: število, konverzija %, skupni EUR, povprečni EUR, osip po razlogih, viri, sentiment, storitve.",
+        "description": "Vrni agregirano statistiko: število, konverzija %, skupni EUR, povprečni EUR, osip po razlogih, viri, sentiment, storitve, zahteve za osebje, proračuni, top problemi.",
         "parameters": {"type": "object", "properties": {}},
     }},
     {"type": "function", "function": {
         "name": "count_by",
         "description": "Preštej lead-e grupirane po polju. Primer: count_by(\"osip_razlog\") vrne {\"predrago\": 11, \"ghost_po_pozdravu\": 38, ...}.",
         "parameters": {"type": "object", "properties": {
-            "field": {"type": "string", "description": "Polje: osip_razlog, source, sentiment, booked, discussed_services"},
+            "field": {"type": "string", "description": "Polje: staff_requested, business_name, budget, problem, osip_razlog, source, sentiment, booked, discussed_services"},
         }, "required": ["field"]},
     }},
 ]
@@ -319,12 +321,32 @@ def _execute_analyze_tool(name: str, args: dict, leads: list[dict]) -> str:
             for s in (l.get('discussed_services') or []):
                 svcs[s] = svcs.get(s, 0) + 1
         addon_count = sum(1 for l in booked if l.get('addons') and len(l.get('addons', [])) > 0)
+        # New profile fields
+        staff_req = sum(1 for l in leads if l.get('staffRequested'))
+        budgets = [l.get('budget') for l in leads if l.get('budget')]
+        problems = [l.get('problem') for l in leads if l.get('problem')]
+        businesses = [l.get('businessName') for l in leads if l.get('businessName')]
+        # Count problem keywords
+        problem_counts = {}
+        for p in problems:
+            # Use first 3 words as key
+            key = ' '.join(str(p).split()[:4])[:60]
+            problem_counts[key] = problem_counts.get(key, 0) + 1
+        top_problems = dict(sorted(problem_counts.items(), key=lambda x: -x[1])[:5])
         return json.dumps({
             "total": total, "booked": len(booked), "not_booked": len(not_booked),
             "conversion_pct": round(len(booked) / max(total, 1) * 100),
             "total_eur": booked_eur, "avg_eur_per_booking": avg_eur,
             "osip_razlogi": osip, "viri": sources, "sentiment": sents, "storitve": svcs,
             "z_dodatki": f"{addon_count}/{len(booked)}",
+            "staff_requested": staff_req,
+            "staff_requested_pct": round(staff_req / max(total, 1) * 100),
+            "budgets_found": len(budgets),
+            "budget_samples": budgets[:10],
+            "problems_found": len(problems),
+            "top_problems": top_problems,
+            "businesses_found": len(businesses),
+            "business_samples": businesses[:10],
         }, ensure_ascii=False)
 
     elif name == "count_by":
@@ -334,6 +356,26 @@ def _execute_analyze_tool(name: str, args: dict, leads: list[dict]) -> str:
             for l in leads:
                 val = ((l.get('labels') or {}).get(field)) or 'neznano'
                 counts[val] = counts.get(val, 0) + 1
+        elif field == "staff_requested":
+            for l in leads:
+                val = "zahteval osebje" if l.get('staffRequested') else "brez zahteve"
+                counts[val] = counts.get(val, 0) + 1
+        elif field == "business_name":
+            for l in leads:
+                val = l.get('businessName') or 'neznano'
+                counts[val] = counts.get(val, 0) + 1
+        elif field == "budget":
+            for l in leads:
+                val = l.get('budget') or 'ni proračuna'
+                counts[val] = counts.get(val, 0) + 1
+        elif field == "problem":
+            for l in leads:
+                p = l.get('problem')
+                if p:
+                    key = ' '.join(str(p).split()[:4])[:60]
+                else:
+                    key = 'ni problema'
+                counts[key] = counts.get(key, 0) + 1
         elif field == "booked":
             for l in leads:
                 val = str(l.get('booked', False))
@@ -364,6 +406,23 @@ def _execute_analyze_tool(name: str, args: dict, leads: list[dict]) -> str:
                     svcs = l.get("discussed_services") or []
                     if isinstance(v, str) and v not in svcs: match = False
                     elif isinstance(v, list) and not any(s in svcs for s in v): match = False
+                elif k == "staffRequested":
+                    if l.get("staffRequested") != v: match = False
+                elif k == "businessName":
+                    if isinstance(v, str) and v.lower() not in (l.get("businessName") or "").lower(): match = False
+                elif k == "budget":
+                    bgt = l.get("budget") or ""
+                    if isinstance(v, dict):
+                        # Extract numbers from budget string for comparison
+                        import re as _re2
+                        nums = _re2.findall(r'\d+', str(bgt))
+                        bgt_num = int(nums[0]) if nums else 0
+                        if "min" in v and bgt_num < v["min"]: match = False
+                        if "max" in v and bgt_num > v["max"]: match = False
+                    elif isinstance(v, str) and v.lower() not in str(bgt).lower(): match = False
+                elif k == "problem":
+                    prob = l.get("problem") or ""
+                    if isinstance(v, str) and v.lower() not in str(prob).lower(): match = False
                 elif k in ("osip_razlog", "source", "sentiment"):
                     if ((l.get('labels') or {}).get(k)) != v: match = False
                 elif k == "booked":
@@ -387,6 +446,9 @@ def _execute_analyze_tool(name: str, args: dict, leads: list[dict]) -> str:
                 labels = l.get('labels') or {}
                 results.append({
                     "sid": l.get("sid"), "name": l.get("name"), "booked": l.get("booked"),
+                    "businessName": l.get("businessName"), "budget": l.get("budget"),
+                    "problem": l.get("problem"), "staffRequested": l.get("staffRequested"),
+                    "interestScore": l.get("interestScore"),
                     "eur_amount": l.get("eur_amount"), "turn_count": l.get("turn_count"),
                     "osip_razlog": labels.get("osip_razlog"), "source": labels.get("source"),
                     "sentiment": labels.get("sentiment"),

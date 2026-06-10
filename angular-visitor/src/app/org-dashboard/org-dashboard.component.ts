@@ -64,7 +64,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       this.loadLeads();
       this.loadBookings();
       if (this.selectedSid) this.select(this.selectedSid);
-    }, 3000);
+    }, 1000);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         this.loadLeads();

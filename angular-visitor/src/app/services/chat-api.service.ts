@@ -123,6 +123,9 @@ export class ChatApiService {
                   if (data.done && finalSid) {
                     observer.next('__SID__:' + finalSid);
                   }
+                  if (data.profile) {
+                    observer.next('__PROFILE__:' + JSON.stringify(data.profile));
+                  }
                 } catch { /* skip malformed */ }
               }
             }

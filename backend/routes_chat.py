@@ -321,7 +321,7 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
             await save_message(db, lead, ConvRole.ASSISTANT, reply)
             await db.commit()
 
-            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True})}\n\n"
+            yield f"data: {_json.dumps({'sid': lead.sid, 'done': True, 'profile': {k: profile.get(k) for k in ('business_name', 'budget', 'problem') if profile.get(k)}})}\n\n"
         except Exception as e:
             import traceback; traceback.print_exc()
             fallback = "Oprostite, AI trenutno ni na voljo. Naša ekipa vam bo odgovorila kmalu."
