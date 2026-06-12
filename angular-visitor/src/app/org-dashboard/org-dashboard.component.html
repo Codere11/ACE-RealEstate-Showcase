@@ -101,6 +101,9 @@
                       <div class="lead-title">{{ l.businessName || l.name }}{{ l.industry && l.industry !== 'Unknown' && !l.businessName ? ' · ' + l.industry : '' }}</div>
                       <div class="lead-subtitle">{{ l.status }} · SID {{ l.sid }}</div>
                     </div>
+                    @if (l.lastSeenSec) {
+                      <div class="lead-timestamp">{{ l.lastSeenSec * 1000 | date:'d. MMM yy, HH:mm' }}</div>
+                    }
                   </div>
                   <div class="lead-message">{{ l.lastMessage || 'No messages yet.' }}</div>
                   <div class="status-row">
