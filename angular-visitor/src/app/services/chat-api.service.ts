@@ -194,6 +194,20 @@ export class ChatApiService {
   }
 
   /**
+   * Get LiveKit session info for visitor (token, room, wsUrl).
+   */
+  getLiveSession(sid: string): Observable<{sid: string; status: string; managerDisplayName: string; roomName: string; wsUrl: string; token: string}> {
+    return this.http
+      .get<any>(`${this.baseUrl}/api/public/organizations/${this.tenantSlug}/live-session`, {
+        params: new HttpParams().set('sid', sid),
+      })
+      .pipe(
+        timeout(10000),
+        catchError((err) => this.handleError('getLiveSession', err)),
+      );
+  }
+
+  /**
    * Poll for real-time events (takeover, staff join, etc.).
    */
   pollEvents(sid: string, since: number): Observable<PollResult> {

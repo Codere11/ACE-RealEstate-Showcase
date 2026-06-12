@@ -1,4 +1,4 @@
-import { Component, inject, ElementRef, AfterViewChecked, ViewChild, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ElementRef, AfterViewChecked, ViewChild, signal, ChangeDetectorRef, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SalonService, ChatMessage } from '../services/salon.service';
 import { CalendarPickerComponent } from '../calendar-picker/calendar-picker.component';
@@ -20,11 +20,27 @@ export class ReceptionistChatComponent implements AfterViewChecked {
 
   showCalendar = signal(false);
 
+  @ViewChild('chatContainer') private chatContainer!: ElementRef;
+  @ViewChild('visitorVideo') private visitorVideoEl!: ElementRef<HTMLVideoElement>;
+
   constructor() {
     this.salon.onStaffMessage = () => this.cdr.detectChanges();
+    // Bind the LiveKit video track to the <video> element whenever it changes.
+    // Use setTimeout to let the template render the video element first.
+    effect(() => {
+      const track = this.salon.liveVideoTrack();
+      if (track) {
+        setTimeout(() => {
+          const videoEl = this.visitorVideoEl?.nativeElement;
+          if (videoEl) {
+            const stream = new MediaStream([track]);
+            videoEl.srcObject = stream;
+            videoEl.play().catch(() => {});
+          }
+        }, 0);
+      }
+    });
   }
-
-  @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
   ngAfterViewChecked(): void {
     const el = this.chatContainer?.nativeElement;

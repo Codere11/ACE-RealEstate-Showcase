@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject, OnDestroy, NgZone, ApplicationRef } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ChatApiService, PollEvent } from './chat-api.service';
+import { Room, RoomEvent, RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track } from 'livekit-client';
 
 export interface TimeSlot { time: string; available: boolean; }
 export interface ChatMessage { id?: string; role: 'ai'|'user'|'staff'|'system'; text: string; actions?: ChatAction[]; }
@@ -31,12 +32,17 @@ export class SalonService implements OnDestroy {
     return filled >= 2;
   });
 
+  readonly liveVideoTrack = signal<MediaStreamTrack | null>(null);
+  readonly liveActive = signal(false);
+  readonly liveManagerName = signal('');
+
   private sid = '';
   private seq = 0;
   private timer: any = null;
+  private liveRoom: Room | null = null;
 
   constructor() { this.updateStatus(); setInterval(() => this.updateStatus(), 30_000); this.connect(); }
-  ngOnDestroy() { if (this.timer) clearTimeout(this.timer); }
+  ngOnDestroy() { if (this.timer) clearTimeout(this.timer); this.disconnectLiveKit(); }
 
   private updateStatus() {
     const m = new Date().getHours() * 60 + new Date().getMinutes();
@@ -107,10 +113,13 @@ export class SalonService implements OnDestroy {
         break;
       case 'live_session.started':
         this.staffState.set('connected');
+        this.liveManagerName.set(p?.managerDisplayName || 'Team');
+        this.connectLiveKit();
         if (this.onStaffMessage) this.onStaffMessage();
         break;
       case 'live_session.ended':
         this.staffState.set('idle');
+        this.disconnectLiveKit();
         break;
       case 'message.created':
         if (!p?.text || p.role === 'user') break;
@@ -124,6 +133,54 @@ export class SalonService implements OnDestroy {
         }
         break;
     }
+  }
+
+  // ══════ LIVE KIT (VISITOR CAMERA VIEW) ══════
+
+  private async connectLiveKit() {
+    if (!this.sid || this.liveRoom) return;
+    try {
+      const session = await firstValueFrom(this.api.getLiveSession(this.sid));
+      if (!session.token || !session.wsUrl) return;
+
+      this.liveRoom = new Room({ adaptiveStream: true, dynacast: true });
+
+      this.liveRoom.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, _publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+        if (track.kind === Track.Kind.Video && track.mediaStreamTrack) {
+          this.zone.run(() => {
+            this.liveVideoTrack.set(track.mediaStreamTrack!);
+            this.liveActive.set(true);
+          });
+        }
+      });
+
+      this.liveRoom.on(RoomEvent.TrackUnsubscribed, (_track: RemoteTrack, _publication: RemoteTrackPublication, _participant: RemoteParticipant) => {
+        this.zone.run(() => {
+          this.liveVideoTrack.set(null);
+          this.liveActive.set(false);
+        });
+      });
+
+      this.liveRoom.on(RoomEvent.Disconnected, () => {
+        this.zone.run(() => {
+          this.liveVideoTrack.set(null);
+          this.liveActive.set(false);
+          this.liveRoom = null;
+        });
+      });
+
+      await this.liveRoom.connect(session.wsUrl, session.token);
+    } catch (e) {
+      console.error('[Salon] LiveKit connect failed:', e);
+      this.liveRoom = null;
+    }
+  }
+
+  private disconnectLiveKit() {
+    this.liveRoom?.disconnect();
+    this.liveRoom = null;
+    this.liveVideoTrack.set(null);
+    this.liveActive.set(false);
   }
 
   // ══════ SEND ══════

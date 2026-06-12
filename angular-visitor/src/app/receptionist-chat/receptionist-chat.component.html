@@ -30,6 +30,19 @@
     </div>
   </section>
 
+  <!-- LIVE CAMERA OVERLAY -->
+  @if (salon.liveActive() && salon.liveVideoTrack()) {
+    <div class="live-camera-overlay">
+      <div class="live-camera-card">
+        <div class="live-camera-header">
+          <span class="live-camera-badge">● V ŽIVO</span>
+          <span class="live-camera-name">{{ salon.liveManagerName() }}</span>
+        </div>
+        <video #visitorVideo autoplay playsinline class="live-camera-feed"></video>
+      </div>
+    </div>
+  }
+
   <!-- CHAT — fills remaining page -->
   <div class="chat-fullpage">
     <div class="chat-messages" #chatContainer (scroll)="onScroll()">
