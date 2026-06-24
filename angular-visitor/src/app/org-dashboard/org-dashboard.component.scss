@@ -93,6 +93,25 @@ a { color:inherit; }
 .staff-live-controls .ctrl-btn.hangup { background:rgba(239,68,68,.8); color:#fff; width:44px; height:44px; margin-left:4px; }
 .staff-live-controls .ctrl-btn.hangup:hover { background:#ef4444; }
 
+/* ── Staff full-screen call overlay ── */
+.staff-call-full { display:none; position:fixed;inset:0;z-index:200;background:#050607; }
+.staff-call-full.show { display:block; animation:staffCallExpand .5s cubic-bezier(.22,.61,.36,1) forwards; }
+@keyframes staffCallExpand{0%{border-radius:24px;inset:32px 50% auto auto;width:260px;height:146px;opacity:0}50%{opacity:.8}100%{border-radius:0;inset:0;opacity:1}}
+.staff-call-full-stage{width:100%;height:100%;position:relative;overflow:hidden}
+.staff-call-full-video{width:100%;height:100%;object-fit:cover;display:block}
+.staff-self-pip{position:absolute;bottom:100px;right:20px;z-index:5;width:140px;aspect-ratio:4/3;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,.2);box-shadow:0 4px 16px rgba(0,0,0,.5);background:#1a1d24;object-fit:cover;transform:scaleX(-1)}
+.staff-call-full-controls .ctrl-btn.off{background:rgba(239,68,68,.2);color:#ef4444}
+.staff-live-controls .ctrl-btn.off{background:rgba(239,68,68,.2);color:#ef4444}
+.staff-call-full-topbar{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(180deg,rgba(5,6,7,.8),transparent)}
+.staff-call-full-topbar .live-badge{background:rgba(239,68,68,.2);color:#ef4444;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.04em;border:1px solid rgba(239,68,68,.3)}
+.staff-call-full-topbar .staff-name{color:rgba(249,250,251,.9);font-size:14px;font-weight:600}
+.staff-call-full-controls{position:absolute;bottom:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 20px;background:linear-gradient(0deg,rgba(5,6,7,.85),transparent)}
+.staff-call-full-controls .ctrl-btn{width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(8px)}
+.staff-call-full-controls .ctrl-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+.staff-call-full-controls .ctrl-btn.active{background:rgba(255,255,255,.15);color:#fff}
+.staff-call-full-controls .ctrl-btn.hangup{background:rgba(239,68,68,.8);color:#fff;width:52px;height:52px;margin-left:4px}
+.staff-call-full-controls .ctrl-btn.hangup:hover{background:#ef4444}
+
 .live-preview-stage__overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#F9FAFB; background:linear-gradient(180deg, rgba(5,6,7,.18), rgba(5,6,7,.38)); }
 .live-preview-stage__eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:rgba(249,250,251,.72); }
 .live-preview-stage__title { font-size:1.1rem; font-weight:800; }

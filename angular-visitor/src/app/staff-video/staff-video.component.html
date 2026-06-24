@@ -1,12 +1,10 @@
-<div class="staff-video-wrapper" [class.visible]="consentState() !== 'idle'">
+<div class="staff-video-root" [class.visible]="consentState() !== 'idle'">
   <!-- CONSENT PROMPT -->
   @if (consentState() === 'prompt') {
     <div class="video-consent-overlay">
       <div class="video-consent-card">
         <div class="consent-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3h6v6"/><path d="M21 3l-8 8"/><path d="M9 21H3v-6"/><path d="M3 21l8-8"/>
-          </svg>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M21 3l-8 8"/><path d="M9 21H3v-6"/><path d="M3 21l8-8"/></svg>
         </div>
         <p class="consent-text">Član ekipe se povezuje prek kamere, sprejmi?</p>
         <div class="consent-actions">
@@ -17,69 +15,60 @@
     </div>
   }
 
-  <!-- VIDEO FRAME (always in DOM when consentState !== 'idle', hidden/shown via CSS) -->
-  <div class="video-active-overlay" [class.show]="consentState() === 'connecting' || consentState() === 'connected'">
-    <div class="video-frame">
-      <!-- Remote video element ALWAYS present, hidden by parent opacity -->
-      <video id="ace-remote-video" autoplay playsinline class="video-remote"></video>
+  <!-- CALL CONTAINER -->
+  @if (consentState() === 'connecting' || consentState() === 'connected') {
+    <div class="call-container" [class.minimized]="isMinimized()" [class.connecting]="consentState() === 'connecting'">
+      <div class="call-stage" (click)="isMinimized() ? isMinimized.set(false) : null">
+        <!-- Remote (staff) video -->
+        <video id="ace-remote-video" autoplay playsinline class="call-remote"></video>
 
-      <!-- Connecting pulse -->
-      @if (consentState() === 'connecting') {
-        <div class="video-connecting-overlay">
-          <div class="video-connecting-card">
-            <div class="pulse-ring"></div>
-            <span>Povezovanje ...</span>
+        @if (consentState() === 'connecting') {
+          <div class="call-connecting"><div class="pulse-ring"></div><span>Povezovanje ...</span></div>
+        }
+
+        <!-- Top bar -->
+        @if (consentState() === 'connected') {
+          <div class="call-topbar" [class.hidden]="isMinimized()">
+            <span class="live-badge">● V ŽIVO</span>
+            <span class="staff-name">{{ managerName() }}</span>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Local PIP -->
-      @if (selfCameraOn()) {
-        <div class="video-pip">
-          <video id="ace-local-video" autoplay playsinline muted class="video-local"></video>
-        </div>
-      }
+        @if (isMinimized()) { <div class="call-mini-badge">● V ŽIVO</div> }
 
-      <!-- Top bar -->
-      @if (consentState() === 'connected') {
-        <div class="video-topbar">
-          <span class="live-badge">● V ŽIVO</span>
-          <span class="staff-name">{{ managerName() }}</span>
-        </div>
-      }
-
-      <!-- Bottom controls -->
-      @if (consentState() === 'connected') {
-        <div class="video-controls">
-          <button class="ctrl-btn" [class.active]="selfMicOn()" (click)="toggleMic()" title="Mikrofon">
-            @if (selfMicOn()) {
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>
-            } @else {
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="1" y1="1" x2="23" y2="23"/><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>
-            }
-          </button>
-          <button class="ctrl-btn" [class.active]="selfCameraOn()" (click)="toggleCamera()" title="Kamera">
-            @if (selfCameraOn()) {
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-              </svg>
-            } @else {
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="1" y1="1" x2="23" y2="23"/><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-              </svg>
-            }
-          </button>
-          <button class="ctrl-btn hangup" (click)="hangup()" title="Končaj">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" transform="scale(0.75) translate(4, 4)"/>
-            </svg>
-          </button>
-        </div>
-      }
+        <!-- Bottom controls -->
+        @if (consentState() === 'connected') {
+          <div class="call-controls" [class.hidden]="isMinimized()">
+            <!-- Mic -->
+            <button class="ctrl-btn" [class.off]="!selfMicOn()" (click)="toggleMic()" title="Mikrofon">
+              @if (selfMicOn()) {
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              } @else {
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              }
+            </button>
+            <!-- Camera -->
+            <button class="ctrl-btn" [class.off]="!selfCameraOn()" (click)="toggleCamera()" title="Kamera">
+              @if (selfCameraOn()) {
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              } @else {
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              }
+            </button>
+            <!-- Minimize -->
+            <button class="ctrl-btn" (click)="isMinimized.set(true); $event.stopPropagation()" title="Minimiziraj">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+            <!-- Hangup -->
+            <button class="ctrl-btn hangup" (click)="hangup()" title="Končaj">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" transform="scale(0.75) translate(4, 4)"/></svg>
+            </button>
+          </div>
+        }
+      </div>
     </div>
-  </div>
+  }
+
+  <!-- SELF PIP — always in DOM, hidden when camera off -->
+  <video id="ace-local-video" autoplay playsinline muted class="self-pip" [class.on]="selfCameraOn()" [class.mini]="isMinimized()"></video>
 </div>

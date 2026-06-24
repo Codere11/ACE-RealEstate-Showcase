@@ -52,6 +52,8 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   liveRoom: Room | null = null;
   staffMicOn = signal(true);
   staffCamOn = signal(true);
+  staffCallMinimized = signal(false);
+  @ViewChild('staffVideoFull') staffVideoFullEl!: ElementRef<HTMLVideoElement>;
   private staffLkVideo: LocalVideoTrack | null = null;
   private staffLkAudio: LocalAudioTrack | null = null;
   private staffStream: MediaStream | null = null;
@@ -85,27 +87,63 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     if (!this.selectedSid || !this.orgId || this.liveConnecting()) return;
     this.liveConnecting.set(true);
     try {
-      // First, send a staff takeover message so the visitor knows staff is active
-      try {
-        await firstValueFrom(this.api.sendTakeover(this.orgId, this.selectedSid, 'Pozdravljeni! Povezujem se preko kamere ...'));
-      } catch (e) { console.warn('Takeover message failed, continuing:', e); }
+      await firstValueFrom(this.api.sendTakeover(this.orgId, this.selectedSid, 'Pozdravljeni! Povezujem se preko kamere ...'));
+    } catch (e) { console.warn('Takeover message failed, continuing:', e); }
 
+    try {
       const res = await firstValueFrom(this.api.goLive(this.orgId, this.selectedSid));
       if (!res.token || !res.wsUrl) throw new Error('No token');
 
-      // Get local camera + mic (staff auto-joins with both ON)
+      // Get local camera + mic
       this.staffStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const videoTrack = this.staffStream.getVideoTracks()[0];
       const audioTrack = this.staffStream.getAudioTracks()[0];
 
-      // Show local preview
+      // Show self preview in PIP (full-screen overlay)
+      const selfPipFull = document.getElementById('staff-self-pip-full') as HTMLVideoElement | null;
+      if (selfPipFull && this.staffStream) {
+        selfPipFull.srcObject = this.staffStream;
+        selfPipFull.muted = true;
+        selfPipFull.style.display = 'block';
+      }
+
+      // Show self preview in inline dashboard element
       if (this.staffVideoEl) {
         this.staffVideoEl.nativeElement.srcObject = this.staffStream;
         this.staffVideoEl.nativeElement.muted = true;
       }
+      // Also set on the id-based inline element
+      const selfPipInline = document.getElementById('staff-self-pip') as HTMLVideoElement | null;
+      if (selfPipInline && selfPipInline !== this.staffVideoEl?.nativeElement) {
+        selfPipInline.srcObject = this.staffStream;
+        selfPipInline.muted = true;
+      }
 
-      // Connect to LiveKit and publish both tracks
+      // Connect to LiveKit and publish
       this.liveRoom = new Room({ adaptiveStream: true, dynacast: true });
+
+      // SUBSCRIBE to visitor's remote tracks
+      this.liveRoom.on(RoomEvent.TrackSubscribed, (track: RemoteTrack) => {
+        this.zone.run(() => {
+          if (track.kind === Track.Kind.Video) {
+            const el = document.getElementById('staff-remote-full') as HTMLVideoElement | null;
+            if (el) { track.attach(el); el.style.opacity = '1'; }
+          }
+          if (track.kind === Track.Kind.Audio) { track.attach(); }
+        });
+      });
+
+      this.liveRoom.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        if (track.kind === Track.Kind.Video) {
+          const el = document.getElementById('staff-remote-full') as HTMLVideoElement | null;
+          if (el) el.style.opacity = '0';
+        }
+      });
+
+      this.liveRoom.on(RoomEvent.Disconnected, () => {
+        this.zone.run(() => { this.disconnectLive(); this.liveActive.set(false); });
+      });
+
       await this.liveRoom.connect(res.wsUrl, res.token);
 
       this.staffLkVideo = await createLocalVideoTrack({ deviceId: videoTrack.getSettings().deviceId });
@@ -118,6 +156,7 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       this.liveConnecting.set(false);
       this.staffMicOn.set(true);
       this.staffCamOn.set(true);
+      this.staffCallMinimized.set(false);
     } catch (e: any) {
       console.error('Go live failed:', e);
       this.liveConnecting.set(false);
@@ -144,9 +183,12 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     this.staffLkAudio = null;
     this.staffStream?.getTracks().forEach(t => t.stop());
     this.staffStream = null;
-    if (this.staffVideoEl) {
-      this.staffVideoEl.nativeElement.srcObject = null;
+    // Clear all video elements
+    for (const id of ['staff-self-pip', 'staff-self-pip-full', 'staff-remote-full']) {
+      const el = document.getElementById(id) as HTMLVideoElement | null;
+      if (el) { el.srcObject = null; el.style.opacity = '0'; if (id === 'staff-self-pip-full') el.style.display = 'none'; }
     }
+    if (this.staffVideoEl) this.staffVideoEl.nativeElement.srcObject = null;
   }
 
   toggleStaffMic() {
@@ -165,9 +207,19 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     const next = !this.staffCamOn();
     this.staffCamOn.set(next);
     if (next) {
-      this.staffLkVideo.unmute(); // re-enable sending frames
+      this.staffLkVideo.unmute();
+      // Show self PIPs
+      for (const id of ['staff-self-pip', 'staff-self-pip-full']) {
+        const el = document.getElementById(id) as HTMLVideoElement | null;
+        if (el) el.style.display = 'block';
+      }
     } else {
-      this.staffLkVideo.mute(); // stop sending video
+      this.staffLkVideo.mute();
+      // Hide self PIPs
+      for (const id of ['staff-self-pip', 'staff-self-pip-full']) {
+        const el = document.getElementById(id) as HTMLVideoElement | null;
+        if (el) el.style.display = 'none';
+      }
     }
   }
 
