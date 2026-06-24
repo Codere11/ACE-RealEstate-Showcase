@@ -1,10 +1,12 @@
-# ACE Reception Services — Complete Project Context
+# ACE — Complete Project Context
 
 ## What This Is
 
-ACE Reception Services is an **AI receptionist platform for Slovenian beauty salons (kozmeticni saloni)**. It's a digital front desk: greet visitors, answer questions about services, book appointments, and hand off to human staff via live video — all through a chat interface.
+ACE is an **AI SDR (Sales Development Rep) for B2B companies**. It's an AI chat widget that qualifies website visitors in real-time, extracts their business profile, and pushes them into an instant meeting with the sales team — or schedules a discovery call for later.
 
-The feel: walking into a real store with a real receptionist. Just digital.
+The product: a B2B company embeds ACE on their site. Visitors get greeted by an AI that asks what they need, qualifies them (budget, problem, company, timeline), and within 2-3 turns offers a live handoff to the sales team. If the team is offline, ACE books a discovery call for the next working day.
+
+**The beauty salon vertical was a demo/testing surface.** The real product is B2B lead qualification + instant meeting booking.
 
 ## Architecture (Single Python Service)
 
@@ -13,14 +15,14 @@ Visitor Browser
     │
     ▼
 ┌─────────────────────────────────┐
-│  Python FastAPI backend/        │  ← ONE process. 662 lines total.
+│  Python FastAPI backend/        │  ← ONE process. ~700 lines.
 │  Port 8000                      │
 │                                 │
 │  Serves Angular SPA (static)    │
 │  REST + WebSocket API           │
 │  Auth (JWT)                     │
 │  Chat → calls LangGraph directly│
-│  Camera takeover (LiveKit)      │
+│  Video takeover (LiveKit)       │
 │  Lead/org/user management       │
 └──────┬──────────────┬───────────┘
        │              │
@@ -29,15 +31,15 @@ Visitor Browser
   (port 5433)     (port 7880)
 ```
 
-**There is no Java.** It was deleted. The old `app/` directory is now just an AI library imported by `backend/`.
+**There is no Java.** The old Java Spring Boot backend was deleted and replaced with Python FastAPI. The `app/` directory is an AI library imported directly by `backend/`.
 
 ## Directory Map
 
 ```
-ACE-RealEstate/
+ACE/
 ├── backend/                  ★ THE SERVER — read this first
-│   ├── main.py               FastAPI app, lifespan (seeds demo data), SPA fallback
-│   ├── routes_chat.py        /chat, /chat/staff, poll events, leads, live sessions
+│   ├── main.py               FastAPI app, lifespan seeds demo data, SPA fallback
+│   ├── routes_chat.py        /chat, /chat/stream, /chat/staff, events, leads, bookings
 │   ├── routes_admin.py       /api/admin/organizations, /api/admin/users
 │   ├── models.py             SQLAlchemy models (Organization, User, Lead, etc.)
 │   ├── auth.py               JWT auth, password hashing (bcrypt)
@@ -48,35 +50,38 @@ ACE-RealEstate/
 │
 ├── app/                      ★ AI LIBRARY — imported by backend/
 │   ├── qualification/
-│   │   ├── graph.py          LangGraph: classify intent → route to stage node → reply
+│   │   ├── graph.py          LangGraph: builds system prompt, runs tools, generates reply
 │   │   ├── state.py          TypedDict + dataclass types for graph state
-│   │   ├── prompts.py        Slovenian system prompts per conversation stage
-│   │   ├── tools.py          Salon tools (services, availability, booking, staff request)
+│   │   ├── tools.py          B2B tools (context, contact, schedule_call, request_team, update_profile)
 │   │   └── runtime_context.py  Builds runtime context from qualifier config
 │   └── services/
 │       └── llm_service.py    OpenAI client wrapper (JSON, text, stream, tool calls)
 │
 ├── angular-visitor/           ★ FRONTEND — Angular 19 SPA
 │   ├── src/app/
-│   │   ├── receptionist-chat/   Main chat widget (header, messages, input, actions)
-│   │   ├── staff-video/         LiveKit video overlay (16:9, 2.4s fade-in, retry/reconnect)
+│   │   ├── receptionist-chat/   Main chat widget
+│   │   ├── staff-video/         LiveKit video overlay
 │   │   ├── service-cards/       Service browsing cards
 │   │   ├── calendar-picker/     Appointment date/time picker
-│   │   ├── header/              Status bar (open/closed, salon name)
+│   │   ├── header/              Status bar (open/closed)
 │   │   ├── admin/               Admin panel (orgs, users)
 │   │   ├── org-dashboard/       Per-org dashboard (3 tabs: KONVERZACIJE, AI RECEPTOR, REZERVACIJE)
 │   │   ├── login/               Login page
 │   │   └── services/
-│   │       ├── salon.service.ts       Core state: messages, staffState, send, poll, live events
-│   │       ├── chat-api.service.ts    HTTP layer: /chat, /chat-events/poll, /leads/.../messages
-│   │       ├── org-dashboard.service.ts  Staff API: leads, messages, takeover, goLive/endLive
+│   │       ├── salon.service.ts       Core state: messages, staffState, send, poll
+│   │       ├── chat-api.service.ts    HTTP layer: /chat, /chat-events/poll
+│   │       ├── org-dashboard.service.ts  Staff API: leads, takeover, goLive/endLive
 │   │       └── admin.service.ts       Admin API: orgs, users
-│   └── proxy.conf.json         Dev proxy → port 8000 (backend)
+│   └── proxy.conf.json         Dev proxy → port 8000
 │
-├── docker-compose-simple.yml   PostgreSQL + LiveKit
+├── docker-compose-simple.yml   PostgreSQL + LiveKit + Backend
 ├── docker/livekit.yaml         LiveKit server config (devkey/devsecret)
 ├── .env                        Credentials (OpenAI key, DB URL, LiveKit keys)
-└── docs/                       Additional specs (see below)
+├── scripts/
+│   ├── simulate_b2b.py          B2B conversation simulator
+│   ├── sim_b2b_state.json       Simulator state for resume support
+│   └── ensure_demo_data.py      Demo data seeding
+└── docs/                        Additional specs
 ```
 
 ## How It Runs
@@ -84,17 +89,17 @@ ACE-RealEstate/
 ### Start Infrastructure
 ```bash
 docker compose -f docker-compose-simple.yml up -d
-# Starts: PostgreSQL (5433), LiveKit (7880)
+# Starts: PostgreSQL (5433), LiveKit (7880), Backend (8000)
 ```
 
-### Start Backend
+### Start Backend (local dev)
 ```bash
 cd backend
 source ../venv/bin/activate
 uvicorn main:app --port 8000 --reload
 ```
 
-### Angular Dev Server (optional — for frontend development)
+### Angular Dev Server
 ```bash
 cd angular-visitor
 npm start   # port 4200, proxies API to 8000
@@ -108,65 +113,69 @@ cp -r dist/angular-visitor/browser/* ../backend/static/
 ```
 
 On first startup, `backend/main.py` lifespan auto-seeds:
-- Demo organization (`slug: demo`, `name: Demo Agency`)
+- Demo organization (`slug: demo`, `name: ACE`)
 - Admin user (`admin` / `test123`, role `PLATFORM_ADMIN`)
-- AI Receptor qualifier (Slovenian beauty salon system prompt)
+- Default qualifier: "AI Svetovalec" — Slovenian B2B sales qualification prompt
 
 ## Data Model (PostgreSQL)
 
-All models in `backend/models.py`, using async SQLAlchemy with explicit Column definitions (no ORM mismatch):
+All models in `backend/models.py`, using async SQLAlchemy:
 
 | Table | Key Columns | Purpose |
 |---|---|---|
-| `organizations` | id, name, slug, active | Tenant/salon |
+| `organizations` | id, name, slug, active | Tenant/B2B company |
 | `users` | id, username, password_hash, role, organization_id | Auth (PLATFORM_ADMIN, ORG_ADMIN, ORG_USER) |
 | `leads` | id, organization_id, sid, status, takeover_active, qualifier_profile | Visitor conversation session |
 | `conversation_messages` | id, lead_id, role (user/assistant/staff), text | Chat history |
 | `lead_events` | id, organization_id, sid, event_type, payload_json | Event log for polling |
 | `qualifiers` | id, organization_id, name, system_prompt, status | AI behavior config per org |
+| `bookings` | id, organization_id, lead_id, service_name, booking_date, booking_time | Scheduled discovery calls |
 
 **SID**: Unique session ID per visitor conversation (`sid_` + 12 hex chars).
 
-**LeadStatus enum**: `SURVEY`, `OPEN_CHAT`, `HUMAN_TAKEOVER`, `CLOSED`
+**LeadStatus enum**: `OPEN_CHAT`, `HUMAN_TAKEOVER`, `CLOSED`
 
 **Qualifier status**: `draft`, `live`, `archived`. One live qualifier per org.
 
-## API Surface (all in `backend/routes_chat.py` + `backend/routes_admin.py`)
+## API Surface
 
 ### Public (no auth)
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/chat` | Visitor sends message, gets AI reply |
-| GET | `/chat-events/poll` | Poll for real-time events (takeover, messages) |
-| GET | `/api/public/organizations/{slug}/live-session?sid=` | Check if camera is live |
+| POST | `/chat/stream` | Streaming version (SSE tokens) |
+| GET | `/chat-events/poll` | Poll for real-time events |
+| GET | `/api/public/organizations/{slug}/live-session?sid=` | Check if video is live |
 | GET | `/api/public/organizations/{slug}/leads/{sid}/messages` | Get chat history |
 | POST | `/api/public/organizations/{slug}/leads/{sid}/request-staff` | Request human |
+| POST | `/login` | Form login → JWT |
 
 ### Authenticated (JWT Bearer)
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/login` | Form login (username, password) → JWT |
-| POST | `/chat/staff` | Staff takeover message (starts takeover) |
-| GET | `/api/organizations/{org_id}/leads` | List leads |
+| POST | `/chat/staff` | Staff takeover message |
+| GET | `/api/organizations/{org_id}/leads` | List leads with profiles, scores, bookings |
 | GET | `/api/organizations/{org_id}/leads/{sid}/messages` | Lead messages |
 | POST | `/api/organizations/{org_id}/leads/{sid}/takeover/end` | End takeover |
-| POST | `/api/organizations/{org_id}/live-sessions/go-live` | Start camera session |
-| POST | `/api/organizations/{org_id}/live-sessions/end` | End camera session |
+| DELETE | `/api/organizations/{org_id}/leads/{sid}` | Delete lead |
+| POST | `/api/organizations/{org_id}/live-sessions/go-live` | Start video session |
+| POST | `/api/organizations/{org_id}/live-sessions/end` | End video session |
+| GET | `/api/organizations/{org_id}/bookings` | List bookings |
+| POST | `/api/organizations/{org_id}/bookings` | Create booking |
+| DELETE | `/api/organizations/{org_id}/bookings/{id}` | Cancel booking |
 
 ### Admin (PLATFORM_ADMIN only)
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/admin/organizations` | List all orgs |
-| POST | `/api/admin/organizations` | Create org (auto-seeds qualifier) |
-| GET | `/api/admin/users` | List all users |
-| POST | `/api/admin/users` | Create user |
+| GET/POST | `/api/admin/organizations` | List/create orgs |
+| GET/POST | `/api/admin/users` | List/create users |
 
-### Chat request/response format
+### Chat request/response
 ```json
 // Request
-{"message": "Hello", "sid": "sid_abc123", "tenant_slug": "demo"}
+{"message": "Zdravo, rabimo AI za avtomatizacijo prodaje", "sid": "sid_abc123", "tenant_slug": "demo"}
 // Response
-{"sid": "sid_abc123", "reply": "Dober dan! ...", "chatMode": "open", ...}
+{"sid": "sid_abc123", "reply": "Živjo! ... Bi želeli da se naša ekipa takoj vključi?", "chatMode": "open", ...}
 ```
 
 ## AI Flow (how chat works)
@@ -179,44 +188,69 @@ backend/routes_chat.py: POST /chat
   │
   ├─ takeover_active? → AI stays silent (staff handles it)
   │
+  ├─ Extract phone/email from message text via regex
+  │
   ├─ Save user message to conversation_messages
   │
   ├─ Load qualifier from DB (find by org_id + status='live')
   │
-  ├─ Load recent messages (last 8)
+  ├─ Set DB context for tools (org_id, sid, phone, email)
+  │
+  ├─ Load recent messages (last 20)
   │
   └─ Call app.qualification.graph.run_qualification_graph()
        │
-       ├─ 1. classify_intent (greeting|discovery|availability|booking|handoff|idle)
-       │     Uses LLMService.call_json() with classify prompt
+       ├─ 1. Build system prompt (_build_agent_prompt)
+       │     Turn-based instruction: greet → qualify → offer team takeover → schedule call
        │
-       ├─ 2. Route to stage-specific node
+       ├─ 2. Run tools phase (_run_tools_phase)
+       │     LLM calls: ace_get_context, ace_check_contact, ace_update_profile,
+       │     ace_schedule_call, ace_request_team
+       │     Deterministic tool execution via execute_tool()
+       │     If contact exists and message mentions date/time but LLM didn't call
+       │     ace_schedule_call, force a second tool-call pass
        │
-       └─ 3. _reply_for_stage(stage)
-            Uses LLMService.call_with_tools() → salon tools (get_context, get_services,
-            check_availability, book_appointment, request_staff)
-            → LLM generates final Slovenian reply
+       └─ 3. Generate final Slovenian reply
+            If tools were called → llm.call_json_response()
+            If no tools → llm.stream_reply() for streaming
 ```
 
-### Conversation Stages
-- **greeting** — First contact. Mentions hours, briefly lists services, asks how to help.
-- **discovery** — Visitor asking about services. Answers directly.
-- **availability** — Visitor wants to book. Shows free slots.
-- **booking** — Visitor selected slot. Confirms reservation.
-- **handoff** — Visitor wants human. Connects or offers booking if closed.
-- **idle** — Just chatting. Brief, warm response.
+### B2B Tools (deterministic, no LLM)
 
-### Salon Tools (deterministic, no LLM)
 In `app/qualification/tools.py`:
-- `salon_get_context` — Open/closed status, today's free slots, next working day
-- `salon_get_services` — 3 services: Nega obraza (45min/35€), Maska obraza (30min/25€), Čiščenje obraza (60min/50€)
-- `salon_check_availability` — Free slots for a date, per duration
-- `salon_book_appointment` — Books a slot (in-memory for now)
-- `salon_request_staff` — Staff request (open: connects, closed: offers next working day)
 
-Hours: Mon-Fri 9:00–18:00. Appointment slots every 45/30/60 min, lunch break 12:00–12:45 excluded.
+- **ace_get_context** — Open/closed status, working hours (Mon-Fri 9-17), next working day
+- **ace_check_contact** — Do we already have visitor's phone or email?
+- **ace_schedule_call** — Book a 30-min discovery call (persists to bookings table, publishes event)
+- **ace_request_team** — Request live team takeover (only during working hours)
+- **ace_update_profile** — Record business profile fields: use_case, company_type, scale, current_system, timeline, business_name, budget, problem
 
-## Camera Takeover Flow
+### Turn-Based Instruction (from graph.py)
+
+| Turn | Instruction |
+|---|---|
+| **0 (first contact)** | Greet, explain what ACE does (1 sentence), ask what brought them. If they mention budget or problem → immediately call ace_update_profile. |
+| **1 (second exchange)** | Answer, be helpful. If lead is serious (has budget, knows what they want) → IMMEDIATELY offer live team takeover NOW via ace_request_team. "Bi želeli da se naša ekipa takoj vključi v pogovor?" Do NOT ask for email if you can offer live staff. |
+| **2 (third exchange)** | Lead is already engaged. If they haven't accepted instant takeover → offer ace_schedule_call for a later term. |
+| **3+ (close)** | If lead hasn't booked → ask for email/phone OR offer ace_schedule_call. Don't repeat yourself. Be brief. |
+
+**Non-working hours (closed):**
+- Turn 0: Greet, mention we're closed (9-17), ask what brought them
+- Turn 1: CALL ace_schedule_call NOW. Don't ask for anything — just book. Default: tomorrow at 10:00
+- Turn 2+: If you haven't called ace_schedule_call — DO IT NOW. If done, say it's booked and goodbye.
+
+### Lead Profile Extraction
+
+After the AI generates a reply, `routes_chat.py` extracts business profile fields using:
+1. **Tool results** — If ace_update_profile was called, capture the fields from tool output
+2. **Regex extraction** — Extract business_name, budget, problem from conversation text
+3. **LLM extraction fallback** — If regex missed fields, call LLM for structured extraction
+
+Extracted fields: `business_name`, `budget`, `problem`, `company_type`, `scale`, `current_system`, `timeline`, `use_case`
+
+All saved to `lead.qualifier_profile` (JSONB in PostgreSQL).
+
+## Video Takeover Flow
 
 ```
 1. Staff calls POST /api/organizations/{id}/live-sessions/go-live {"sid":"..."}
@@ -224,13 +258,9 @@ Hours: Mon-Fri 9:00–18:00. Appointment slots every 45/30/60 min, lunch break 1
    → publishes live_session.started event
    → returns {roomName, token, wsUrl}
 
-2. Angular StaffVideoComponent (staff-video.component.ts)
-   → Listens for staff messages (onStaffMessage callback)
-   → Polls GET /api/public/organizations/{slug}/live-session?sid=... every 3s
-   → When status='live' and token present:
-     → Connects to LiveKit room as visitor (subscribe-only)
-     → Renders remote video track in <video id="livekit-video">
-     → Shows animated overlay with "● V ŽIVO" badge
+2. Visitor's StaffVideoComponent polls live-session endpoint every 3s
+   → When status='live': connects to LiveKit room as visitor (subscribe-only)
+   → Renders remote video with "● V ŽIVO" badge overlay
 
 3. Staff calls POST .../live-sessions/end {"sid":"..."}
    → publishes live_session.ended event
@@ -242,28 +272,50 @@ Hours: Mon-Fri 9:00–18:00. Appointment slots every 45/30/60 min, lunch break 1
 - Manager token: can publish + subscribe
 - Visitor token: subscribe-only
 - Credentials from .env: `ACE_LIVEKIT_API_KEY`, `ACE_LIVEKIT_API_SECRET`
-- Local dev: key=devkey, secret=devsecretkey_for_local_livekit_32chars
 
 ## Event System
 
 `backend/events.py` — in-process pub/sub with WebSocket fanout.
 
-Events are:
-1. Saved to `lead_events` table (for polling)
-2. Pushed to connected WebSocket clients (subscribed by sid)
+Events are saved to `lead_events` table and pushed to connected WebSocket clients.
 
 Poll endpoint: `GET /chat-events/poll?sid=...&since={seq}`
 
 Key events:
 - `message.created` — New chat message (user/assistant/staff)
 - `lead.takeover.started` / `lead.takeover.ended` — Staff takeover state
-- `live_session.started` / `live_session.ended` — Camera session state
+- `live_session.started` / `live_session.ended` — Video session state
 - `lead.staff-requested` — Visitor requested human
 - `lead.touched` — Generic lead update
+- `booking.created` / `booking.cancelled` — Booking events
+
+## Qualifier System
+
+Each B2B company gets a **Qualifier** that defines how the AI behaves:
+- `system_prompt` — core instructions for the LLM
+- `assistant_style` — tone (e.g., "prijazen, direkten, posloven")
+- `goal_definition` — what the AI should achieve
+- `field_schema` — fields to extract from conversation
+- `required_fields` — fields that matter most
+- `scoring_rules`, `band_thresholds` — lead scoring
+- `takeover_rules`, `video_offer_rules` — when to offer human/video
+- `contact_capture_policy` — when to ask for contact info
+
+Default qualifier (auto-seeded):
+```
+name: "AI Svetovalec"
+slug: "ai-receptor"
+system_prompt: "Ti si AI Svetovalec za ACE — podjetje, ki razvija AI recepcijske
+  rešitve za avtomatizacijo sprejema strank. Toplo pozdravi obiskovalce, vprašaj
+  jih po njihovih poslovnih potrebah (količina strank, obstoječi sistemi, urnik,
+  proračun), kvalificiraj lead in, če je primeren, ponudi klic z ekipo."
+assistant_style: "prijazen, direkten, posloven"
+status: "live"
+```
 
 ## Angular Frontend Architecture
 
-### Routes (`app.routes.ts`)
+### Routes
 | Path | Component | Purpose |
 |---|---|---|
 | `/` | ReceptionistChatComponent | Visitor chat (defaults to demo org) |
@@ -272,53 +324,10 @@ Key events:
 | `/login` | LoginComponent | Login page |
 | `/admin` | AdminComponent | Platform admin panel |
 
-### Tenant detection (`environment.ts`)
-Tenant slug is resolved by:
-1. `?org={slug}` query parameter
-2. First path segment (`/{slug}`)
-3. Default: `demo`
-
-### Key Services
-- **SalonService** (`salon.service.ts`) — Central state: messages signal, staffState signal, connectionStatus, open/closed status. Handles send, poll, event processing, staff state transitions.
-- **ChatApiService** (`chat-api.service.ts`) — HTTP layer with retry logic. Calls `/chat`, `/chat-events/poll`, `/api/public/organizations/{slug}/leads/{sid}/messages`.
-
 ### OrgDashboardComponent (3 tabs)
-- **KONVERZACIJE** — Lead list with filters, thread view, staff takeover (text + live camera)
+- **KONVERZACIJE** — Lead list with filters, thread view, staff takeover (text + video)
 - **AI RECEPTOR** — Qualifier configuration editor
-- **REZERVACIJE** — Booking timeline (day/week view), booking cards with status actions, "Nova rezervacija" modal, filters, stats
-
-### StaffVideoComponent
-- Polls live-session endpoint every 3s when staff takeover is active
-- Uses `livekit-client` npm package to connect to LiveKit room
-- Renders remote video in `<video id="livekit-video">`
-- CSS: fixed top-center, 16:9 widescreen, 2.4s fade-in with retry/reconnect
-- Auto-disconnects on `live_session.ended` event
-
-## Qualifier System
-
-Each organization has a **Qualifier** that defines how the AI receptionist behaves:
-- `system_prompt` — core instructions for the LLM
-- `assistant_style` — tone (e.g., "prijazen, topel, profesionalen")
-- `goal_definition` — what the AI should achieve
-- `field_schema` — fields to extract from conversation
-- `required_fields` — fields that matter most
-- `scoring_rules`, `band_thresholds` — lead scoring
-- `takeover_rules`, `video_offer_rules` — when to offer human/video
-- `contact_capture_policy` — when to ask for contact info
-
-Default qualifier (auto-seeded for every org, including new ones):
-```
-name: "AI Receptor"
-slug: "ai-receptor"
-system_prompt: "Ti si AI Receptor za kozmetični salon. Toplo pozdravi obiskovalce,
-  odgovarjaj na vprašanja o storitvah (nega obraza 45min/35€, maska obraza 30min/25€,
-  čiščenje obraza 60min/50€), pomagaj pri izbiri tretmajev in rezerviraj termine.
-  Bodi prijazen, profesionalen in ustrežljiv. Salon je odprt od 9:00 do 18:00."
-assistant_style: "prijazen, topel, profesionalen"
-status: "live"
-```
-
-The qualifier is loaded from DB by `backend/routes_chat.py` and passed to `run_qualification_graph()` which uses it via `runtime_context.py` to build context snippets and prompt blocks.
+- **REZERVACIJE** — Booking timeline (day/week view), booking cards, stats
 
 ## Environment Variables (.env)
 
@@ -338,49 +347,40 @@ ACE_LIVEKIT_API_KEY=devkey
 ACE_LIVEKIT_API_SECRET=devsecretkey_for_local_livekit_32chars
 ```
 
-## Database Connections
-
-Two separate DB connections exist (connecting to the same PostgreSQL):
-1. **`backend/database.py`** — async SQLAlchemy (`asyncpg` driver). Used by `backend/` routes.
-2. **`app/core/db.py`** — sync SQLAlchemy (`psycopg2` driver). Used by `app/` services and scripts.
-
-Both read `.env` for `DATABASE_URL`. The `backend/` models use explicit `Column()` definitions that match the actual DB schema exactly (no mismatch).
-
 ## Key Design Decisions
 
-1. **Single Python process** — No microservices. `backend/` is the entire server. `app/` is a library.
-2. **Direct import, no HTTP between services** — `backend/routes_chat.py` does `from app.qualification.graph import run_qualification_graph`. No REST call to a separate AI service.
-3. **LangGraph for conversation flow** — The AI uses a directed graph: classify → route → reply. Not an open-ended agent loop.
-4. **Deterministic tools** — Salon data (services, hours, slots) is hardcoded in `app/qualification/tools.py`. The LLM calls these tools but the tool outputs are deterministic, not LLM-generated.
-5. **Polling for real-time** — No WebSocket between frontend and backend for events (the WS in `main.py` is for internal pub/sub). Frontend polls `/chat-events/poll` every 1s.
-6. **LiveKit for video** — One-way video: staff publishes, visitor subscribes. Visitor camera/mic stay off.
-7. **Qualifier system** — Configurable AI behavior per organization, seeded with Slovenian beauty salon defaults.
+1. **Single Python process** — No microservices. `backend/` is the entire server. `app/` is a library imported directly.
+2. **Direct import, no HTTP between services** — `backend/routes_chat.py` does `from app.qualification.graph import run_qualification_graph`.
+3. **Turn-based AI behavior** — The system prompt changes per turn count. Aggressive push for live takeover on turn 1.
+4. **Deterministic tools** — B2B tools execute real logic (DB writes, event publishing). The LLM decides which tools to call, but tool outputs are deterministic.
+5. **Polling for real-time** — Frontend polls `/chat-events/poll` every 1s. WebSocket only for internal pub/sub.
+6. **LiveKit for video** — One-way: staff publishes, visitor subscribes.
+7. **Regex + LLM extraction** — Lead profiles extracted via regex first (fast, reliable), with LLM fallback for fields regex misses.
 8. **SID-based sessions** — Visitors don't log in. Each conversation gets a unique `sid` stored in sessionStorage.
+9. **Discovery calls** — Bookings are 30-min "Discovery Call" meetings (free, for sales qualification).
 
 ## Files You Can Ignore
 
 - `ace-mobile/` — Legacy Ionic mobile app, not part of current stack
-- `app/api/` (agent.py, chat.py, chats.py, funnel.py, etc.) — Legacy API routes from the old multi-service architecture, not used by `backend/`
-- `app/portal/` — Legacy portal routes, not used
-- `app/auth/` — Legacy auth (uses old user model), not used by `backend/`
-- `app/models/orm.py` — Legacy SQLAlchemy models with column name mismatches, not used by `backend/`
+- `app/api/`, `app/portal/`, `app/auth/` — Legacy API/auth from old multi-service architecture
+- `app/models/orm.py` — Legacy SQLAlchemy models with column mismatches
 - `docs/archive/` — Historical docs referencing deleted Java code
-- `scripts/` — Migration and seed scripts from the old architecture
 - `test_*.py`, `tests/` — Test files (may be outdated)
+- `data/` — Legacy conversation flow JSON files
 
 ## What Matters Right Now
 
-The working, production-ready stack is:
+The working stack:
 
 | Layer | Files | Lines |
 |---|---|---|
-| Server | `backend/main.py`, `routes_chat.py`, `routes_admin.py` | ~440 |
+| Server | `backend/main.py`, `routes_chat.py`, `routes_admin.py` | ~500 |
 | Models | `backend/models.py` | ~110 |
 | Auth | `backend/auth.py` | ~55 |
 | Events | `backend/events.py` | ~26 |
 | LiveKit | `backend/livekit_token.py` | ~40 |
-| AI Graph | `app/qualification/graph.py`, `state.py`, `prompts.py`, `tools.py`, `runtime_context.py` | ~550 |
+| AI Graph | `app/qualification/graph.py`, `state.py`, `tools.py`, `runtime_context.py` | ~550 |
 | LLM Client | `app/services/llm_service.py` | ~130 |
-| Frontend | `angular-visitor/src/app/` (all .ts, .html, .scss) | ~2,000 |
+| Frontend | `angular-visitor/src/app/` | ~1,200 |
 
-**Total: ~3,300 lines of meaningful code.**
+**Total: ~2,600 lines of meaningful code.**

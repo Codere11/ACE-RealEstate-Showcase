@@ -1,167 +1,2859 @@
 {
-  "completed": 5,
+  "completed": 100,
   "results": [
     {
       "sid": "b2b-000",
       "index": 0,
       "name": "Marko",
-      "role": "Mid-level manager v logistiki",
+      "role": "Mid-level manager logistika",
       "company": "Transport & Co, 40 zaposlenih",
       "urgency": "letos",
       "patience": "nizka",
-      "turns": 6,
-      "outcome": "max_turns",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-18T16:13:47.923933",
       "call_booked": false,
       "contact_left": false,
       "dropped_off": false,
+      "staff_requested": true,
       "history": [
         {
           "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
-          "receptionist": "Živjo! ACE avtomatizira sprejem strank preko AI klepeta na spletni strani, ki kvalificira lead-e in jih shrani v dashboard. Kaj vas je pripeljalo do nas?"
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
         },
         {
-          "customer": "Aha, tole zveni zanimivo. Pri nas v logistiki imamo ogromno klicev strank, veliko je povpraševanj, ki se ponavljajo. Kako točno ta vaš AI klepet deluje pri nas? Lahko sam odgovarja na vprašanja ali samo zbira podatke?",
-          "receptionist": "ACE klepet lahko sam odgovarja na pogosta vprašanja in hkrati zbira podatke o strankah. Ali imate v logistiki veliko ponavljajočih se vprašanj, ki bi jih radi avtomatizirali?"
-        },
-        {
-          "customer": "Ja, ponavljajočih se vprašanj je veliko. Na primer kje je moja pošiljka, kdaj bo dostava, kakšni so pogoji. A to pomeni, da bi moral našim strankam na spletni strani dati neki klepet, ki bi namesto nas odgovarjal na te stvari? In kako točno potem mi vidimo te podatke?",
-          "receptionist": "Super, točno to ACE pokriva. Vse podrobnosti o delovanju in kako vidite podatke bomo pokrili na kratkem klicu. Mi lahko zaupate svoj email ali telefon, da se dogovorimo?"
-        },
-        {
-          "customer": "No, počakaj malo - rad bi še kaj več slišal, preden se dogovoriva za klic. Kako bi točno izgledala integracija pri nas? Imamo svojo spletno stran, ampak nismo čisto tehnični. A je treba kaj namesat, al kaj?",
-          "receptionist": "Razumem, vse podrobnosti o integraciji bomo pokrili na kratkem klicu. Mi lahko zaupate svoj email ali telefon, da se dogovorimo?"
-        },
-        {
-          "customer": "V redu, ampak res bi rad slišal vsaj osnovne informacije preden se dogovoriva za klic. A je to težko za namestiti? Ker mi nimamo svojega IT oddelka.",
-          "receptionist": "Razumem, vse tehnične podrobnosti bomo pokrili na kratkem klicu. Mi lahko zaupate svoj email ali telefon, da se dogovorimo?"
-        },
-        {
-          "customer": "Ja, ampak res bi rabu en osnoven overview, preden sploh vem, al je to za nas. A je treba kaj namestit al je to cloud-based? Kaj pa cena? Ne bom se kar na klic strinjal, ne da vem, v kaj se spuščam. Daj mi vsaj malo konkretnih info.",
-          "receptionist": "Razumem, vse konkretne informacije o namestitvi in cenah bomo pokrili na kratkem klicu. Mi lahko zaupate svoj email ali telefon, da se dogovorimo?"
+          "customer": "Ja, kar vključite ekipo, da mi pokažejo kako to rešuje klice.",
+          "receptionist": "Super, ekipo takoj vključim v klepet, da vam pokažejo rešitev."
         }
       ]
     },
     {
       "sid": "b2b-001",
       "index": 1,
-      "name": "Barbara",
-      "role": "Head of Customer Success",
-      "company": "DataFlow d.o.o., 25 zaposlenih",
-      "urgency": "ta mesec",
+      "name": "Peter",
+      "role": "Solopreneur svetovalec",
+      "company": "Peter s.p., 1 zaposlen",
+      "urgency": "letos",
       "patience": "srednja",
-      "turns": 3,
-      "outcome": "handoff",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-01T15:46:57.147312",
       "call_booked": false,
-      "contact_left": true,
+      "contact_left": false,
       "dropped_off": false,
+      "staff_requested": true,
       "history": [
         {
-          "customer": "Imamo HubSpot, ampak za slovenske stranke ne deluje najboljse. A se da integrirati z vasim sistemom?",
-          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Smo pa zaprti do jutri, zato se vam oglasimo takrat."
+          "customer": "Dober dan, delam kot svetovalec in me zanima ce imate resitev tudi za solo podjetnike?",
+          "receptionist": "Seveda, ACE je kot nalašč tudi za solo podjetnike. Avtomatiziramo sprejem strank prek AI klepeta na spletni strani, ki kvalificira lead-e in jih shrani v dashboard. Kaj vas pripelje k nam?"
         },
         {
-          "customer": "Razumem, ampak tole je zame preveč nejasno. A mi lahko vsaj na hitro poveš, če ACE podpira integracijo s kakšnimi CRM-ji ali ima API? Če ne, si bom raje poiskal kaj drugega.",
-          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Smo pa zaprti do jutri, zato se vam oglasimo takrat."
-        },
-        {
-          "customer": "V redu, potem pa kar pokličite jutri. Pustim vam svojo številko: 041 123 456. Se slišimo.",
-          "receptionist": "Super, hvala! Vaš klic smo rezervirali za jutri ob 9.00. Se slišimo takrat."
+          "customer": "Kaj pa točno mislite s \"kvalificira lead-e\"? Meni kličejo potencialne stranke, pa jih velikokrat ne morem takoj vzet, ker sem na sestanku ali pri delu. Bi lahko AI namesto mene opravil uvodni pogovor?",
+          "receptionist": "Točno to! ACE lahko namesto vas opravi uvodni pogovor prek klepeta na spletni strani. AI postavi vprašanja, ugotovi potrebe in kvalificira leada, vi pa potem prevzamete, ko imate čas. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
         }
       ]
     },
     {
       "sid": "b2b-002",
       "index": 2,
-      "name": "Ana",
-      "role": "Vodja prodaje v kliniki",
-      "company": "Dermamed, 30 zaposlenih",
+      "name": "Andrej",
+      "role": "Enterprise CTO",
+      "company": "Merkur d.d., 300 zaposlenih",
       "urgency": "ta mesec",
-      "patience": "visoka",
-      "turns": 4,
-      "outcome": "handoff",
+      "patience": "zelo visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-30T10:26:34.559059",
       "call_booked": false,
-      "contact_left": true,
+      "contact_left": false,
       "dropped_off": false,
+      "staff_requested": true,
       "history": [
         {
-          "customer": "Dober dan, imamo kliniko in iscemo nekaj kar bi nam olajsalo narocanje in klice. Kaj tocno ponujate?",
-          "receptionist": "ACE je AI klepetalnik za spletno stran, ki samodejno pozdravi obiskovalce, jih kvalificira in omogoča rezervacijo terminov. Kaj vas pri tem najbolj zanima?"
+          "customer": "Dober dan, iz Merkurja smo. Pripravljamo digitalno transformacijo in iscemo partnerja za AI recepcijo. Imate reference?",
+          "receptionist": "Super, hvala za povpraševanje! ACE je AI recepcija, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani v dashboard. Reference imamo, z veseljem jih delimo na kratkem klicu. Bi se lahko dogovorili za termin?"
         },
         {
-          "customer": "Zveni obetavno, ampak me zanima konkretno: ali se lahko ACE poveže z našim obstoječim sistemom za naročanje v kliniki? Kako deluje, če imamo že svojo spletno stran?",
-          "receptionist": "ACE se preprosto doda na vašo obstoječo spletno stran kot gumb ali widget. Glede povezave z vašim sistemom za naročanje – trenutno ne podpiramo neposredne integracije, ampak vse podrobnosti o tem, kako ACE deluje, bomo pokrili na klicu. Kaj pa je za vas največji izziv pri trenutnem naročanju?"
+          "customer": "Razumem, da imate reference, ampak iskreno, raje bi se pogovoril z živim človekom, ki mi lahko pove več o tem, kako točno deluje v praksi in kakšne so izkušnje drugih strank. Ali lahko dobim nekoga iz prodaje ali account managementa?",
+          "receptionist": "Seveda, to lahko uredimo takoj. Bi želeli, da se naša prodajna ekipa vključi v klepet zdaj in vam vse razloži?"
         },
         {
-          "customer": "Razumem, ampak brez integracije z našim sistemom mi ni čisto jasno, kako bi to delovalo v praksi. Naš največji izziv je, da je recepcionistka preobremenjena, ker vsi kličejo za termine, pa še spletna naročila so v kaosu. Kako bi točno ACE to rešil, če se ne poveže z našim backendom?",
-          "receptionist": "Točno to bomo podrobno razložili na klicu. Mi lahko zaupate svoj email ali telefon, da se dogovorimo za termin?"
-        },
-        {
-          "customer": "V redu, razumem. Ampak še vedno mi ni jasno, kako bi to delovalo brez integracije. Če pa pravite, da bomo vse podrobnosti pokrili na klicu, potem bom zaupala. Moj email je ana@dermamed.si. Se lahko dogovorimo za klic ta teden?",
-          "receptionist": "Super, hvala za email. Ker smo trenutno zaprti, vas bom jutri kontaktiral za dogovor glede klica. Lep pozdrav."
+          "customer": "Super, naj se vključijo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
         }
       ]
     },
     {
       "sid": "b2b-003",
       "index": 3,
-      "name": "Tomas",
-      "role": "IT vodja v proizvodnem podjetju",
-      "company": "Kovinarstvo Novak, 50 zaposlenih",
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
       "urgency": "letos",
-      "patience": "nizka",
-      "turns": 4,
-      "outcome": "handoff",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-20T18:11:10.811311",
       "call_booked": false,
-      "contact_left": true,
+      "contact_left": false,
       "dropped_off": false,
+      "staff_requested": true,
       "history": [
         {
-          "customer": "Dober dan, rabili bi modernizacijo nase spletne strani in mogoce ta AI sprejem. A lahko pomagate?",
-          "receptionist": "Dober dan! ACE avtomatizira sprejem strank na spletni strani z AI klepetom, kvalificiranjem leadov in integracijo koledarja. Kaj vas je pripeljalo k nam?"
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
         },
         {
-          "customer": "Dober dan, rabili bi modernizacijo naše spletne strani in mogoče ta AI sprejem. A lahko pomagate?",
-          "receptionist": "Seveda! ACE avtomatizira sprejem strank z AI klepetom, ki kvalificira lead-e in omogoča rezervacijo terminov. Kakšne vrste strank najpogosteje sprejemate?"
-        },
-        {
-          "customer": "Najpogosteje imamo manjša podjetja, ki iščejo kovinske izdelke po naročilu – kakšne serije, enostavne strojne dele, pa tudi kakšnega fizičnega obiskovalca včasih. Bi to vaš AI znal obdelat?",
-          "receptionist": "Točno to ACE počne – kvalificira lead-e in omogoča rezervacijo terminov. Vse podrobnosti bomo pokrili na klicu. Mi lahko zaupate svoj e-mail ali telefon, da se dogovorimo?"
-        },
-        {
-          "customer": "Se strinjam, zveni obetavno. Moj mail je tomas@kovarstvo-novak.si. Lahko pokličete tudi na 041 234 567. Kdaj bi bilo najboljše za klic?",
-          "receptionist": "Super, hvala za kontakt. Pokličemo vas jutri med 9. in 17. uro. Bi vam ustrezalo dopoldne ali popoldne?"
+          "customer": "Hej, hvala za odgovor! Zanima me podrobneje – kako poteka kvalifikacija obiskovalcev? A se lahko prilagodi specifičnim potrebam moje trgovine, recimo glede na kategorije izdelkov ali vedenje uporabnikov?",
+          "receptionist": "Seveda, ACE se lahko prilagodi tvoji trgovini – nastaviš lahko vprašanja glede na kategorije izdelkov ali vedenje uporabnikov. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
         }
       ]
     },
     {
       "sid": "b2b-004",
       "index": 4,
+      "name": "Klavdija",
+      "role": "Marketing direktorica B2B agencije",
+      "company": "Rast d.o.o., 22 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-16T23:22:53.859353",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno potrebujemo nekaj za avtomatske odgovore strankam. Delate tudi integracije s HubSpotom?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani. HubSpot integracije trenutno ne podpiramo, ampak vse podrobnosti o tem, kaj ACE zmore, bomo pokrili na klicu. Vas lahko takoj povežem z ekipo?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Lahko kar takoj pokličemo?",
+          "receptionist": "Seveda, ekipa se bo takoj vključila v klepet. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-005",
+      "index": 5,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 5,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-29T14:03:46.748899",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Zveni zanimivo. Recimo, da imam na spletni strani obiskovalca, ki samo brska in ne kupi ničesar. Kako veš, da je to potencialni lead in ne samo nekdo, ki brska brez namena?",
+          "receptionist": "ACE takoj začne postavljati vprašanja, da ugotovi namen obiskovalca – če odgovarja, je potencialni lead, če ne, ga pusti pri miru."
+        },
+        {
+          "customer": "Ja, ampak to mi še vedno ne pove dovolj. A se da dobit koga v živo? Rad bi slišal konkretne primere iz prakse, ne samo splošne razlage.",
+          "receptionist": "Seveda, lahko vas takoj povežem z našo ekipo, ki vam bo pokazala konkretne primere. Želite, da vas povežem zdaj?"
+        },
+        {
+          "customer": "Super, kar poveži me prosim. Rad bi slišal konkretne primere, kako ste drugim trgovcem pomagali povečati prodajo.",
+          "receptionist": "Seveda, takoj vas povežem z ekipo, ki vam bo pokazala konkretne primere iz prakse."
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi. Rad bi videl primere iz prakse za e-commerce.",
+          "receptionist": "Super, ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-006",
+      "index": 6,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-11T12:25:19.141158",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Ja, točno to me zanima. Kako pa poteka tista \"kvalifikacija\"? A mi potem poveš, kdo je dejansko resen kupec in kdo samo brska?",
+          "receptionist": "ACE postavlja pametna vprašanja (npr. proračun, časovnica, potrebe) in na podlagi odgovorov oceni, kdo je resen lead. Vse vidiš v dashboardu. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse pokaže?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-007",
+      "index": 7,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-22T09:56:30.082790",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Seveda! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Že na kratko povedano - zanima me, ali znate obravnavati specifične zahteve, kot so prijave na sobe, posebne želje gostov in informacije o ponudbi hotela? Mi lahko to poveste?",
+          "receptionist": "ACE zna obravnavati specifične zahteve – gostom lahko postavlja vprašanja o sobah, željah in ponudbi ter jih kvalificira. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-008",
+      "index": 8,
+      "name": "Ana",
+      "role": "Vodja prodaje v kliniki",
+      "company": "Dermamed, 30 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-02T10:57:18.595076",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo kliniko in iscemo nekaj kar bi nam olajsalo narocanje in klice. Kaj tocno ponujate?",
+          "receptionist": "Pozdravljeni! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce vaše spletne strani, postavlja vprašanja in kvalificira lead-e, nato pa jih shrani v pregleden dashboard. Bi želeli izvedeti več o tem, kako vam lahko pomaga pri naročanju?"
+        },
+        {
+          "customer": "Zveni obetavno, ampak jaz bi res potrebovala konkretne informacije o funkcionalnostih za naročanje. Lahko prosim dobim človeka s prodaje ali podpore, da se pogovoriva?",
+          "receptionist": "Seveda, razumem. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobnosti razloži v živo?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Res bi rada slišala konkretne informacije o naročanju, ne pa samo osnovnega opisa.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-009",
+      "index": 9,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-16T10:01:57.290323",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to počne – z AI klepetom na spletni strani samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-010",
+      "index": 10,
+      "name": "Rok",
+      "role": "MLOps inzenir",
+      "company": "DataMind d.o.o., 30 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-24T20:50:41.110888",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, MLOps inzenir tukaj. Zanima me vasa arhitektura — kako hitro se model odziva, kaksna latenca, ali podpirate custom modele? In kaksne integracije imate?",
+          "receptionist": "Živjo! ACE je AI klepet za avtomatizacijo sprejema strank na spletni strani — pozdravi obiskovalce, kvalificira lead-e in jih shrani v dashboard. Glede arhitekture: model se odziva v realnem času, latenca je minimalna, ne podpiramo pa custom modelov. Integracije imamo z LiveKit za video klice in koledarjem za rezervacije. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Hvala za info. “Minimalna latenca” je malo ohlapen pojem — lahko poveste kakšne cifre, recimo P50 in P99 v milisekundah? In kako je implementirana inferenca — na GPU ali CPU, kakšen framework (Triton, TorchServe, ...)? Glede custom modelov — to je ključno. Recimo, da bi radi prilagodili NLP del za našo domeno — je to možno na kak način ali ste čisto zaprti?",
+          "receptionist": "Razumem, da želite konkretne številke. Natančnih P50/P99 vam brez testiranja ne morem dati, inferenca teče na CPU. Custom modelov ne podpiramo. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-011",
+      "index": 11,
       "name": "Tomas",
       "role": "IT vodja v proizvodnem podjetju",
       "company": "Kovinarstvo Novak, 50 zaposlenih",
       "urgency": "letos",
       "patience": "nizka",
-      "turns": 4,
-      "outcome": "dropped_off",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-25T13:01:02.402701",
       "call_booked": false,
       "contact_left": false,
-      "dropped_off": true,
+      "dropped_off": false,
+      "staff_requested": true,
       "history": [
         {
           "customer": "Dober dan, rabili bi modernizacijo nase spletne strani in mogoce ta AI sprejem. A lahko pomagate?",
-          "receptionist": "Dober dan! ACE avtomatizira sprejem strank na spletni strani z AI klepetom, kvalificiranjem leadov in integracijo koledarja. Kaj vas je pripeljalo k nam?"
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani. Kaj vas je pripeljalo do nas?"
         },
         {
-          "customer": "Dober dan, rabili bi modernizacijo naše spletne strani in mogoče ta AI sprejem. A lahko pomagate?",
-          "receptionist": "Seveda! ACE avtomatizira sprejem strank z AI klepetom, ki kvalificira lead-e in omogoča rezervacije. Kakšne izzive trenutno rešujete pri sprejemu strank?"
+          "customer": "Živjo! Dober dan. Ja, točno to me zanima. Naša spletna stran je že pet let stara in je popolnoma zastarela. Razmišljam o celoviti prenovi, pa me zanima, kako bi vaš AI sprejem strank to dopolnil. A lahko poveste malo več, kako to deluje?",
+          "receptionist": "ACE je AI klepet, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-012",
+      "index": 12,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-01T10:54:41.101728",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "ACE ravno to počne! Na spletni strani postavi AI klepet, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e v dashboard, kjer jih vaša ekipa prevzame. Bi želeli, da se ekipa takoj vključi v klepet za več informacij?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-013",
+      "index": 13,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-24T18:19:45.221141",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "ACE lahko začnete uporabljati v nekaj dneh. Gre za AI klepet, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani v dashboard. Bi želeli, da se ekipa takoj vključi v klepet za več podrobnosti?"
         },
         {
-          "customer": "No ja, glavni problem je, da je naša trenutna spletna stran stara, neodzivna in nas stane več časa kot koristi. Stranke težko najdejo informacije, pa še kontaktnega obrazca nimamo urejenega. A lahko vi poleg klepeta naredite tudi celotno prenovo spletne strani?",
-          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Mi lahko zaupate svoj email ali telefon, da se dogovorimo?"
+          "customer": "Super, naj se ekipa takoj vključi. Res potrebujem konkretne informacije o hitri implementaciji.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-014",
+      "index": 14,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 4,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-10T15:00:35.459420",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe! Samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, da zgledate profesionalno že od prvega stika. Kaj vas je pripeljalo k nam?"
         },
         {
-          "customer": "Razumem, ampak jaz iščem celovito rešitev – prenovo spletne strani in morda dodatek AI klepeta. Če prenove ne delate, potem za nas to ni to. Hvala za informacije, se poslavljam.",
-          "receptionist": "Razumem, hvala za povpraševanje. Če se premislite glede AI klepeta, smo tu. Lep pozdrav."
+          "customer": "Zveni dobro. Kaj točno ACE naredi ob prvem stiku? Recimo, nekdo pride na našo stran – kako potem poteka?",
+          "receptionist": "Ko nekdo pride na vašo stran, ACE ga samodejno pozdravi, postavi nekaj vprašanj, da ga kvalificira, in lead shrani v dashboard. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
+        },
+        {
+          "customer": "Super, ampak preden se ekipa vključi – a lahko dobim kar živega človeka iz prodaje? Rada bi se z nekom pogovorila, ne samo prek klepeta.",
+          "receptionist": "Seveda, lahko vas povežem z našo ekipo v živo. Bi želeli, da vas pokličemo zdaj ali vam rezerviramo termin za klic?"
+        },
+        {
+          "customer": "Super, naj me pokličejo zdaj. Moj telefon je 041 234 567. Hvala!",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-015",
+      "index": 15,
+      "name": "Rok",
+      "role": "MLOps inzenir",
+      "company": "DataMind d.o.o., 30 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-18T10:24:24.903688",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, MLOps inzenir tukaj. Zanima me vasa arhitektura — kako hitro se model odziva, kaksna latenca, ali podpirate custom modele? In kaksne integracije imate?",
+          "receptionist": "Živjo! ACE je AI klepet za avtomatizacijo sprejema strank na spletni strani — pozdravi obiskovalce, kvalificira leade in jih shrani v dashboard. Glede arhitekture: model je optimiziran za nizko latenco (odziv v milisekundah), ne podpiramo pa custom modelov. Integracije vključujejo LiveKit za video klice in koledar za rezervacije. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Aha, hvala. “Milisekunde” je malo širok pojem — lahko poveste kakšen je P99 latency pri normalni obremenitvi? Recimo 10 sočasnih uporabnikov. In glede integracij, ali se da povezati z našim internim CRM preko API-ja, ali je to samo njihov dashboard?",
+          "receptionist": "Nimamo natančnih podatkov o P99 latenci, vendar je sistem optimiziran za odziv v realnem času. Integracija z vašim internim CRM preko API-ja ni podprta, leade upravljate v ACE dashboardu. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-016",
+      "index": 16,
+      "name": "Gregor",
+      "role": "CFO fintech startupa",
+      "company": "PayFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-08T12:43:14.775233",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo budget za avtomatizacijo uporabniske podpore. Iscemo partnerja za dolgorocno sodelovanje. Kakšne so vase cene in paketi?",
+          "receptionist": "Super, da imate budget in iščete dolgoročnega partnerja. ACE avtomatizira sprejem strank prek AI klepeta na spletni strani – kvalificira lead-e in jih poveže z vašo ekipo. Glede cen in paketov: najbolje, da se slišimo na kratkem klicu, kjer vam vse podrobnosti predstavimo. Bi vam ustrezalo, da se ekipa takoj vključi v klepet?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-017",
+      "index": 17,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-06T16:36:59.394362",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to rešuje – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-018",
+      "index": 18,
+      "name": "Rok",
+      "role": "MLOps inzenir",
+      "company": "DataMind d.o.o., 30 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-29T00:43:31.637204",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, MLOps inzenir tukaj. Zanima me vasa arhitektura — kako hitro se model odziva, kaksna latenca, ali podpirate custom modele? In kaksne integracije imate?",
+          "receptionist": "Živjo! ACE je AI klepet za avtomatizacijo sprejema strank na spletni strani — pozdravi obiskovalce, kvalificira lead-e in jih shrani v dashboard. Glede arhitekture: model se odziva v realnem času, latenca je minimalna, ne podpiramo pa custom modelov. Integracije so LiveKit za video klice in koledar za rezervacije. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Živjo, hvala za info. Aha, torej ne podpirate custom modelov — to pomeni, da uporabljate samo svojega? Kako je pa z latenco v realnem svetu, recimo ob prometni konici? In a imate kakšen API za integracijo z našim CRM-jem ali pa je vse prek dashboarda?",
+          "receptionist": "Tako je, uporabljamo lasten model. Latenca je minimalna tudi ob prometnih konicah, saj je sistem optimiziran za realni čas. API za integracijo z zunanjimi CRM-ji trenutno ne podpiramo, vse poteka prek našega dashboarda. Bi želeli, da se naša ekipa takoj vključi v klepet in vam podrobneje razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-019",
+      "index": 19,
+      "name": "Andrej",
+      "role": "Enterprise CTO",
+      "company": "Merkur d.d., 300 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-14T17:33:25.523025",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, iz Merkurja smo. Pripravljamo digitalno transformacijo in iscemo partnerja za AI recepcijo. Imate reference?",
+          "receptionist": "Super, Merkur! ACE ravno to počne — AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani v dashboard. Glede referenc: imamo jih, naj vam jih predstavimo na kratkem klicu? Lahko takoj povežem ekipo, da se pogovorimo."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-020",
+      "index": 20,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-11T22:16:43.231509",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Super, hotel je odlična izbira za ACE. Na kratko: ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira z vprašanji in shrani lead-e v dashboard, kjer jih vaša ekipa vidi in lahko takoj prevzame. Kaj vas je pripeljalo do nas?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-021",
+      "index": 21,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-24T11:42:44.847345",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za to smo tu! ACE lahko začne delovati v nekaj dneh. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže demo?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi! Želim slišati konkretne podatke, kako to deluje v praksi.",
+          "receptionist": "Super, ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-022",
+      "index": 22,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-29T15:38:38.347504",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Dober dan! ACE ravno to rešuje – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, tudi ko agentov ni. Bi želeli, da se ekipa takoj vključi v klepet?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-023",
+      "index": 23,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-28T11:44:12.652137",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za take primere je ACE narejen. Postavitev je možna v nekaj dneh. Želite, da se ekipa takoj vključi v klepet in vam pokaže demo?"
+        },
+        {
+          "customer": "Super, naj se vključijo!",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-024",
+      "index": 24,
+      "name": "Barbara",
+      "role": "Head of Customer Success",
+      "company": "DataFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-11T09:29:38.362423",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo HubSpot, ampak za slovenske stranke ne deluje najboljse. A se da integrirati z vasim sistemom?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Bi se raje takoj povezali z ekipo?"
+        },
+        {
+          "customer": "Razumem, ampak preden se povežemo, mi lahko vsaj poveš, ali ACE podpira integracijo s HubSpotom ali kako drugo CRM orodje? To je zame ključno.",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Bi želeli da se naša ekipa takoj vključi v pogovor in vam vse razloži?"
+        },
+        {
+          "customer": "V redu, prosim povežite me z ekipo. Hvala.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-025",
+      "index": 25,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-16T08:36:52.031757",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za take primere je ACE narejen. V nekaj dneh smo že gor in začnemo lovit leade. Bi se takoj povezal z ekipo, da vam pokažemo kako?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi. Pošljite mi povabilo za klic ali demo, pa pogledamo, kako bi tole speljali čim prej.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-026",
+      "index": 26,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 7,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-23T02:47:50.139329",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Hmm, tole me zanima. Imam kar velik promet na strani, ampak obiskovalci ne pustijo nobenih podatkov. Kako točno jih tvoj AI \"kvalificira\"?",
+          "receptionist": "ACE obiskovalcem na spletni strani postavi pametna vprašanja, da ugotovi njihove potrebe in kontakt — vse brez človeškega posredovanja. Bi želeli, da se naša ekipa takoj vključi v klepet in vam pokaže, kako to deluje v praksi?"
+        },
+        {
+          "customer": "Hmm, super, ampak rad bi še malo bolj razumel, preden gremo naprej. Kako natančno ACE ve, katera vprašanja naj postavi? Se to prilagaja glede na to, kaj obiskovalec išče na strani?",
+          "receptionist": "Ja, ACE se prilagaja glede na to, kaj obiskovalec išče na strani. Postavlja dinamična vprašanja, da hitro ugotovi potrebe in kontakt. Bi želeli, da vam to v živo pokažemo?"
+        },
+        {
+          "customer": "Super, to me zanima. Naj se ekipa vključi v klepet, da vidim, kako to v praksi deluje.",
+          "receptionist": "Super, da vas zanima! Preden pokličem ekipo, mi prosim pustite vaš email ali telefon, da vas lahko kontaktirajo."
+        },
+        {
+          "customer": "Sej me zanima, ampak preden dam kontakt, mi prosim povejte - kako dolgo približno traja implementacija? In ali se ACE integrira z mojim Shopify sistemom?",
+          "receptionist": "Implementacija je hitra, običajno v nekaj dneh. ACE se integrira s Shopify preko vdelane kode. Bi želeli, da se ekipa vključi v klepet za več podrobnosti?"
+        },
+        {
+          "customer": "Super, to zveni obetavno! Ja, prosim, naj se ekipa vključi v klepet, da mi pokažejo, kako to deluje v praksi. Imam namreč Shopify in rad bi videl, kako hitro lahko začnemo.",
+          "receptionist": "Super! Prosim, pustite mi vaš email ali telefon, da vas ekipa lahko kontaktira in vam v živo pokaže integracijo s Shopify."
+        },
+        {
+          "customer": "Super, moj email je bostjan@sportplus.si. Naj me kontaktirajo, da se dogovorimo za termin.",
+          "receptionist": "Super, hvala! Ekipa je obveščena in se bo v kratkem javila na bostjan@sportplus.si. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-027",
+      "index": 27,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-27T22:48:48.130683",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Aha, zanimivo. Kako pa točno poteka ta kvalifikacija? Mi lahko daš kakšen konkreten primer?",
+          "receptionist": "Seveda! Ko obiskovalec pride na vašo spletno stran, ACE ga pozdravi in začne postavljati vprašanja, kot so 'Kakšno storitev iščete?' ali 'Kdaj bi želeli termin?'. Na podlagi odgovorov lead dobi oznako (npr. 'visoko kvalificiran') in se shrani v dashboard. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-028",
+      "index": 28,
+      "name": "Gregor",
+      "role": "CFO fintech startupa",
+      "company": "PayFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-21T17:20:49.376467",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo budget za avtomatizacijo uporabniske podpore. Iscemo partnerja za dolgorocno sodelovanje. Kakšne so vase cene in paketi?",
+          "receptionist": "Super, da imate budget in iščete dolgoročnega partnerja. ACE avtomatizira sprejem strank prek AI klepeta na spletni strani – kvalificira lead-e in jih poveže z vašo ekipo. Glede cen in paketov: najbolje, da se slišimo na kratkem klicu, kjer vam vse natančno predstavimo. Bi vam ustrezalo, da se ekipa zdaj vključi v klepet?"
+        },
+        {
+          "customer": "Super, naj se ekipa vključi. Smo pod malo časovne stiske, tako da mi ustreza, če se takoj povežemo.",
+          "receptionist": "Odlično, ekipo takoj vključim v klepet."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-029",
+      "index": 29,
+      "name": "Miha",
+      "role": "CTO SaaS podjetja",
+      "company": "CloudTool d.o.o., 15 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-01T03:14:01.554272",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, zanima me vasa resitev za avtomatizacijo sprejema strank. Mi lahko poveste vec?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Ja, točno to me zanima. Smo SaaS podjetje s 15 zaposlenimi in trenutno vse poteka preko emaila. Lead-e izgubljamo, ker ni avtomatizacije. A lahko malo bolj razložiš, kako točno poteka kvalifikacija leadov?",
+          "receptionist": "ACE na spletni strani obiskovalcu zastavi nekaj ključnih vprašanj (npr. ime, email, potrebe), odgovore shrani v dashboard, kjer jih vaša ekipa vidi in lahko takoj prevzame. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-030",
+      "index": 30,
+      "name": "Mojca",
+      "role": "Lastnica kozmeticnega salona",
+      "company": "Salon Lepote Mojca, 6 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-09T11:37:31.291767",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, kozmeticarka sem in potrebujem sistem za avtomatsko narocanje strank. Delate kaj takega? In kako hitro?",
+          "receptionist": "Živjo! ACE ravno to počne – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, shranjuje jih v dashboard, kjer jih vi prevzamete. Glede hitrosti: če želite, lahko ekipo takoj pokličem v klepet, da vam vse podrobnosti razložijo v živo. Želite?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-031",
+      "index": 31,
+      "name": "Barbara",
+      "role": "Head of Customer Success",
+      "company": "DataFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-21T10:30:27.256152",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo HubSpot, ampak za slovenske stranke ne deluje najboljse. A se da integrirati z vasim sistemom?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Bi se raje takoj povezali z ekipo?"
+        },
+        {
+          "customer": "Razumem. Ampak preden se povežemo z ekipo, mi lahko vsaj na kratko poveš, ali ACE podpira integracijo s HubSpotom ali kakšnimi drugimi CRM-ji?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Bi želeli, da se naša ekipa takoj vključi v pogovor in vam vse razloži?"
+        },
+        {
+          "customer": "V redu, potem pa kar povežite z ekipo. Hvala.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-032",
+      "index": 32,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 6,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-24T11:36:04.873781",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepet, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, tako da vaša ekipa prevzame samo najboljše. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Aha, torej gre za klepet na spletni strani. Pri nas pa imamo problem s klasičnimi klici – stranke kličejo direktno, pa jih je preveč in jih ne uspemo vse obdelat. Ali ACE kaj pomaga tudi pri tem, ali je samo za spletne klepete?",
+          "receptionist": "ACE je namenjen izključno klepetu na spletni strani, ne pa klasičnim telefonskim klicem. Ampak če želite, lahko našo ekipo takoj vključim v klepet, da vam vse podrobno razložijo. Bi to želeli?"
+        },
+        {
+          "customer": "Aha, razumem. No, trenutno iščem rešitev konkretno za telefonske klice, ne za spletni klepet. Ampak če imate kakšnega partnerja ali dodatno funkcijo, ki bi pomagala pri klasičnih klicih, me pa zanima. Če ne, bom moral iskati drugam.\n\nAmpak preden se poslovim – super, bi prosil, da se ekipa vseeno vključi, da mi na kratko pove, če imate kaj za klice ali ne. Če nimajo, pa se dogovorimo za kak drug način.",
+          "receptionist": "Razumem, ACE je res samo za spletni klepet, ne za telefonske klice. Ampak če želite, lahko ekipo takoj vključim v klepet, da vam vse podrobno razložijo in se dogovorite naprej. Bi to želeli?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Ampak prosim, da mi že v klepetu na kratko povedo, ali imate kaj za telefonske klice ali ne – da ne izgubljamo časa. Če nimajo, se lahko potem dogovorimo za klic.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Super, hvala. Počakam, da se ekipa vključi.",
+          "receptionist": "Super, počakajte. Da pa vas lahko ekipa kontaktira tudi kasneje, če slučajno ne uspejo takoj — mi lahko zaupate svoj email ali telefon?"
+        },
+        {
+          "customer": "Sej počakam, da se ekipa vključi. Če ne bo šlo, bom pa pustil kontakt. A lahko samo potrdiš, da so obveščeni in da se bodo oglasili v naslednjih minutah?",
+          "receptionist": "Potrjeno, ekipa je obveščena in se bo oglasila v kratkem. Če se ne oglasijo v nekaj minutah, mi prosim sporočite kontakt, da vas pokličemo nazaj."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-033",
+      "index": 33,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-04T11:35:14.761880",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira z vprašanji in shrani lead-e v dashboard, kjer jih ekipa lahko prevzame. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Živjo, hvala za hiter odgovor. Aha, torej samodejno pozdravi obiskovalce in jih sprašuje? Kako pa ve, koga naj kaj vpraša? Imam občutek, da mi ljudje samo brskajo po strani in nič ne kupijo. Bi rad videl, če bi to lahko pomagalo.",
+          "receptionist": "ACE uporablja pametna vprašanja, ki jih nastaviš glede na tvoje cilje – na primer, kaj iščejo, proračun ali časovnico. Tako loči radovedneže od resnih kupcev. Bi želeli, da se naša ekipa takoj vključi v klepet in vam pokaže, kako deluje v praksi?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-034",
+      "index": 34,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 3,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-05-21T09:27:17.893877",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira in shrani lead-e. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Aha, torej gre za klepetalnik za obiskovalce? Ok, to je že nekaj, ampak meni je šef reku, naj najdem rešitev za klice. Mislim, da nas kličejo stranke in potem naši naročniki. Al tole zna tudi kaj takega?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu."
+        },
+        {
+          "customer": "Aha, torej ne podpirate klicev. Točno to pa rabim. Hvala za info, nimam smisla izgubljat časa. Se poslavljam.",
+          "receptionist": "Razumem, klicev ne podpiramo. Bi pa vseeno radi izvedeli več o tem, kako ACE lahko pomaga pri avtomatizaciji sprejema strank na spletu? Lahko se dogovorimo za kratek klic."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-035",
+      "index": 35,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-15T08:28:19.869518",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe! Samodejno pozdravi obiskovalce na spletni strani, jih kvalificira in shrani lead-e v dashboard. Delamo z vsemi velikostmi podjetij. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Super, točno to rabimo. Kako poteka integracija, je kaj zapletena za nas, ker itak nimamo ogromne IT podpore?",
+          "receptionist": "Integracija je zelo enostavna – dodamo vam eno vrstico kode na spletno stran, vse ostalo teče samo. Brez skrbi, IT podpora ni potrebna. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse pokaže?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-036",
+      "index": 36,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 4,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-01T10:52:40.026898",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe! Samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, vi pa se posvetite prodaji. Delamo z vsemi velikostmi podjetij."
+        },
+        {
+          "customer": "Super, to zveni ok. Ampak mi smo majhni, radi bi izgledali večji - imate kakšne opcije, kjer se lahko predstavimo bolj profesionalno? Pa iskreno, raje bi se pogovorila z osebo, ki točno ve, kaj delamo. Lahko dobim kakšnega prodajnika ali account managerja, s katerim se lahko slišim?",
+          "receptionist": "Seveda, razumem. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Ampak prosim, če lahko kdo, ki razume startupe in našo željo, da izgledamo večji, kot smo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Super, hvala! Bom počakal, da me kontaktirajo. Lepo prosim, naj mi kdo piše na mail, ker sem trenutno na sestanku. Moj mail je nina@legalbot.io. Hvala!",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-037",
+      "index": 37,
+      "name": "Ana",
+      "role": "Vodja prodaje v kliniki",
+      "company": "Dermamed, 30 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-05T23:58:32.391485",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo kliniko in iscemo nekaj kar bi nam olajsalo narocanje in klice. Kaj tocno ponujate?",
+          "receptionist": "ACE je AI klepetalnik za vašo spletno stran, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, nato pa jih shrani v pregleden dashboard. Bi želeli izvedeti več o tem, kako bi vam pomagal pri naročanju?"
+        },
+        {
+          "customer": "Zveni obetavno. Kako natančno pa poteka naročanje pri vas? Naš problem je predvsem preobremenjena recepcionistka in zamujajoči klici. Ali ACE zna sam sprejemati naročila preko spletnega klepeta in jih povezati z našim koledarjem?",
+          "receptionist": "ACE se poveže z vašim koledarjem, tako da lahko obiskovalci preko klepeta sami rezervirajo termin. S tem razbremenite recepcijo in preprečite zamujene klice. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-038",
+      "index": 38,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 3,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-06-08T16:15:57.278875",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira in shrani lead-e. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Aha, torej gre za avtomatizacijo klepeta na spletni strani? To je kul, ampak jaz iščem nekaj bolj za *klice* – da nam klici ne zvonijo v prazno in da stranke ne čakajo. A vi to kaj pokrivate?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Bi želeli da se naša ekipa takoj vključi v pogovor?"
+        },
+        {
+          "customer": "Razumem, da gre za klepet, ne za klice. Ampak jaz res iščem rešitev za *telefonske klice* – da nam noben klic ne uide. Če tega ne pokrivate, potem žal nimate kaj ponuditi. Hvala za info, se poslavljam.",
+          "receptionist": "Razumem, hvala za vaš čas. Če boste kdaj potrebovali rešitev za avtomatizacijo klepeta na spletni strani, smo tukaj. Lep pozdrav."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-039",
+      "index": 39,
+      "name": "Mojca",
+      "role": "Lastnica kozmeticnega salona",
+      "company": "Salon Lepote Mojca, 6 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-17T09:15:07.085918",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, kozmeticarka sem in potrebujem sistem za avtomatsko narocanje strank. Delate kaj takega? In kako hitro?",
+          "receptionist": "Živjo! ACE ravno to omogoča – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in jim pomaga pri naročanju. Lahko ga zaženemo v nekaj dneh. Bi se takoj povezali z ekipo, da vam pokažemo demo?"
+        },
+        {
+          "customer": "Razumem, ampak raje bi se pogovorila z osebo, ki mi lahko konkretno pove, kako to deluje v praksi. Lahko prosim dobim človeka?",
+          "receptionist": "Seveda, takoj vas povežem z našo ekipo, ki vam bo v živo pokazala, kako ACE deluje v praksi."
+        },
+        {
+          "customer": "Super, potem pa kar povežite. Če lahko, naj pokličejo na mojo službeno številko.",
+          "receptionist": "Seveda, vas takoj povežem z ekipo. Prosim, če mi lahko zaupate vašo službeno telefonsko številko, da vas lahko pokličejo."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-040",
+      "index": 40,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 3,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-05-11T13:11:51.803267",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepet, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, tako da se vaša ekipa ukvarja samo s pripravljenimi strankami. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "No, to ni to. Jaz ne rabim klepeta za spletno stran, ampak sistem za klice – da nam kdo odgovarja na dohodne klice, ko smo zasedeni. A to delate?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu."
+        },
+        {
+          "customer": "Aha, torej ne podpirate klicev. Točno to iščem, ne klepeta za spletno stran. Potem to pri vas ni to, žal. Hvala za info, grem drugam.",
+          "receptionist": "Razumem, to ni za vas. Če boste kdaj potrebovali pomoč pri avtomatizaciji sprejema strank prek spletnega klepeta, smo tukaj. Lep pozdrav!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-041",
+      "index": 41,
+      "name": "Gregor",
+      "role": "CFO fintech startupa",
+      "company": "PayFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 6,
+      "outcome": "handoff",
+      "is_open": true,
+      "timestamp": "2026-06-06T09:21:40.943274",
+      "call_booked": false,
+      "contact_left": true,
+      "dropped_off": false,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Imamo budget za avtomatizacijo uporabniske podpore. Iscemo partnerja za dolgorocno sodelovanje. Kakšne so vase cene in paketi?",
+          "receptionist": "Pozdravljeni! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani – kvalificira lead-e in jih shrani v dashboard. Glede cen in paketov: najbolje, da se slišimo na kratkem klicu, kjer vam vse podrobnosti predstavimo. Mi lahko zaupate vaš telefon ali email, da se dogovorimo za termin?"
+        },
+        {
+          "customer": "Sej to razumem, ampak preden se karkoli dogovarjava za klic, bi rad vsaj okvirno vedel, kaj ponujate. Sploh me zanima, če znate avtomatizirati support za več kanalov (email, chat, mogoče telefon) in kako poteka kvalifikacija leadov. Mi lahko na hitro poveste vsaj range cen?",
+          "receptionist": "ACE se osredotoča na AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira leade. Ne podpiramo email, telefona ali večkanalnega supporta. Glede cen: najbolje, da se slišimo na kratkem klicu, kjer vam vse podrobnosti predstavimo. Bi želeli, da se naša ekipa takoj vključi v klepet?"
+        },
+        {
+          "customer": "Aha, razumem. Torej za večkanalni support niste pravi. To je škoda, ker mi ravno to iščemo – nekaj, kar pokrije email, chat in morda celo telefon. Glede na to, da omenjate le spletni klepet, to verjetno ni to, kar rabimo.\n\nAmpak vseeno – naj se vaša ekipa vključi v klepet, da vidim, če morda le najdemo kakšno skupno točko. Lahko kar zdaj.",
+          "receptionist": "Seveda, ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Hvala, počakal bom, da se ekipa oglasi.",
+          "receptionist": "Super, ekipa se bo kmalu oglasila. Hvala za potrpljenje!"
+        },
+        {
+          "customer": "V redu, super, počakal bom. A lahko okvirno poveste, kdaj se lahko oglasijo? Če bo predolgo, bom mogoče kar pustil mail, pa naj me kontaktirajo.",
+          "receptionist": "Razumem. Če želite, lahko kar pustite email ali telefon, da vas kontaktiramo, ali pa se dogovorimo za klic ob točno določeni uri. Kako vam bolj ustreza?"
+        },
+        {
+          "customer": "V redu, bom kar pustil mail: gregor@payflow.si. Naj me kontaktirajo, ker zdaj nimam časa čakat. Hvala!",
+          "receptionist": "Hvala, Gregor! Vaš mail smo shranili. Ekipa vas bo kontaktirala v kratkem. Lep pozdrav!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-042",
+      "index": 42,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-15T14:50:52.487001",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, da ste tu! ACE lahko začne v nekaj dneh. Želite, da se ekipa takoj vključi v klepet in vam pokaže demo?"
+        },
+        {
+          "customer": "Super, naj se takoj vključijo. Prosim, pokažite mi, kako deluje!",
+          "receptionist": "Odlično! Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-043",
+      "index": 43,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 7,
+      "outcome": "call_booked",
+      "is_open": true,
+      "timestamp": "2026-06-08T11:27:05.780419",
+      "call_booked": true,
+      "contact_left": true,
+      "dropped_off": false,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za take primere smo narejeni. ACE lahko začne delovati v nekaj dneh. Bi se takoj povezal z ekipo, da vam v živo pokažemo, kako hitro postavimo AI klepet?"
+        },
+        {
+          "customer": "Super, naj se kar povežejo. Ampak prosim, da je res človek, ne avtomat. Rad bi govoril z nekom, ki razume prodajne izzive.",
+          "receptionist": "Seveda, razumem. Naša ekipa so resnični ljudje s prodajnimi izkušnjami. Naj jih takoj povežem v klepet?"
+        },
+        {
+          "customer": "Super, naj se kar povežejo. Ampak prosim, da je res človek, ne avtomat. Rad bi govoril z nekom, ki razume prodajne izzive.",
+          "receptionist": "Seveda, naša ekipa so resnični ljudje s prodajnimi izkušnjami. Naj jih takoj povežem v klepet?"
+        },
+        {
+          "customer": "Sem že rekel, naj se povežejo. Če ne gre zdaj, mi dajte telefonsko številko ali email, da me pokliče prava oseba.",
+          "receptionist": "Razumem. Prosim, če mi lahko zaupate vaš email ali telefonsko številko, da vas pokličemo v najkrajšem možnem času."
+        },
+        {
+          "customer": "David Žagar, david.zagar@zavarovalnica-varna.si, 041 234 567. Prosim, naj me pokličejo danes popoldne, ker je res nujno. Hvala.",
+          "receptionist": "Super, David. Podatke imam — Zavarovalnica Varna, takoj uredim, da vas ekipa pokliče danes popoldne. Hvala za zaupanje!"
+        },
+        {
+          "customer": "Hvala, točno to sem potreboval. Pričakujem klic danes popoldne. Lp, David.",
+          "receptionist": "David, podatki so shranjeni. Ekipa bo organizirala klic danes popoldne. Hvala in lep pozdrav!"
+        },
+        {
+          "customer": "Hvala, točno to sem potreboval. Pričakujem klic danes popoldne. Lp, David.",
+          "receptionist": "David, klic je rezerviran za danes ob 15:00. Ekipa vas bo poklicala na 041 234 567. Hvala in lep pozdrav!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-044",
+      "index": 44,
+      "name": "Barbara",
+      "role": "Head of Customer Success",
+      "company": "DataFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-13T14:34:18.467497",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo HubSpot, ampak za slovenske stranke ne deluje najboljse. A se da integrirati z vasim sistemom?",
+          "receptionist": "Tega trenutno ne podpiramo, ampak vse podrobnosti o tem kaj ACE zmore bomo pokrili na klicu. Bi se raje takoj povezali z ekipo?"
+        },
+        {
+          "customer": "Super, naj se kar vključijo. Kako hitro lahko pričakujem klic?",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-045",
+      "index": 45,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-11T09:32:25.825251",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to rešuje – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-046",
+      "index": 46,
+      "name": "Mojca",
+      "role": "Lastnica kozmeticnega salona",
+      "company": "Salon Lepote Mojca, 6 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-13T03:11:49.837025",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, kozmeticarka sem in potrebujem sistem za avtomatsko narocanje strank. Delate kaj takega? In kako hitro?",
+          "receptionist": "Živjo! ACE ravno to počne – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, shranjuje jih v dashboard, kjer jih ekipa vidi in prevzame. Glede hitrosti: če želite, lahko ekipo takoj vključim v klepet, da vam vse podrobnosti razložijo v živo. Vam ustreza?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-047",
+      "index": 47,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 5,
+      "outcome": "call_booked",
+      "is_open": true,
+      "timestamp": "2026-05-14T07:51:50.374141",
+      "call_booked": true,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Seveda! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, ki se nato shranijo v dashboard za vašo ekipo. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Zveni uporabno, ampak zanima me bolj konkretno — kako se ACE loti specifično hotelskih povpraševanj? Mi lahko das kak primer pogovora?",
+          "receptionist": "Seveda! ACE ob prihodu na spletno stran pozdravi obiskovalca in ga vpraša, ali išče namestitev, za koliko oseb in katere datume. Nato ponudi prikaz razpoložljivih sob ali povezavo do rezervacij. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje predstavi?"
+        },
+        {
+          "customer": "Hvala za primer, to že zveni konkretneje. A me zanima še, kako rešuje bolj zapletena vprašanja, na primer posebne želje gostov (hišni ljubljenčki, zgodnji prihod) ali večje skupine? Bi mi lahko pokazali še kakšen tak primer?",
+          "receptionist": "Seveda! ACE lahko obiskovalca vpraša o posebnih željah, kot so hišni ljubljenčki ali zgodnji prihod, in za večje skupine preveri razpoložljivost ter jih poveže z vašo ekipo. Bi želeli, da vam vse podrobnosti predstavimo na kratkem klicu?"
+        },
+        {
+          "customer": "Super, z veseljem bi se kaj več dogovorili. Lahko pošljete povabilo na klic? Najbolj mi ustreza jutri dopoldan, recimo okoli 10. ure.",
+          "receptionist": "Seveda! Za dogovor klica potrebujem vaš e-poštni naslov ali telefonsko številko. Kam naj pošljem povabilo?"
+        },
+        {
+          "customer": "Odlično, hvala! Moj e-poštni naslov je sara@hotelslapnik.si. Jutri ob 10. mi bo ustrezalo. Se priporočam.",
+          "receptionist": "Super, klic je rezerviran za jutri ob 10. uri. Ekipa vas bo takrat kontaktirala. Hvala in se vidimo!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-048",
+      "index": 48,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-01T13:06:40.539382",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Živjo! ACE je AI klepet, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e v dashboard. Začnete lahko v nekaj dneh. Vas zanima več o hitri postavitvi?"
+        },
+        {
+          "customer": "Super, \"nekaj dni\" zveni odlično! Kako poteka tista hitra postavitev – kaj mi moramo pripraviti, preden začnemo?",
+          "receptionist": "Za postavitev rabite le dostop do vaše spletne strani (vstavi se JavaScript koda) in pripravljena vprašanja za kvalifikacijo leadov. Vse ostalo uredimo mi. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-049",
+      "index": 49,
+      "name": "Tomas",
+      "role": "IT vodja v proizvodnem podjetju",
+      "company": "Kovinarstvo Novak, 50 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-16T10:05:50.907734",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, rabili bi modernizacijo nase spletne strani in mogoce ta AI sprejem. A lahko pomagate?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Živjo! Ja, kot sem rekel - naša spletna stran je stara 5 let, ne deluje najbolje, iščem celovito prenovo. Tale vaš AI sprejem me tudi zanima, ampak najprej bi rad vedel, kako točno to deluje in kaj sploh ponujate?",
+          "receptionist": "ACE je AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e. Lead-i se shranijo v dashboard, kjer jih vaša ekipa vidi in prevzame. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Ja, super, naj se vključijo. Bi bilo dobro, da slišim kaj več o tem, kako točno poteka integracija z obstoječo stranjo in kaj vse je treba narediti za prenovo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-050",
+      "index": 50,
+      "name": "Miha",
+      "role": "CTO SaaS podjetja",
+      "company": "CloudTool d.o.o., 15 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-14T16:49:55.194891",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, zanima me vasa resitev za avtomatizacijo sprejema strank. Mi lahko poveste vec?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Miha: Živjo! Hvala za hiter odgovor. Ja, ravno to me zanima – kako točno deluje vaša kvalifikacija leadov? Mi lahko poveste kaj več o tem, kako se obiskovalci razvrščajo in kaj se zgodi z njimi potem?",
+          "receptionist": "ACE obiskovalcem postavi vnaprej pripravljena vprašanja (npr. ime, e-pošta, potrebe), jih razvrsti glede na odgovore in lead-e shrani v dashboard, kjer jih vaša ekipa vidi in lahko takoj prevzame. Bi želeli, da se naša ekipa zdaj vključi v klepet in vam vse podrobneje pokaže?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-051",
+      "index": 51,
+      "name": "Ziga",
+      "role": "Direktor digitalne agencije",
+      "company": "PixelSmith d.o.o., 18 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-04T09:23:36.595780",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, digitalna agencija smo. Zanima me ce imate AI klepet ki lahko odgovarja na pogosta vprasanja namesto nas. Kako to deluje?",
+          "receptionist": "Živjo! ACE točno to počne – AI klepet na spletni strani, ki samodejno odgovarja na pogosta vprašanja in kvalificira obiskovalce. Kako si predstavljate uporabo pri vas?"
+        },
+        {
+          "customer": "V bistvu si predstavljam, da bi obiskovalcem naših spletnih strani klepet odgovarjal na tipična vprašanja o cenah, rokih, storitvah. Tako da naši svetovalci ne bi izgubljali časa z osnovnimi zadevami. A se to da konfigurirat brez da se vsakič obračamo na vas?",
+          "receptionist": "Seveda, ACE lahko nastavite tako, da sam odgovarja na pogosta vprašanja, vi pa ga po potrebi dopolnjujete preko dashboarda. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-052",
+      "index": 52,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 4,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-12T07:30:08.318102",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Živjo! ACE je AI klepet, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira leade – vse v realnem času. Postavitev traja nekaj dni. Vas zanima, kako točno deluje pri vas?"
+        },
+        {
+          "customer": "Sliši se super, ampak trenutno bi res potreboval človeka, s katerim se lahko pogovorim o implementaciji. Mi lahko daš kontakt nekoga iz prodaje ali podpore?",
+          "receptionist": "Seveda, lahko takoj povežem z našo ekipo, ki vam bo vse razložila. Želite, da se vključijo v klepet zdaj?"
+        },
+        {
+          "customer": "Super, naj se vključijo kar zdaj. Imam kratek čas, ampak rad bi slišal konkretne rešitve za našo situacijo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Hvala! Počakal bom, da se ekipa oglasi. Samo da potrdim – pričakujem konkretne informacije o hitri implementaciji in integraciji z našim CRM. Sem na voljo še naslednjih 15 minut.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-053",
+      "index": 53,
+      "name": "Klavdija",
+      "role": "Marketing direktorica B2B agencije",
+      "company": "Rast d.o.o., 22 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-06T06:26:45.282948",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno potrebujemo nekaj za avtomatske odgovore strankam. Delate tudi integracije s HubSpotom?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank preko AI klepeta na spletni strani. HubSpot integracije trenutno ne podpiramo, ampak vse podrobnosti o tem, kaj ACE zmore, bomo pokrili na klicu. Vas lahko povežem z ekipo?"
+        },
+        {
+          "customer": "Razumem. Potrebujem človeški stik, prosim. Bi lahko dobila nekoga iz prodaje ali podpore, da poklepetava v živo? Imam par konkretnih vprašanj o implementaciji, ki jih z AI-jem ne morem rešiti.",
+          "receptionist": "Seveda, vas lahko takoj povežem z našo ekipo, ki vam bo odgovorila na vsa vprašanja o implementaciji."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-054",
+      "index": 54,
+      "name": "Andrej",
+      "role": "Enterprise CTO",
+      "company": "Merkur d.d., 300 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-19T07:45:07.568666",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, iz Merkurja smo. Pripravljamo digitalno transformacijo in iscemo partnerja za AI recepcijo. Imate reference?",
+          "receptionist": "Živjo! ACE je AI recepcija, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e v dashboard. Glede referenc: imamo jih, a jih raje pokažemo na klicu. Bi se takoj povezali z ekipo?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi. Rad bi slišal konkretne reference preden gremo naprej.",
+          "receptionist": "Odlično, ekipa se takoj vključi v klepet in vam pokaže reference. Hvala!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-055",
+      "index": 55,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-30T14:43:06.177308",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        },
+        {
+          "customer": "Aha, razumem. Samo da malo razjasnim – mi smo transportno podjetje, 40 ljudi. Stranke nam nonstop kličejo za status pošiljk, mi pa nimamo organiziranega sistema za sprejem klicev. A tole vaše bi reševalo tudi take ključne klice ali samo obiskovalce na spletni strani?",
+          "receptionist": "ACE je namenjen obiskovalcem na spletni strani, ne za sprejem klicev. Za to bi potrebovali drugo rešitev. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobnosti razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-056",
+      "index": 56,
+      "name": "Andrej",
+      "role": "Enterprise CTO",
+      "company": "Merkur d.d., 300 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-17T11:59:41.265014",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, iz Merkurja smo. Pripravljamo digitalno transformacijo in iscemo partnerja za AI recepcijo. Imate reference?",
+          "receptionist": "Super, hvala za povpraševanje! ACE je AI recepcija, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani v dashboard. Reference imamo, z veseljem vam jih predstavimo na kratkem klicu. Bi se lahko dogovorili za termin?"
+        },
+        {
+          "customer": "Razumem, da imate reference, ampak jaz bi raje govoril z živim človekom. Mi lahko povežete s prodajo ali komercialo? Imam kar nekaj vprašanj in bi se raje pogovoril z nekom, ki pozna podrobnosti. Hvala.",
+          "receptionist": "Seveda, razumem. Bi želeli, da se naša ekipa takoj vključi v klepet in vam odgovori na vsa vprašanja?"
+        },
+        {
+          "customer": "Ja, prosim, kar vključite ekipo. Rad bi govoril z nekom iz prodaje.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-057",
+      "index": 57,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-11T13:29:23.706564",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe! Samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, da zgledate profesionalno že od prvega klika. Za manjša podjetja smo super, ker ni zapletenih nastavitev. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "To zveni odlično. Kako točno poteka kvalifikacija leadov? Mi smo majhna ekipa, štirje zaposleni, in hočemo, da prvi vtis deluje večji, kot smo.",
+          "receptionist": "ACE samodejno postavi vprašanja o imenu, potrebah in budgetu, lead pa takoj shrani v dashboard. Ker ste štirje, vam to prihrani čas in naredi vtis večjega tima. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse pokaže?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-058",
+      "index": 58,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-10T14:31:37.552128",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe! Samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, tako da takoj zgledate profesionalno. Delamo z vsemi velikostmi podjetij. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Super, točno to rabimo! Kako točno deluje vaš AI receptionist? Bi lahko nastavili specifična vprašanja za kvalifikacijo leadov, glede na našo panogo?",
+          "receptionist": "ACE deluje tako, da obiskovalce na vaši spletni strani samodejno pozdravi in jim postavi vprašanja, ki jih vi nastavite glede na panogo. Lead-i se shranijo v dashboard, kjer jih vaša ekipa vidi in prevzame. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-059",
+      "index": 59,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 4,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-18T20:42:25.873508",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Seveda! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Zveni uporabno. Ampak zanima me bolj natančno – kako potem podatke o gostih posreduje naprej? Imate integracijo s hotelskimi sistemi, ali so samo v dashboardu?",
+          "receptionist": "Podatki so trenutno samo v ACE dashboardu, integracije s hotelskimi sistemi nimamo. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
+        },
+        {
+          "customer": "Razumem, a to je za nas kar ključno. Brez integracije s PMS sistemom bi moralo osebje ročno prepisovati podatke, kar ni ravno avtomatizacija, ki jo iščemo. Ampak vseeno, naj se vaša ekipa vključi, da mi to bolje razložijo. Lahko kar zdaj.",
+          "receptionist": "Super, ekipa se bo takoj vključila v klepet. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Hvala, počakam, da se oglasijo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-060",
+      "index": 60,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-06T04:00:12.556288",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za take primere je ACE narejen. Postavitev je hitra — v nekaj dneh. Želite, da se ekipa takoj vključi v klepet in vam pokaže demo?"
+        },
+        {
+          "customer": "Super, naj se takoj vključijo. Rad bi videl, kako točno deluje v praksi.",
+          "receptionist": "Odlično, ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-061",
+      "index": 61,
+      "name": "Andrej",
+      "role": "Enterprise CTO",
+      "company": "Merkur d.d., 300 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-06-02T14:27:25.742436",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Dober dan, iz Merkurja smo. Pripravljamo digitalno transformacijo in iscemo partnerja za AI recepcijo. Imate reference?",
+          "receptionist": "Živjo! ACE ravno to počne — AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e v dashboard. Reference imamo, lahko povem več na kratkem klicu. Vas zanima takojšnji pogovor z ekipo?"
+        },
+        {
+          "customer": "Hvala za info, ampak raje bi se pogovoril z nekom iz prodaje ali projektne ekipe. Lahko dobim človeka na vezi?",
+          "receptionist": "Seveda, lahko takoj povežem z našo ekipo. Bi želeli, da se vključijo v ta klepet?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-062",
+      "index": 62,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-16T11:59:01.583039",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to počne – z AI klepetom na spletni strani samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-063",
+      "index": 63,
+      "name": "Klavdija",
+      "role": "Marketing direktorica B2B agencije",
+      "company": "Rast d.o.o., 22 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-02T10:31:43.446027",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno potrebujemo nekaj za avtomatske odgovore strankam. Delate tudi integracije s HubSpotom?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank preko AI klepeta na spletni strani. HubSpot integracije trenutno ne podpiramo, ampak vse podrobnosti o tem, kaj ACE zmore, bomo pokrili na klicu. Vas zanima, da se ekipa takoj vključi v klepet?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi - nujno bi rada govorila s človekom, ne z AI-jem. Hvala.",
+          "receptionist": "Seveda, takoj pokličem ekipo, da se vključi v klepet. Samo še prosim za vaš email ali telefon, da vas lahko kontaktirajo."
+        },
+        {
+          "customer": "Luka.krajnc@rast.si — to je moj mail. Prosim, naj me čim prej pokličejo, ker je res urgentno. Hvala!",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-064",
+      "index": 64,
+      "name": "Rok",
+      "role": "MLOps inzenir",
+      "company": "DataMind d.o.o., 30 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-05-27T06:23:39.015904",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Zivjo, MLOps inzenir tukaj. Zanima me vasa arhitektura — kako hitro se model odziva, kaksna latenca, ali podpirate custom modele? In kaksne integracije imate?",
+          "receptionist": "Živjo! ACE je AI klepet za avtomatizacijo sprejema strank na spletni strani — pozdravi obiskovalce, kvalificira lead-e in jih shrani v dashboard. Glede arhitekture: model je optimiziran za nizko latenco (odziv v milisekundah), ne podpiramo pa custom modelov. Integracije so LiveKit za video klice in koledar za rezervacije. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Hvala za info. Milisekundna latenca je super, a me zanima konkretno — kakšne so povprečne in maksimalne vrednosti pri obremenitvi? In kar se tiče integracij, ali podpirate povezavo s CRM-ji, recimo Salesforce ali HubSpot? LiveKit in koledar je ok, ampak za nas so pomembne tudi povratne integracije.",
+          "receptionist": "Trenutno ne podpiramo integracij s CRM-ji, kot sta Salesforce ali HubSpot. Bi želeli, da se naša ekipa takoj vključi v klepet in vam poda vse tehnične podrobnosti?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-065",
+      "index": 65,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-04T16:58:26.290833",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira in shrani lead-e. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Aha, torej gre za klepetalnik. Ampak jaz bolj rabim rešitev za klice strank, ne pa samo za spletno stran. A to znate povezati tudi s klasičnimi klici?",
+          "receptionist": "Razumem, ampak ACE je osredotočen na klepet na spletni strani in ne podpira klasičnih klicev. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Aha, torej se ukvarjate samo s klepetom, ne s klici. Potem to verjetno ni zame. Hvala za info, se bom pozanimal drugje.",
+          "receptionist": "Razumem, ampak ACE vseeno lahko pomaga pri zajemanju strank, ki vas pokličejo, prek spletnega klepeta. Bi želeli, da se ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-066",
+      "index": 66,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-10T23:29:31.675850",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za take primere je ACE narejen. Postavitev je v nekaj dneh, prve rezultate pa vidiš takoj. Bi se kar takoj povezali z ekipo, da vam pokažemo kako deluje?"
+        },
+        {
+          "customer": "Super, naj se kar povežejo. Sem na voljo zdajle.",
+          "receptionist": "Odlično, ekipo takoj povežem v klepet."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-067",
+      "index": 67,
+      "name": "Tomas",
+      "role": "IT vodja v proizvodnem podjetju",
+      "company": "Kovinarstvo Novak, 50 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-22T17:48:55.217513",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, rabili bi modernizacijo nase spletne strani in mogoce ta AI sprejem. A lahko pomagate?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Ja, točno to. Naša spletna stran je že pet let stara, nič več ne deluje kot bi moralo. Rabimo celovito prenovo, pa tudi kakšen pameten AI za sprejem strank bi prišel prav. A mi lahko poveste kaj več o tem, kako točno deluje vaš sistem?",
+          "receptionist": "Seveda! ACE je AI klepet, ki samodejno pozdravi obiskovalce, jih kvalificira z vprašanji in shrani lead-e v dashboard. Ekipa jih nato vidi in lahko prevzame pogovor v živo. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-068",
+      "index": 68,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 4,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-02T11:36:21.876435",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Super, točno to rabim. Ampak kako konkretno kvalificirate obiskovalce? A to pomeni, da mi avtomatsko razvrstite, kdo je resen kupec in kdo samo brska?",
+          "receptionist": "ACE postavlja pametna vprašanja (npr. proračun, nujnost, potrebe) in na podlagi odgovorov lead-e označi kot 'vroče', 'tople' ali 'hladne'. Tako takoj vidiš, kdo je resen. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Ja, točno to me zanima. Ampak rad bi še vedel, kako hitro se lahko to implementira na moji strani? Če je to v nekaj dneh, potem naj se kar ekipa vključi.",
+          "receptionist": "Super, implementacija je hitra. Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Super, hvala! Naj se kar vključijo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-069",
+      "index": 69,
+      "name": "Rok",
+      "role": "MLOps inzenir",
+      "company": "DataMind d.o.o., 30 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-28T16:16:05.243870",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, MLOps inzenir tukaj. Zanima me vasa arhitektura — kako hitro se model odziva, kaksna latenca, ali podpirate custom modele? In kaksne integracije imate?",
+          "receptionist": "Živjo! ACE je AI klepet za avtomatizacijo sprejema strank na spletni strani — pozdravi obiskovalce, kvalificira lead-e in jih shrani v dashboard. Glede arhitekture: model je optimiziran za nizko latenco (odziv v milisekundah), ne podpiramo pa custom modelov. Integracije vključujejo LiveKit za video klice in koledar za rezervacije. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Hvala za info. Aha, torej ne podpirate custom modelov — to pomeni, da je model že vnaprej določen? Kako pa zgleda latenca v praksi, recimo ob večji obremenitvi? In še glede integracij — LiveKit in koledar sta kul, a imate tudi kakšno povezavo s CRM-ji (npr. HubSpot, Salesforce) ali pa API za izvoz podatkov?",
+          "receptionist": "Tako je, model je vnaprej določen in optimiziran za nizko latenco tudi ob večji obremenitvi. CRM integracij (HubSpot, Salesforce) ali API za izvoz trenutno ne podpiramo. Bi želeli, da se naša ekipa takoj vključi v pogovor in vam vse podrobneje razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-070",
+      "index": 70,
+      "name": "Gregor",
+      "role": "CFO fintech startupa",
+      "company": "PayFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-14T02:56:43.626582",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo budget za avtomatizacijo uporabniske podpore. Iscemo partnerja za dolgorocno sodelovanje. Kakšne so vase cene in paketi?",
+          "receptionist": "Pozdravljeni! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani – kvalificira lead-e in jih shrani v dashboard. Glede cen in paketov: najbolje, da se o tem pogovorimo v živo. Bi želeli, da vas ekipa pokliče zdaj, ali raje dogovorimo termin za klic?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi. Smo pod časovnim pritiskom, rad bi čim prej slišal konkretne pogoje.",
+          "receptionist": "Odlično, ekipa se takoj vključi v klepet in vam bo predstavila konkretne pogoje."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-071",
+      "index": 71,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-12T00:02:39.642979",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to počne – z AI klepetom na spletni strani samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-072",
+      "index": 72,
+      "name": "Ziga",
+      "role": "Direktor digitalne agencije",
+      "company": "PixelSmith d.o.o., 18 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-21T09:39:19.040013",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, digitalna agencija smo. Zanima me ce imate AI klepet ki lahko odgovarja na pogosta vprasanja namesto nas. Kako to deluje?",
+          "receptionist": "Živjo! ACE točno to počne – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce in odgovarja na pogosta vprašanja. Kako si predstavljate uporabo pri vas?"
+        },
+        {
+          "customer": "Super, točno to rabimo. Pa me zanima – kako zahtevno je nastavit te odgovore? A se uči kar sam iz naše baze vprašanj, ali je treba vse ročno pisat?",
+          "receptionist": "Nastavitev je enostavna – odgovore lahko ročno vpišete ali pa ACE uvozite iz vaše baze pogostih vprašanj. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-073",
+      "index": 73,
+      "name": "Peter",
+      "role": "Solopreneur svetovalec",
+      "company": "Peter s.p., 1 zaposlen",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-12T16:22:56.402988",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, delam kot svetovalec in me zanima ce imate resitev tudi za solo podjetnike?",
+          "receptionist": "Seveda, ACE je primeren tudi za solo podjetnike. Avtomatiziramo pozdravljanje in kvalificiranje strank na vaši spletni strani. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Super, točno to iščem. Preveč časa mi požrejo telefonski klici z ljudmi, ki še ne vedo, kaj hočejo. Kako natančno poteka to kvalificiranje?",
+          "receptionist": "ACE na vaši spletni strani obiskovalca najprej pozdravi in mu postavi nekaj kratkih vprašanj (npr. kaj potrebuje, proračun, rok). Glede na odgovore ga razvrsti kot kvalificiranega ali nekvalificiranega leada. Vse skupaj se shrani v vašem dashboardu, kjer lahko vi ali vaša ekipa takoj prevzamete. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-074",
+      "index": 74,
+      "name": "Tomas",
+      "role": "IT vodja v proizvodnem podjetju",
+      "company": "Kovinarstvo Novak, 50 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 5,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-05-19T16:11:03.195629",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Dober dan, rabili bi modernizacijo nase spletne strani in mogoce ta AI sprejem. A lahko pomagate?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank prek AI klepeta na spletni strani. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Ja, točno to iščem. Naša spletna stran je že pet let stara, praktično ne deluje več, in rabimo celovito prenovo. Tale AI sprejem na strani bi bil plus, ampak najprej me zanima, kaj točno ACE ponuja – kako to deluje, kaj vse zajema?",
+          "receptionist": "ACE je AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e. Vse se shrani v dashboard, kjer jih vaša ekipa vidi in prevzame. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Ja, super, naj se vključijo. Ampak najprej me zanima – ali ACE pokrije tudi prenovo celotne spletne strani ali samo klepet?",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Ja, to je super, naj se vključijo. Ampak preden pridejo – a mi lahko ti poveš, ali ACE pokrije tudi prenovo celotne spletne strani ali ste samo za AI klepet?",
+          "receptionist": "ACE je samo za AI klepet na spletni strani, ne za prenovo celotne strani. Bi želeli, da vam ekipa na klicu razloži več?"
+        },
+        {
+          "customer": "Razumem, da je ACE samo za klepet. Potem pa to ni čisto tisto, kar rabim - jaz rabim celovito prenovo spletne strani. Če pa imate kakšnega partnerja, ki to pokrije skupaj z vašim AI klepetom, mi prosim povejte. Drugače pa hvala za informacije.",
+          "receptionist": "Razumem. Trenutno nimamo partnerja za celovito prenovo spletnih strani, ampak če želite, vam lahko na klicu povemo več o tem, kako ACE deluje samostojno. Bi se radi dogovorili za klic?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-075",
+      "index": 75,
+      "name": "Ana",
+      "role": "Vodja prodaje v kliniki",
+      "company": "Dermamed, 30 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-16T04:28:57.963989",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo kliniko in iscemo nekaj kar bi nam olajsalo narocanje in klice. Kaj tocno ponujate?",
+          "receptionist": "ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, nato pa jih shrani v pregleden dashboard. Bi želeli izvedeti več o tem, kako bi vam pomagal pri naročanju?"
+        },
+        {
+          "customer": "Slišim, kaj pravite, ampak iskreno, raje bi govorila z osebo iz vaše ekipe. Mi lahko povežete s človekom, ki se ukvarja s prodajo?",
+          "receptionist": "Seveda, vas takoj povežem z našo ekipo. Bi želeli, da se vključijo v ta klepet?"
+        },
+        {
+          "customer": "Super, kar povežite me z njimi prosim.",
+          "receptionist": "Seveda, vas takoj povežem z našo ekipo. Samo še prosim za vaš e-poštni naslov ali telefonsko številko, da vas lahko kontaktirajo."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-076",
+      "index": 76,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-30T23:43:28.619385",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Super, hotel je odlična izbira za ACE. Na kratko: AI klepet na vaši spletni strani samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Ekipa jih lahko takoj prevzame ali pa se dogovori za video klic. Kaj vas je pripeljalo do nas?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-077",
+      "index": 77,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-21T09:31:30.570286",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Super, hotel je odlična izbira za ACE. Na kratko: AI klepet na vaši spletni strani samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Ekipa jih lahko takoj prevzame ali pa se dogovori za video klic. Kaj vas je pripeljalo do nas?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-078",
+      "index": 78,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-08T10:09:47.105730",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Hej, točno to rabim. A mi lahko poveš več o tem, kako jih \"kvalificira\"? Kako ve, ali je obiskovalec resen kupec ali samo brska?",
+          "receptionist": "ACE postavlja pametna vprašanja, kot so proračun, časovnica in potrebe, ter na podlagi odgovorov oceni, ali je obiskovalec resen. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Rad bi slišal več o tem, kako natančno ACE loči resne kupce od brskalcev.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-079",
+      "index": 79,
+      "name": "Jasna",
+      "role": "HR direktorica vecjega podjetja",
+      "company": "Steklarna Hrastnik, 200 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-18T15:07:48.400833",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, v HR smo in iscemo AI resitev za interni helpdesk. Ali delate tudi interne resitve ali samo za zunanje stranke?",
+          "receptionist": "ACE je namenjen avtomatizaciji sprejema strank na spletni strani, ne pa internim helpdeskom. Bi vseeno radi izvedeli več o tem, kako lahko pomaga vašemu podjetju?"
+        },
+        {
+          "customer": "Razumem. Ampak točno to rabimo mi – notranja različica za zaposlene. V bistvu ista stvar, samo namesto strank so naši sodelavci. Ali imate kaj takega?",
+          "receptionist": "Trenutno nimamo notranje različice za zaposlene, osredotočeni smo na zunanje stranke. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Mogoče imate kaj, kar bi lahko prilagodili za naše potrebe.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-080",
+      "index": 80,
+      "name": "Andrej",
+      "role": "Enterprise CTO",
+      "company": "Merkur d.d., 300 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-14T11:29:16.835210",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, iz Merkurja smo. Pripravljamo digitalno transformacijo in iscemo partnerja za AI recepcijo. Imate reference?",
+          "receptionist": "Živjo! ACE je AI recepcija, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e v dashboard. Glede referenc: imamo več zadovoljnih strank v podobnih panogah. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže primere?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-081",
+      "index": 81,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-04T14:43:45.187032",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Super, hotel je odlična izbira za ACE. Na kratko: AI klepet na vaši spletni strani samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Ekipa jih lahko takoj prevzame ali pa se dogovori za video klic. Kaj vas je pripeljalo do nas?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-082",
+      "index": 82,
+      "name": "Klavdija",
+      "role": "Marketing direktorica B2B agencije",
+      "company": "Rast d.o.o., 22 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 5,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-31T14:43:11.863386",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno potrebujemo nekaj za avtomatske odgovore strankam. Delate tudi integracije s HubSpotom?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank preko AI klepeta na spletni strani. HubSpot integracije trenutno ne podpiramo, ampak vse podrobnosti o tem, kaj ACE zmore, bomo pokrili na klicu. Vas lahko povežem z ekipo?"
+        },
+        {
+          "customer": "Aha, razumem, ampak jaz res nujno rabim konkretne informacije, ne pa da izgubljam čas s preverjanjem na klicu. Mi lahko poveste vsaj, ali znate avtomatsko odgovarjat glede na specifične vsebine iz naše baze znanja? In ali lahko dobim kar človeka iz prodaje? Hvala.",
+          "receptionist": "Seveda, ACE lahko prilagodimo vaši bazi znanja, tako da odgovarja točno na vaša vprašanja. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi. Res nimam časa izgubljati. Hvala.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        },
+        {
+          "customer": "Hvala. Počakal bom, da me kontaktirajo. Lp.",
+          "receptionist": "Super, da boste počakali. Da vas ekipa lahko kontaktira, prosim pustite telefon ali email."
+        },
+        {
+          "customer": "Ja, seveda. Moj telefon je 041 234 567, email pa klavdija@rast.si. Kličite me kar čim prej, prosim. Lp.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-083",
+      "index": 83,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-23T16:31:44.771077",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe! Samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, tako da zgledate profesionalno že od prvega stika. Za manjša podjetja je cena ugodna. Vas zanima več o funkcionalnostih?"
+        },
+        {
+          "customer": "Ampak rada bi se kaj pogovorila z osebo, ne z AI-jem. Lahko dobim koga iz prodaje ali podpore?",
+          "receptionist": "Seveda, lahko takoj pokličem našo ekipo, da se vključi v klepet in vam vse razloži. Vam ustreza?"
+        },
+        {
+          "customer": "Super, naj se vključijo.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-084",
+      "index": 84,
+      "name": "Mojca",
+      "role": "Lastnica kozmeticnega salona",
+      "company": "Salon Lepote Mojca, 6 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-26T18:58:54.314070",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, kozmeticarka sem in potrebujem sistem za avtomatsko narocanje strank. Delate kaj takega? In kako hitro?",
+          "receptionist": "Živjo! ACE ravno to počne – AI klepet na spletni strani, ki samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, shranjuje jih v dashboard, kjer jih vi prevzamete. Glede hitrosti: če želite, lahko ekipo takoj pokličem v klepet, da vam vse podrobnosti razložijo v živo. Vam ustreza?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-085",
+      "index": 85,
+      "name": "Miha",
+      "role": "CTO SaaS podjetja",
+      "company": "CloudTool d.o.o., 15 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 4,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-29T10:24:25.109421",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, zanima me vasa resitev za avtomatizacijo sprejema strank. Mi lahko poveste vec?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "No, to razumem, ampak mene bolj zanima kako točno deluje avtomatizacija? Mi lahko poveste kakšen primer?",
+          "receptionist": "Seveda! Ko obiskovalec pride na vašo spletno stran, ACE ga samodejno pozdravi in začne postavljati vprašanja, kot so 'Kako vam lahko pomagam?' ali 'Kakšen je vaš proračun?'. Na podlagi odgovorov lead kvalificira in shrani v dashboard, kjer ga vaša ekipa takoj vidi in lahko prevzame."
+        },
+        {
+          "customer": "Ja, ampak a to pomeni, da je vse na avtopilotu? Kaj pa če obiskovalec hoče govoriti z resnično osebo, recimo o kompleksnejši integraciji? Kako to potem preusmerite?",
+          "receptionist": "Seveda, ACE lahko kadar koli preusmeri obiskovalca k vaši ekipi v živo prek klepeta ali video klica. Bi želeli, da vas zdaj povežem z ekipo za več informacij?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Me zanima, kako točno poteka preusmeritev na živo osebo in ali lahko sami nastavljamo pravila kdaj naj prevzame človek.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-086",
+      "index": 86,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-11T09:07:18.558451",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira z vprašanji in shrani lead-e v dashboard, kjer jih ekipa takoj vidi. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Živjo! Slisal sem za vas na LinkedInu in me zanima, kako tocno deluje ta AI receptor? Recimo, kako ve, kdaj naj kaj vprasa obiskovalca?",
+          "receptionist": "ACE samodejno pozdravi obiskovalca, ko ta vstopi na spletno stran, in na podlagi njegovega odziva postavlja pametna vprašanja, da ugotovi, kaj potrebuje. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-087",
+      "index": 87,
+      "name": "Klavdija",
+      "role": "Marketing direktorica B2B agencije",
+      "company": "Rast d.o.o., 22 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-29T09:11:02.713830",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno potrebujemo nekaj za avtomatske odgovore strankam. Delate tudi integracije s HubSpotom?",
+          "receptionist": "Živjo! ACE avtomatizira sprejem strank preko AI klepeta na spletni strani. HubSpot integracije trenutno ne podpiramo, ampak vse podrobnosti o tem, kaj ACE zmore, bomo pokrili na klicu. Vas lahko takoj povežem z ekipo?"
+        },
+        {
+          "customer": "Super, naj se ekipa takoj vključi. Hvala.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-088",
+      "index": 88,
+      "name": "Marko",
+      "role": "Mid-level manager logistika",
+      "company": "Transport & Co, 40 zaposlenih",
+      "urgency": "letos",
+      "patience": "nizka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-22T10:16:40.571270",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, pri nas imamo problem s klici strank. Kaj bi vi predlagali?",
+          "receptionist": "Živjo! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, tako da vaša ekipa prevzame samo najboljše. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "No ja, točno to. Smo v logistiki, 40 ljudi, stranke nonstop kličejo za status pošiljk, cene, termine… Naša ekipa se utaplja v klicih, pa nismo ravno veliki. A tole vaše ACE bi nam lahko pomagalo filtrirat te klice, da ne rabimo vsakega posebej dvigovat?",
+          "receptionist": "ACE je namenjen spletni strani, ne klicem. Ampak če bi stranke namesto klica uporabile klepet na vaši strani, bi ACE lahko odgovarjal na pogosta vprašanja in kvalificiral lead-e. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-089",
+      "index": 89,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-03T14:44:25.108201",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to počne – z AI klepetom na spletni strani samodejno pozdravi obiskovalce, jih kvalificira in shrani lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-090",
+      "index": 90,
+      "name": "Nina",
+      "role": "Founder startupa",
+      "company": "LegalBot.io, 4 zaposleni",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-25T01:38:59.467817",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, startup smo, iscemo nekaj za prvi stik s strankami da zgledamo profesionalno. Delate tudi z manjsimi?",
+          "receptionist": "Seveda, ACE je kot nalašč za startupe. Samodejno pozdravi obiskovalce na spletni strani, jih kvalificira in shrani lead-e v dashboard. Delamo z vsemi velikostmi podjetij. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Super, točno to rabimo. Smo štirje, hočemo izgledati kot večji igralec že ob prvem stiku. Kako točno deluje vaše kvalificiranje leadov? A se da nastavit, da avtomatsko prepozna, kdaj je nekdo resen potencialni komitent?",
+          "receptionist": "ACE postavlja vprašanja, ki jih nastavite (npr. budget, časovnica, potrebe), in na podlagi odgovorov lead-e označi kot 'vroče' ali 'hladne'. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno pokaže?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-091",
+      "index": 91,
+      "name": "Peter",
+      "role": "Solopreneur svetovalec",
+      "company": "Peter s.p., 1 zaposlen",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-14T00:57:31.482188",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, delam kot svetovalec in me zanima ce imate resitev tudi za solo podjetnike?",
+          "receptionist": "Seveda, ACE je primeren tudi za solo podjetnike. Avtomatiziramo pozdravljanje in kvalificiranje strank na vaši spletni strani. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Super, točno to rabim. Porabim ogromno časa za telefonske klice, ki mi ga odnesejo od svetovanja. Kako natančno poteka ta kvalifikacija? Bi lahko avtomatizirali tudi prvotno oceno, ali je stranka primerna zame?",
+          "receptionist": "ACE na vaši spletni strani postavi vprašanja, ki jih vi nastavite (npr. panoga, proračun, potrebe), in na podlagi odgovorov lead označi kot primeren ali ne. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno pokaže?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-092",
+      "index": 92,
+      "name": "Sara",
+      "role": "Operations manager hotel",
+      "company": "Hotel Slapnik, 45 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-10T09:25:20.564113",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, hotel imamo in razmisljamo o avtomatizaciji spletnih povprasevanj. Mi lahko razlozite vase delovanje?",
+          "receptionist": "Seveda! ACE je AI klepetalnik, ki samodejno pozdravi obiskovalce na vaši spletni strani, postavlja vprašanja in kvalificira lead-e, ki se shranijo v dashboard. Kaj vas je pripeljalo do nas?"
+        },
+        {
+          "customer": "Super, hvala za razlago. Veste, pri nas je recepcija zelo obremenjena – predvsem s prvimi vprašanji gostov prek spleta. Zanima me, kako natančno ACE obravnava takšna vprašanja? Ali zna svetovati tudi glede cen, razpoložljivosti in specifičnih zahtev?",
+          "receptionist": "ACE zna odgovarjati na vprašanja o cenah, razpoložljivosti in specifičnih zahtevah, če te podatke vnesete v sistem. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-093",
+      "index": 93,
+      "name": "Rok",
+      "role": "MLOps inzenir",
+      "company": "DataMind d.o.o., 30 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-28T13:44:54.952828",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Zivjo, MLOps inzenir tukaj. Zanima me vasa arhitektura — kako hitro se model odziva, kaksna latenca, ali podpirate custom modele? In kaksne integracije imate?",
+          "receptionist": "Živjo! ACE je AI klepet za avtomatizacijo sprejema strank na spletni strani — pozdravi obiskovalce, kvalificira leade in jih shrani v dashboard. Glede arhitekture: model se odziva v realnem času, ne podpiramo custom modelov, integracije pa so LiveKit za video klice in koledar za rezervacije. Kaj vas je pripeljalo k nam?"
+        },
+        {
+          "customer": "Hvala za informacije. A lahko malo bolj konkretno - kakšna je tipična latenca pri odgovoru modela v milisekundah? In kako poteka integracija s koledarjem - podpirate samo določene, ali gre za odprti API?",
+          "receptionist": "Tipična latenca je pod 2 sekundi, odvisno od kompleksnosti vprašanja. Koledar integriramo preko odprtega API-ja, podpiramo Google in Outlook. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobno razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-094",
+      "index": 94,
+      "name": "Mojca",
+      "role": "Lastnica kozmeticnega salona",
+      "company": "Salon Lepote Mojca, 6 zaposlenih",
+      "urgency": "jutri",
+      "patience": "visoka",
+      "turns": 2,
+      "outcome": "dropped_off",
+      "is_open": true,
+      "timestamp": "2026-06-05T15:54:19.253482",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": true,
+      "staff_requested": false,
+      "history": [
+        {
+          "customer": "Dober dan, kozmeticarka sem in potrebujem sistem za avtomatsko narocanje strank. Delate kaj takega? In kako hitro?",
+          "receptionist": "ACE točno to počne! Na spletni strani postavi klepet, ki samodejno pozdravi obiskovalce, jih vodi skozi vprašanja in omogoči rezervacijo terminov prek koledarja. Postavitev je možna v nekaj dneh. Vas zanima, kako bi to izgledalo pri vas?"
+        },
+        {
+          "customer": "Hvala za informacije, ampak raje bi se pogovorila z resnično osebo. Lahko dobim koga iz prodaje ali podpore, da se slišiva po telefonu?",
+          "receptionist": "Seveda, razumem. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse razloži?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-095",
+      "index": 95,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-06T10:10:23.313653",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to počne – z AI klepetom na spletni strani samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-096",
+      "index": 96,
+      "name": "Barbara",
+      "role": "Head of Customer Success",
+      "company": "DataFlow d.o.o., 25 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "srednja",
+      "turns": 3,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-06-04T14:05:55.500326",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Imamo HubSpot, ampak za slovenske stranke ne deluje najboljse. A se da integrirati z vasim sistemom?",
+          "receptionist": "Živjo! ACE je AI klepet za spletno stran, ki samodejno pozdravi obiskovalce, jih kvalificira in shrani v dashboard. HubSpot integracije trenutno ne podpiramo, ampak vse podrobnosti o tem, kaj ACE zmore, bomo pokrili na klicu. Vas lahko pokličemo?"
+        },
+        {
+          "customer": "Ampak točno to me zanima – ali se da ACE povezati z našimi obstoječimi orodji, ne nujno HubSpot. Bi raje govorila z nekom, ki ve več o integracijah. Lahko dobim človeka, ki se spozna na to?",
+          "receptionist": "Seveda, lahko takoj povežem z našo ekipo, ki vam bo v živo razložila vse možnosti integracij. Bi želeli, da se vključijo v klepet zdaj?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Res bi rada izvedela več o integracijah, ker se z ACE še nismo srečali.",
+          "receptionist": "Ekipa je obveščena in se bo vključila v kratkem. Hvala za vaš čas!"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-097",
+      "index": 97,
+      "name": "David",
+      "role": "Prodajni direktor zavarovalnice",
+      "company": "Zavarovalnica Varna d.d., 60 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "zelo visoka",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-31T23:42:27.376916",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Nujno! Imamo na stotine spletnih povprasevanj na teden in premalo ljudi. Kako hitro lahko zacnemo?",
+          "receptionist": "Super, točno za to smo tu! ACE lahko začne lovit in kvalificirat vaše leade v nekaj dneh. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže demo?"
+        },
+        {
+          "customer": "Super, naj se vključijo. Takoj sem pripravljen na demo.",
+          "receptionist": "Odlično, ekipa se takoj vključi v klepet in vam pokaže demo."
+        }
+      ]
+    },
+    {
+      "sid": "b2b-098",
+      "index": 98,
+      "name": "Mateja",
+      "role": "Vodja nepremicninske agencije",
+      "company": "Nepremicnine Dom d.o.o., 12 zaposlenih",
+      "urgency": "ta mesec",
+      "patience": "visoka",
+      "turns": 1,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-27T16:56:44.530680",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Dober dan, imamo nepremicninsko agencijo in iscemo resevanje za klice strank ko so agenti zunaj. Imate kaj takega?",
+          "receptionist": "Pozdravljeni! ACE ravno to počne – z AI klepetom na spletni strani samodejno pozdravi obiskovalce, postavlja vprašanja in kvalificira lead-e, tudi ko agenti niso na voljo. Bi želeli, da se ekipa takoj vključi v klepet in vam pokaže, kako deluje?"
+        }
+      ]
+    },
+    {
+      "sid": "b2b-099",
+      "index": 99,
+      "name": "Bostjan",
+      "role": "Lastnik e-commerce trgovine",
+      "company": "SportPlus.si, 8 zaposlenih",
+      "urgency": "letos",
+      "patience": "srednja",
+      "turns": 2,
+      "outcome": "staff_takeover",
+      "is_open": true,
+      "timestamp": "2026-05-15T10:58:22.425106",
+      "call_booked": false,
+      "contact_left": false,
+      "dropped_off": false,
+      "staff_requested": true,
+      "history": [
+        {
+          "customer": "Hej, slisal sem za vas na LinkedInu. Kako tocno deluje ta AI receptor?",
+          "receptionist": "Živjo! ACE je AI receptor, ki samodejno pozdravi obiskovalce na tvoji spletni strani, jih kvalificira in shrani lead-e v dashboard. Kaj te je pripeljalo do nas?"
+        },
+        {
+          "customer": "Hej, hvala za hiter odgovor. Zanimivo me to “kvalificiranje” obiskovalcev – kako točno veš, kdo je resen kupec in kdo samo brska? Pri nas je ogromno ljudi, ki pridejo na stran, pa ne pustijo nobenih podatkov.",
+          "receptionist": "ACE postavlja pametna vprašanja, ki spodbudijo obiskovalce k interakciji – na podlagi njihovih odgovorov in vedenja na strani prepozna resne kupce. Bi želeli, da se naša ekipa takoj vključi v klepet in vam vse podrobneje razloži?"
         }
       ]
     }

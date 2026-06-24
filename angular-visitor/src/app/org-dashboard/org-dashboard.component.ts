@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { OrgDashboardService } from '../services/org-dashboard.service';
 import { AnalizeChatComponent } from '../analize-chat/analize-chat.component';
 import { firstValueFrom } from 'rxjs';
-import { Room, RoomEvent, LocalVideoTrack, RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track, createLocalVideoTrack } from 'livekit-client';
+import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track, createLocalVideoTrack, createLocalAudioTrack } from 'livekit-client';
 
 @Component({
   standalone: true,
@@ -50,6 +50,11 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   liveActive = signal(false);
   liveConnecting = signal(false);
   liveRoom: Room | null = null;
+  staffMicOn = signal(true);
+  staffCamOn = signal(true);
+  private staffLkVideo: LocalVideoTrack | null = null;
+  private staffLkAudio: LocalAudioTrack | null = null;
+  private staffStream: MediaStream | null = null;
 
   @ViewChild('staffVideo') staffVideoEl!: ElementRef<HTMLVideoElement>;
 
@@ -88,24 +93,31 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       const res = await firstValueFrom(this.api.goLive(this.orgId, this.selectedSid));
       if (!res.token || !res.wsUrl) throw new Error('No token');
 
-      // Get local camera
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      const videoTrack = stream.getVideoTracks()[0];
+      // Get local camera + mic (staff auto-joins with both ON)
+      this.staffStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const videoTrack = this.staffStream.getVideoTracks()[0];
+      const audioTrack = this.staffStream.getAudioTracks()[0];
 
       // Show local preview
       if (this.staffVideoEl) {
-        this.staffVideoEl.nativeElement.srcObject = stream;
+        this.staffVideoEl.nativeElement.srcObject = this.staffStream;
         this.staffVideoEl.nativeElement.muted = true;
       }
 
-      // Connect to LiveKit and publish
+      // Connect to LiveKit and publish both tracks
       this.liveRoom = new Room({ adaptiveStream: true, dynacast: true });
       await this.liveRoom.connect(res.wsUrl, res.token);
-      const lkTrack = await createLocalVideoTrack({ deviceId: videoTrack.getSettings().deviceId });
-      await this.liveRoom.localParticipant.publishTrack(lkTrack);
+
+      this.staffLkVideo = await createLocalVideoTrack({ deviceId: videoTrack.getSettings().deviceId });
+      await this.liveRoom.localParticipant.publishTrack(this.staffLkVideo);
+
+      this.staffLkAudio = await createLocalAudioTrack({ deviceId: audioTrack.getSettings().deviceId });
+      await this.liveRoom.localParticipant.publishTrack(this.staffLkAudio);
 
       this.liveActive.set(true);
       this.liveConnecting.set(false);
+      this.staffMicOn.set(true);
+      this.staffCamOn.set(true);
     } catch (e: any) {
       console.error('Go live failed:', e);
       this.liveConnecting.set(false);
@@ -126,10 +138,36 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
     this.liveRoom = null;
     this.liveActive.set(false);
     this.liveConnecting.set(false);
+    this.staffMicOn.set(false);
+    this.staffCamOn.set(false);
+    this.staffLkVideo = null;
+    this.staffLkAudio = null;
+    this.staffStream?.getTracks().forEach(t => t.stop());
+    this.staffStream = null;
     if (this.staffVideoEl) {
-      const stream = this.staffVideoEl.nativeElement.srcObject as MediaStream;
-      stream?.getTracks().forEach(t => t.stop());
       this.staffVideoEl.nativeElement.srcObject = null;
+    }
+  }
+
+  toggleStaffMic() {
+    if (!this.staffLkAudio) return;
+    const next = !this.staffMicOn();
+    this.staffMicOn.set(next);
+    if (next) {
+      this.staffLkAudio.unmute();
+    } else {
+      this.staffLkAudio.mute();
+    }
+  }
+
+  toggleStaffCam() {
+    if (!this.staffLkVideo) return;
+    const next = !this.staffCamOn();
+    this.staffCamOn.set(next);
+    if (next) {
+      this.staffLkVideo.unmute(); // re-enable sending frames
+    } else {
+      this.staffLkVideo.mute(); // stop sending video
     }
   }
 

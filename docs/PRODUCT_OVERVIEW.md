@@ -1,70 +1,67 @@
-# Product Overview
-
-ACE Reception Services is an AI receptionist platform for Slovenian beauty salons (kozmeticni saloni). It replaces the front-desk experience online.
+# ACE — Product Vision
 
 ## North Star
 
-> Make ACE a **no-brainer** for Slovenian beauty salons and similar appointment-based service businesses.
+Make ACE a **no-brainer** for B2B companies that have at least one salesperson and want to capture more leads from their website.
 
-## Why salons
+## What ACE Replaces
 
-Beauty salons already have the perfect business model to digitalize:
-- Someone walks in → talks with the receptionist → asks questions → selects a service → gets it done
-- Higher transaction volume than real-estate → faster revenue via commissions
-- Instantly relatable to salon owners — they live this flow every day
+The "Contact Us" form. The dead email inbox. The visitors who land on your site, browse, and leave without ever talking to a human.
 
-## Product thesis
+ACE puts an AI SDR on your site that qualifies visitors and books them into live meetings with your sales team — instantly.
 
-> Let visitors feel like they're walking into a real salon with a real receptionist — just digital.
+## How It Works
 
-## Main product layers
+1. Visitor lands on your B2B website
+2. ACE greets them in chat, asks what they need
+3. Qualifies in 2-3 turns: budget? problem? timeline? company?
+4. If qualified: **"Bi želeli da se naša ekipa takoj vključi v pogovor?"**
+5. Sales guy joins live — text or video
+6. If team is offline: ACE books a discovery call for tomorrow
 
-### 1. AI Receptionist (Visitor Side — Angular SPA)
-The core product surface. An inviting AI receptionist sits middle-bottom of the page:
-- Greets visitors naturally in Slovenian
-- Answers questions about services, pricing, and availability
-- Navigates visitors to relevant sections of the page
-- Helps select and book services via calendar
+## The Feel
+
+Like having your best salesperson sitting on your website 24/7. Visitors don't fill forms — they talk. The AI qualifies. The human closes.
+
+## Core Product Layers
+
+### 1. AI Qualifier (Visitor Side — Angular SPA)
+- Greets visitors naturally
+- Qualifies: extracts business name, budget, problem, timeline
+- Pushes for instant sales team takeover on turn 1
+- Falls back to scheduling a discovery call
 - Shows open/closed hours with live status
-- Hands off to human staff with a premium slow fade-in
+- Hands off to human staff with premium fade-in
 
 ### 2. Live Staff Handoff
-Visitors have full control over human interaction:
-- **Accept/Deny** when staff wants to join — some visitors don't want it
-- **Request a human** — visitor can explicitly ask for staff
-- **Slow fade-in** of staff camera — feels like "streaming tokens," not a jarring pop-in
+- **Instant takeover** — AI offers live team join within 2 turns
+- **Video (LiveKit)** — One-way: sales publishes camera, visitor watches
+- **Discovery call scheduling** — When team is offline, book for next working day
 
-### 3. Manager Dashboard (Java + Thymeleaf)
-Salon staff manage everything from one place:
-- Calendar and appointment management
-- Lead and conversation overview
-- Join/leave visitor conversations
+### 3. Staff Dashboard
+- Lead list with qualification scores and extracted profiles
+- Conversation thread view with takeover controls
 - Live video handoff initiation
-- Service and operating hours management
+- Booking timeline (day/week view)
+- Qualifier configuration editor per org
 - Open/closed status control
 
 ### 4. AI Brain (Python + LangGraph)
-The Python service powers the receptionist:
-- Intent routing: greet → qualify → inform → book → handoff
-- Conversational behavior tailored to salon context
-- Open/closed hours awareness — different behavior when staff is unavailable
+- Turn-based conversation flow: greet → qualify → offer takeover → schedule
+- B2B tools: context, contact check, call scheduling, team request, profile update
+- Lead profile extraction: regex + LLM fallback
+- Working hours awareness — different behavior when team is offline
 
-## Current demo concept
-- 3 demo beauty services with AI-generated photos
-- AI receptionist chat
-- Open/closed status awareness
-- Calendar + appointment booking
-- Live staff video handoff with fade-in
-
-## Implementation shape
-- **Angular** — visitor-side SPA
-- **Java Spring Boot + Thymeleaf** — backend API + dashboard
-- **Python FastAPI + LangGraph** — AI/runtime service
+## Implementation Shape
+- **Angular 19** — visitor-side SPA + staff dashboard
+- **Python FastAPI** — single backend (API + AI + static serving)
+- **LangGraph + OpenAI** — AI qualification runtime
 - **PostgreSQL** — persistence
-- **LiveKit** — live staff video handoff
+- **LiveKit** — live video handoff
 
 ## Where to read next
-- `Reception-Services.txt` — project goal and north star
-- `ARCHITECTURE.md`
-- `docs/LOCAL_DEVELOPMENT.md`
-- `docs/API_OVERVIEW.md`
+- `CONTEXT.md` — complete project overview
+- `ARCHITECTURE.md` — high-level design
+- `Startup.txt` — runbook
+- `docs/AI_QUALIFIER_SPEC.md` — qualifier system
+- `docs/VIDEO_TAKEOVER_SPEC.md` — video takeover

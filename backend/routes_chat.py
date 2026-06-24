@@ -524,8 +524,10 @@ async def end_takeover(org_id: int, sid: str, user: User = Depends(get_current_u
 async def delete_lead(org_id: int, sid: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await check_org_access(user, org_id)
     lead = await get_lead(db, org_id, sid)
-    # Detach bookings before deleting lead (FK constraint)
-    from sqlalchemy import update as _update
+    from sqlalchemy import delete as _del, update as _update
+    # Delete child rows first (FK constraints)
+    await db.execute(_del(ConversationMessage).where(ConversationMessage.lead_id == lead.id))
+    await db.execute(_del(LeadEvent).where(LeadEvent.sid == lead.sid))
     await db.execute(_update(Booking).where(Booking.lead_id == lead.id).values(lead_id=None))
     await publish_event(org_id, sid, "lead.deleted", {"sid": sid, "deleted": True})
     await db.delete(lead)

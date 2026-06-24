@@ -30,11 +30,13 @@ def manager_token(org_slug: str, sid: str, user_id: int, display_name: str) -> s
     return token
 
 def visitor_token(org_slug: str, sid: str) -> str:
+    """Visitor token with two-way video: can publish and subscribe.
+    Visitor starts muted + camera-off by default (enforced on client side)."""
     token = lkapi.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET) \
         .with_identity(f"visitor-{sid}") \
         .with_name("Visitor") \
         .with_grants(lkapi.VideoGrants(room_join=True, room=room_name(org_slug, sid),
-                                        can_publish=False, can_subscribe=True)) \
+                                        can_publish=True, can_subscribe=True)) \
         .with_ttl(timedelta(hours=1)) \
         .to_jwt()
     return token

@@ -1,43 +1,54 @@
 # WARP.md
 
-ACE Reception Services — AI receptionist for Slovenian beauty salons.
+ACE — AI SDR that qualifies B2B website visitors and books insta-meetings with your sales team.
 
-This repository is centered on:
-- `angular-visitor/` — Angular SPA (visitor-side receptionist, planned)
-- `java-platform/` — Spring Boot backend API + manager dashboard
-- `app/` — Python FastAPI + LangGraph AI/runtime service
+## Stack
+- `angular-visitor/` — Angular 19 SPA (visitor chat + staff dashboard)
+- `backend/` — Python FastAPI (API, auth, AI integration, static serving)
+- `app/` — Python AI library (LangGraph graph, B2B tools, LLM client)
 
-## Common commands
+## Quick commands
 
-### Angular visitor SPA (planned)
-```bash
-cd angular-visitor
-ng serve
-```
-
-### Java app
-```bash
-cd java-platform
-./mvnw spring-boot:run
-./mvnw test -q
-```
-
-### Python service
-```bash
-./run_backend.sh
-```
-
-### Infra
+### Start everything (Docker)
 ```bash
 docker compose -f docker-compose-simple.yml up -d
 ```
 
-## Local URLs
-- Angular visitor: `http://127.0.0.1:4200`
-- Java app: `http://127.0.0.1:8080`
-- Python docs: `http://127.0.0.1:8000/docs`
+### Backend (local dev)
+```bash
+cd backend && source ../venv/bin/activate
+uvicorn main:app --port 8000 --reload
+```
 
-## Architecture note
-Angular SPA = visitor product surface (AI receptionist, services, booking, live handoff).
-Java app = REST API for Angular + Thymeleaf dashboard for managers.
-Python service = AI receptionist brain (LangGraph intent routing).
+### Angular dev server (only if editing frontend)
+```bash
+cd angular-visitor && npm start
+```
+
+### Rebuild frontend
+```bash
+cd angular-visitor && npm run build
+cp -r dist/angular-visitor/browser/* ../backend/static/
+```
+
+### Run tests
+```bash
+cd backend && source ../venv/bin/activate
+python -m pytest ../tests/ -v
+```
+
+### B2B simulator
+```bash
+cd scripts && source ../venv/bin/activate
+python simulate_b2b.py
+```
+
+## Local URLs
+- Visitor chat: `http://localhost:8000/demo`
+- Staff dashboard: `http://localhost:8000/demo/dashboard`
+- Login: `http://localhost:8000/login`
+- Admin: `http://localhost:8000/admin/dashboard`
+
+## Credentials
+- Username: `admin`
+- Password: `test123`

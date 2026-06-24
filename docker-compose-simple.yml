@@ -30,7 +30,10 @@ services:
     container_name: ace-backend
     ports:
       - "8000:8000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
     environment:
+      - TZ=Europe/Ljubljana
       - DATABASE_URL=postgresql://ace_user:test_password_123@postgres:5432/ace_platform
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}

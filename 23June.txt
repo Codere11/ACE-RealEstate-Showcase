@@ -1,0 +1,503 @@
+===============================================================================
+  ACE — Product Strategy & Go-to-Market
+  23 June 2026
+===============================================================================
+
+Four things to nail before this is a real product people pay for:
+
+  1. Insta-meeting experience (make it better than Zoom + Calendly combined)
+  2. Pricing & concrete offer
+  3. End-to-end live test (no surprises)
+  4. Right market (hint: not Slovenia)
+
+===============================================================================
+1. INSTA-MEETING EXPERIENCE
+===============================================================================
+
+Why ACE should be BETTER than Zoom/Calendly for B2B sales meetings:
+
+  Zoom/Calendly problem: Visitor fills "Contact Us" form → gets email 3 days later
+  → "Let's hop on a Zoom next Thursday" → Thursday comes → "Can you see my screen?"
+  → 15 minutes wasted on intros → meeting ends, no follow-up → lead goes cold.
+
+  ACE experience: Visitor lands on site → ACE greets them → 2 turns of qualification
+  → "Our team is available RIGHT NOW. Want to talk?" → Salesperson clicks JOIN →
+  video appears IN THE SAME WIDGET, no install, no link, no "can you hear me" →
+  salesperson already knows their name, company, budget, problem → 15 productive
+  minutes → meeting ends → notes, next steps, profile saved in dashboard.
+
+THE EDGE: Zero friction for the buyer. The meeting starts where the conversation
+already is. No context switch. No "let me send you a link." No "download Zoom."
+The chat widget IS the meeting room.
+
+--- What makes this better than Calendly ---
+
+  Calendly: "Pick a time next Tuesday." Prospect leaves, forgets, no-shows.
+  ACE: "They're here NOW. Talk to them NOW." Captures impulse interest.
+
+  Calendly: Salesperson gets a calendar invite. No context. "Who is this?"
+  ACE: Salesperson sees full chat history, extracted profile (company, budget,
+  problem), qualification score. Joins the conversation already informed.
+
+  Calendly: Meeting ends. Nothing happens. Manual CRM entry.
+  ACE: Meeting auto-logged. Profile fields auto-extracted. Funnel metrics updated.
+  Follow-up scheduling suggested.
+
+--- What makes this better than Zoom ---
+
+  Zoom: Separate app. Link. Waiting room. "You're muted." "Can you share?"
+  ACE: In-browser video via LiveKit. No install. No link. No account. The video
+  just appears in the widget they're already looking at.
+
+  Zoom: No qualification. Salesperson starts every call cold.
+  ACE: AI pre-qualifies. Salesperson joins mid-conversation, already briefed.
+
+  Zoom: Generic. Works for everything from family calls to board meetings.
+  ACE: Purpose-built for B2B sales qualification calls. The entire UX is designed
+  around THIS use case: qualify → connect → close.
+
+--- What needs to be enhanced to make it FEEL premium ---
+
+  A. VISITOR SIDE (the "wow" moment):
+
+     [NOW]  Staff clicks JOIN → text takeover. Video is separate (manual go-live).
+     [WANT] Single "JOIN CALL" button for staff that does text + video together.
+            One click. Text takeover + LiveKit room created + video starts.
+
+     [NOW]  Video appears abruptly or requires manual endpoint check.
+     [WANT] "Ringing" animation — AI says "Povezujem vas z ekipo..." → subtle
+            pulse animation → video fades in over 1.5 seconds → "● V ŽIVO" badge.
+            Feels like FaceTime connecting, not like a WebRTC debug screen.
+
+     [NOW]  No audio indicator. Visitor doesn't know if the salesperson can hear.
+     [WANT] Subtle audio waveform when salesperson is speaking. Mute indicator
+            when they're not. "Ekipa se je pridružila" toast.
+
+     [NOW]  Post-meeting: nothing. Chat goes silent.
+     [WANT] After meeting ends: "Hvala za pogovor! Povzetek srečanja in naslednji
+            koraki bodo poslani na vaš email." Auto-generated meeting summary
+            (LLM reads transcript, writes 3 bullet points + next steps).
+
+  B. SALESPERSON SIDE (the "holy shit this is easy" moment):
+
+     [NOW]  Dashboard shows leads. Salesperson manually monitors.
+     [WANT] Browser notification + sound when a qualified lead is chatting.
+            "🟢 Qualified lead: Marko from TechCorp — €50K budget — wants AI
+            reception. Click to join." One click → they're in the conversation.
+
+     [NOW]  No mobile. Dashboard is desktop-only.
+     [WANT] Mobile-responsive dashboard. Salesperson can join a takeover from
+            their phone. "Ping — hot lead on site. Tap to join."
+
+     [NOW]  Post-meeting: manual notes.
+     [WANT] After meeting: auto-generated summary appears in the lead thread.
+            "Call summary: Marko needs AI reception for 3 clinics. Budget €40-60K.
+            Timeline: Q3. Next step: demo next Tuesday. ACE generated this."
+
+     [NOW]  No CRM integration.
+     [WANT] Webhook/push to HubSpot, Salesforce, Pipedrive. Meeting logged
+            automatically. Contact created if new. Deal stage updated.
+
+  C. BOOKING EXPERIENCE (for when team is offline):
+
+     [NOW]  ace_schedule_call books a 30-min slot. Basic.
+     [WANT] Calendar picker shows REAL team availability (Google Calendar /
+            Outlook sync). Visitor picks a slot → confirmed instantly → calendar
+            invites sent to both parties. Like Calendly, but inside the chat widget.
+
+     [NOW]  Meeting type is always "Discovery Call."
+     [WANT] Configurable meeting types per org: "30-min demo", "15-min intro",
+            "60-min technical deep-dive." Sales team sets their available hours
+            per meeting type.
+
+  D. ANALYTICS (closing the loop):
+
+     [NOW]  Dashboard shows leads and bookings. Analize tab spec exists.
+     [WANT] Analize tab BUILT and working. Sales manager opens it, types
+            "Kako gre ta teden?" → AI responds: "12 qualified leads, 7 meetings
+            booked, 4 completed, 2 no-shows. Conversion rate 58%. Top drop-off:
+            price objection at €299/mo. Top performer: Maja (5 meetings, 4 closed)."
+
+     [WANT] Meeting quality metrics: average call duration, talk/listen ratio,
+            follow-up rate, time-to-close. ACE knows these because it's IN the
+            meeting pipeline, unlike Calendly which stops at "meeting booked."
+
+===============================================================================
+2. PRICING & CONCRETE OFFER
+===============================================================================
+
+The product replaces or augments an SDR. An SDR costs $50-80K/year in the US.
+ACE should price at a fraction of that — but enough to be a serious SaaS business.
+
+--- Pricing Model: Tiered Monthly SaaS ---
+
+  STARTER      $149/mo    (or $1,490/yr — 2 months free)
+  ─────────────────────────────────────────────────
+  1 salesperson seat
+  Up to 100 AI-qualified leads/mo
+  Standard qualifier (customizable)
+  Text takeover
+  Basic analytics
+  Email support
+  ─────────────────────────────────────────────────
+  For: Solo founders, small agencies, first sales hire.
+
+  PRO          $499/mo    (or $4,990/yr)
+  ─────────────────────────────────────────────────
+  5 salesperson seats
+  Up to 500 AI-qualified leads/mo
+  Custom qualifier + A/B testing
+  Text + VIDEO takeover (LiveKit)
+  Discovery call scheduling
+  Full analytics + Analize tab
+  Slack/email notifications
+  Priority support
+  ─────────────────────────────────────────────────
+  For: B2B startups with a small sales team. The sweet spot.
+
+  BUSINESS     $1,499/mo  (or $14,990/yr)
+  ─────────────────────────────────────────────────
+  20 salesperson seats
+  Unlimited leads
+  Everything in PRO, plus:
+  CRM integration (HubSpot, Salesforce)
+  Calendar sync (Google, Outlook)
+  Auto-generated meeting summaries
+  Multi-org (agencies, holding companies)
+  API access
+  Dedicated support
+  ─────────────────────────────────────────────────
+  For: Established B2B companies, agencies managing multiple clients.
+
+  ENTERPRISE   Custom
+  ─────────────────────────────────────────────────
+  Unlimited everything
+  White-label
+  On-premise deployment option
+  Custom integrations
+  SLA with uptime guarantee
+  Dedicated account manager
+  ─────────────────────────────────────────────────
+  For: Large enterprises, high-volume sales orgs.
+
+--- Why Monthly SaaS (not per-lead, not per-meeting) ---
+
+  1. Predictable revenue. B2B companies budget monthly, not per-lead.
+  2. No "did this meeting come from ACE?" attribution fights.
+  3. SDRs are a fixed cost. ACE replaces part of that fixed cost with a smaller
+     fixed cost. The math is easy: $149/mo vs $4,000/mo for an SDR.
+  4. Usage-based pricing creates a disincentive: "should I let ACE talk to this
+     lead or save it for a better one?" Monthly flat fee removes that hesitation.
+  5. Simpler sales process: "It's $499/mo. Try it free for 14 days."
+
+--- The Concrete Offer ---
+
+  "ACE replaces your 'Contact Us' form with an AI SDR that qualifies leads and
+  books insta-meetings with your sales team. Try it free for 14 days. No credit
+  card. Your AI goes live on your site in 5 minutes."
+
+  One-liner for cold outreach:
+  "Your website visitors are leaving without talking to sales. ACE puts an AI
+  SDR on your site that qualifies leads and connects them to your team INSTANTLY
+  — for $149/mo. Better than a contact form. Cheaper than an SDR."
+
+  Value prop in numbers:
+  "Average B2B website converts 2% of visitors to leads. Of those, maybe 20%
+  get a meeting. That's 0.4% of traffic → meetings. ACE captures conversations
+  from visitors who would have bounced. If it books ONE extra meeting per month
+  that closes, it pays for itself 10x over."
+
+--- Pricing psychology notes ---
+
+  - Don't go below $99. Below $99 it feels like a toy, not an enterprise tool.
+  - The jump from $149 to $499 is intentional. It's 3.3x but unlocks video.
+    Video takeover is the killer feature. Most teams will want it.
+  - Annual billing should be the default. "Save 17% with annual."
+  - No "Contact Sales" for Pro. Friction kills SaaS conversion. Make the pricing
+    page self-serve for everything except Enterprise.
+  - 14-day trial, not 7. B2B sales cycles are slow. They need time to see results.
+  - No feature gating on leads during trial. Let them see the full value.
+
+===============================================================================
+3. END-TO-END TESTING BEFORE GO-LIVE
+===============================================================================
+
+--- Test Matrix ---
+
+  A. FULL FLOW (happy path):
+
+     1. Visitor opens /demo → ACE greets in chat
+     2. Visitor types "Rabimo AI za prodajo, proračun ~30K"
+     3. ACE extracts: budget=30K, problem=AI za prodajo → qualifies as hot lead
+     4. ACE: "Bi želeli da se naša ekipa takoj vključi v pogovor?"
+     5. Visitor: "Ja, prosim."
+     6. ACE calls ace_request_team → event published → lead turns green in dashboard
+     7. Salesperson (logged into dashboard) sees notification → clicks JOIN
+     8. Salesperson's message appears in chat as "STAFF" role
+     9. Salesperson clicks "Go Live" → LiveKit room created → video appears on visitor side
+     10. 5-minute conversation happens (text + video)
+     11. Salesperson clicks "End Live" → video fades out
+     12. Salesperson clicks "End Takeover" → AI resumes
+     13. Lead profile updated: business_name, budget, problem, meeting logged
+     14. Booking appears in REZERVACIJE tab
+     ☐ TESTED
+
+  B. OFFLINE FLOW (team closed):
+
+     1. Visitor opens chat outside 9-17 Mon-Fri
+     2. ACE: "Trenutno smo zaprti. Delovni čas: pon-pet 9-17."
+     3. Visitor: "Rabim klic jutri."
+     4. ACE books discovery call for tomorrow 10:00 via ace_schedule_call
+     5. Booking appears in dashboard calendar
+     ☐ TESTED
+
+  C. VISITOR WHO DOESN'T WANT TAKEOVER:
+
+     1. ACE offers live team → visitor says "Ne, samo informacije rabim"
+     2. ACE continues answering questions, doesn't push takeover again immediately
+     3. After 2 more turns, ACE gently offers ace_schedule_call
+     ☐ TESTED
+
+  D. WHAT IF SALESPERSON DOESN'T JOIN:
+
+     1. ACE calls ace_request_team → event published
+     2. 60 seconds pass, no staff message appears
+     3. ACE should time out and say: "Ekipa je trenutno zasedena. Lahko vam
+        rezerviram termin za klic jutri ob 10h?"
+     4. System needs a timeout — currently ace_request_team just publishes an event
+        and assumes someone will join. If no one does, visitor is stuck.
+     ☐ NOT IMPLEMENTED — ADD TIMEOUT
+
+  E. WHAT IF VISITOR LEAVES MID-CONVERSATION:
+
+     1. Visitor closes tab during qualification
+     2. Lead stays in DB with status OPEN_CHAT
+     3. Salesperson sees "no response" indicator in dashboard
+     4. System should offer "send follow-up email" if contact exists
+     ☐ PARTIALLY IMPLEMENTED — ADD RE-ENGAGEMENT
+
+  F. LIVELKIT FAILURE:
+
+     1. Go-live clicked → LiveKit server is down
+     2. What happens? Error toast? Fallback to text-only takeover?
+     ☐ TEST AND HANDLE GRACEFULLY
+
+  G. MULTI-TENANT ISOLATION:
+
+     1. Org A (slug: "techcorp") and Org B (slug: "agency") both have live qualifiers
+     2. Visitor on /techcorp sees TechCorp's AI
+     3. Visitor on /agency sees Agency's AI
+     4. Leads don't leak between orgs
+     5. Staff from Org A can't see Org B's leads
+     ☐ TESTED
+
+  H. CONCURRENT CONVERSATIONS:
+
+     1. 10 visitors chatting simultaneously on the same org
+     2. AI responses don't slow down significantly
+     3. Event polling doesn't mix up SIDs
+     4. Dashboard shows all 10 leads sorted correctly
+     ☐ TEST WITH SIMULATOR (scripts/simulate_b2b.py)
+
+  I. BROWSER COMPATIBILITY:
+
+     1. Chrome (latest) — primary
+     2. Firefox (latest)
+     3. Safari (latest) — especially LiveKit video
+     4. Mobile Chrome (Android)
+     5. Mobile Safari (iOS) — especially chat input + video
+     ☐ TEST MANUALLY
+
+  J. SEO / PAGE LOAD:
+
+     1. The Angular SPA should NOT hurt page load metrics
+     2. Chat widget should lazy-load (don't block initial render)
+     3. The SPA fallback in main.py should return proper status codes
+     4. Add <meta> tags for social preview
+     ☐ REVIEW
+
+  K. GDPR / PRIVACY:
+
+     1. Cookie consent before storing conversation data
+     2. Data retention policy: how long are conversations stored?
+     3. Right to deletion: can a visitor request their data be deleted?
+     4. Data processing agreement (DPA) available for EU customers
+     ☐ ADDRESS BEFORE EU LAUNCH
+
+  L. PAYMENT / STRIPE (for paid plans):
+
+     1. Stripe Connect integration works (see docs/STRIPE_CONNECT_LOCAL_SETUP.md)
+     2. Upgrade/downgrade between plans
+     3. Failed payment → account suspension (grace period)
+     4. Invoice generation
+     ☐ NOT YET IMPLEMENTED FOR SELF-SERVE
+
+--- Pre-Launch Checklist ---
+
+  INFRASTRUCTURE:
+  ☐ Production PostgreSQL (not Docker for real deployments)
+  ☐ Production LiveKit server (not dev keys)
+  ☐ SSL/HTTPS for all endpoints
+  ☐ Monitoring (Sentry + health checks)
+  ☐ Backups (DB dumps, off-site storage)
+  ☐ Rate limiting on /chat endpoint
+  ☐ OpenAI API key rotation / fallback
+
+  PRODUCT:
+  ☐ English qualifier as default for new orgs (currently Slovenian-only default)
+  ☐ Onboarding flow: "Add ACE to your site" — script tag or iframe embed
+  ☐ Customization: logo, colors, greeting message per org
+  ☐ Team timeout (item D above)
+  ☐ Post-meeting summary (LLM-generated)
+  ☐ Calendar sync (Google, Outlook)
+  ☐ Mobile-responsive dashboard
+
+  SALES MATERIALS:
+  ☐ Landing page (ace.ai or similar)
+  ☐ Demo video: 90 seconds showing the full flow
+  ☐ Pricing page
+  ☐ Case study / example data from simulator
+  ☐ Documentation: API docs, embed guide, FAQ
+  ☐ Comparison page: ACE vs Calendly vs HubSpot chat vs Drift
+
+===============================================================================
+4. MARKET: NOT SLOVENIA
+===============================================================================
+
+--- Why Slovenia is the wrong primary market ---
+
+  1. MARKET SIZE: Slovenia has ~2M people. The number of B2B companies with
+     meaningful website traffic AND a dedicated salesperson is maybe 500-1,000.
+     Total addressable market: ~$500K/year if you capture 100% of them. Realistic:
+     maybe $50K/year. Not enough to build a company on.
+
+  2. BUSINESS CULTURE: As the CEO you met today confirmed — "In Slovenia, two
+     phone calls can get you to almost anyone." B2B in Slovenia is relationship-
+     driven. Deals happen through personal networks, not inbound website traffic.
+     The problem ACE solves (visitors who never talk to sales) is simply smaller
+     in a market where everyone knows everyone.
+
+  3. TOO SMALL FOR VC: A Slovenian-only SaaS can be a nice lifestyle business
+     (€50-100K ARR), but it won't attract investment. The market cap is the
+     population cap.
+
+  4. LANGUAGE TRAP: Building in Slovenian is a dead end for growth. You can't
+     expand to Croatia (different language), Serbia (different), Austria (German).
+     English-first from day one unlocks the entire Western market.
+
+--- What Slovenia IS good for ---
+
+  1. INITIAL TESTING: The product was built with Slovenian. The demo works.
+     You have access to Slovenian business owners for feedback. Use them as
+     design partners, not as the target market.
+
+  2. REFERENCE CUSTOMERS: Get 3-5 Slovenian companies using ACE for free/cheap.
+     They give testimonials, case studies, and bug reports. Their logos go on
+     the landing page. "Trusted by B2B companies across Europe" sounds better
+     than "Trusted by no one."
+
+  3. CHEAP ITERATION: Fixing bugs and improving UX is faster and cheaper when
+     your design partners are in the same time zone and speak your language.
+
+--- The real market: USA + English-speaking B2B ---
+
+  WHY USA:
+
+  1. MARKET SIZE: ~300,000 B2B SaaS companies alone. Add agencies, consulting
+     firms, professional services — addressable market is 500K+ companies.
+     Even 0.1% penetration = 500 customers = $75K-$750K MRR depending on mix.
+
+  2. SDR IS A KNOWN COST: US companies know what an SDR costs ($50-80K/year
+     fully loaded). "Replace your SDR with AI for $499/mo" is an instant ROI
+     conversation. In Slovenia, many companies don't even have a dedicated SDR.
+
+  3. INBOUND MARKETING CULTURE: US B2B companies spend heavily on content,
+     SEO, and ads to drive website traffic. They FEEL the pain of visitors
+     who don't convert. They already use Calendly, Drift, HubSpot chat. ACE
+     is a better version of tools they already pay for.
+
+  4. ENGLISH-FIRST: No localization needed for the initial market. The product
+     already uses OpenAI which is strongest in English. Qualifiers, prompts,
+     documentation — all English.
+
+  5. SAAS BUYING MATURITY: US companies are used to: find tool online → free
+     trial → self-serve onboarding → swipe credit card. Low-touch sales motion
+     works. In Slovenia, you need a phone call and an invoice.
+
+  SECONDARY MARKETS (after US is established):
+
+  - UK, Canada, Australia: Same language, similar B2B culture, smaller but
+    still meaningful markets. Good for expansion without localization cost.
+  - DACH (Germany, Austria, Switzerland): Strong B2B, high willingness to pay.
+    Requires German localization of the qualifier and chat UI. Worth it at scale.
+  - Nordics: Tech-savvy, English-friendly, high GDP per capita.
+
+--- Market Entry Strategy ---
+
+  PHASE 0 (NOW): Slovenia — design partners & reference customers
+    - 3-5 Slovenian B2B companies using ACE for free
+    - Gather feedback, fix bugs, polish UX
+    - Build case studies in English (translate Slovenian results)
+    - Duration: 4-6 weeks
+
+  PHASE 1: US launch — English-only, self-serve
+    - Landing page at ace.ai (or similar domain)
+    - 14-day free trial, no credit card
+    - Target: B2B SaaS companies with 1-20 salespeople
+    - Channels: Product Hunt, LinkedIn ads, cold email, B2B SaaS directories
+    - Goal: 50 paying customers, $25K MRR
+    - Duration: 3-6 months
+
+  PHASE 2: Scale US + add UK/Canada/Australia
+    - Content marketing: "AI SDR benchmarks," "Calendly vs ACE," case studies
+    - Outbound sales for Business/Enterprise tiers
+    - CRM integrations (HubSpot first — most popular with SMBs)
+    - Goal: 500 customers, $250K MRR
+    - Duration: 6-12 months
+
+  PHASE 3: DACH expansion (if US is working)
+    - German localization of qualifier + chat UI
+    - Berlin/Munich B2B focus
+    - Requires German-speaking sales or local partner
+
+--- The Slovenia Exit Strategy ---
+
+  Don't abandon Slovenian support. Keep it as a "look how flexible our AI is"
+  demo. But do these things now:
+
+  1. Make English the DEFAULT qualifier language for new orgs. Keep Slovenian
+     as an option. The seed script creates the demo org in Slovenian for testing,
+     but new orgs created via admin panel get an English qualifier.
+
+  2. Translate the dashboard UI to English (it's already mostly English from
+     Angular, but check labels, buttons, error messages).
+
+  3. Buy an English domain (ace.ai, tryace.ai, useace.ai, etc.).
+
+  4. Write ALL future docs, landing pages, and sales materials in English first.
+     Slovenian is for dev/testing only from this point forward.
+
+===============================================================================
+SUMMARY: WHAT TO DO THIS WEEK
+===============================================================================
+
+  IMMEDIATE (this week):
+  ☐ Add English default qualifier for new orgs in seed script
+  ☐ Implement team takeover timeout (60s → fallback to scheduling)
+  ☐ Polish video takeover UX: "Povezujem..." animation, fade-in timing
+  ☐ Test end-to-end flow manually (items A-L above)
+  ☐ Buy domain for English landing page
+  ☐ Write English landing page copy
+
+  NEXT WEEK:
+  ☐ Run B2B simulator (scripts/simulate_b2b.py) for 100 conversations
+  ☐ Fix whatever breaks
+  ☐ Build simple landing page on bought domain
+  ☐ Record 90-second demo video
+  ☐ Set up Stripe for subscription billing
+
+  WITHIN 14 DAYS:
+  ☐ Go live with English landing page + free trial
+  ☐ Submit to Product Hunt
+  ☐ Cold outreach to 50 US B2B SaaS companies
+  ☐ Get first paying customer

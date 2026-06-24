@@ -84,6 +84,15 @@ a { color:inherit; }
 .live-preview-stage__badge { position:absolute; top:12px; right:12px; background:rgba(5,6,7,.82); color:#10b981; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.04em; z-index:2; }
 .live-preview-stage__badge.connecting { color:rgba(193,164,108,.9); animation:pulse-text 1.5s infinite; }
 @keyframes pulse-text { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── Staff live controls overlay (mic / cam / hangup) ── */
+.staff-live-controls { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:10px; padding:10px 16px; background:linear-gradient(0deg, rgba(5,6,7,.85) 0%, transparent 100%); z-index:3; }
+.staff-live-controls .ctrl-btn { width:38px; height:38px; border-radius:50%; border:none; background:rgba(255,255,255,.1); color:rgba(255,255,255,.7); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; backdrop-filter:blur(8px); }
+.staff-live-controls .ctrl-btn:hover { background:rgba(255,255,255,.2); color:#fff; }
+.staff-live-controls .ctrl-btn.active { background:rgba(255,255,255,.15); color:#fff; }
+.staff-live-controls .ctrl-btn.hangup { background:rgba(239,68,68,.8); color:#fff; width:44px; height:44px; margin-left:4px; }
+.staff-live-controls .ctrl-btn.hangup:hover { background:#ef4444; }
+
 .live-preview-stage__overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#F9FAFB; background:linear-gradient(180deg, rgba(5,6,7,.18), rgba(5,6,7,.38)); }
 .live-preview-stage__eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:rgba(249,250,251,.72); }
 .live-preview-stage__title { font-size:1.1rem; font-weight:800; }

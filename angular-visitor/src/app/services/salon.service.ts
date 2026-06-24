@@ -46,7 +46,7 @@ export class SalonService implements OnDestroy {
 
   private updateStatus() {
     const m = new Date().getHours() * 60 + new Date().getMinutes();
-    this.status.set(m >= 540 && m < 1080 ? 'open' : 'closed');
+    this.status.set(m >= 540 && m < 1020 ? 'open' : 'closed');
   }
 
   // ══════ CONNECT ══════
@@ -114,12 +114,12 @@ export class SalonService implements OnDestroy {
       case 'live_session.started':
         this.staffState.set('connected');
         this.liveManagerName.set(p?.managerDisplayName || 'Team');
-        this.connectLiveKit();
+        // Consent handled by StaffVideoComponent — no auto-connect
         if (this.onStaffMessage) this.onStaffMessage();
         break;
       case 'live_session.ended':
         this.staffState.set('idle');
-        this.disconnectLiveKit();
+        this.liveManagerName.set('');
         break;
       case 'message.created':
         if (!p?.text || p.role === 'user') break;

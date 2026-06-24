@@ -1,5 +1,5 @@
 ============================================================
-  ACE Reception Services — Startup Runbook
+  ACE — Startup Runbook
 ============================================================
 
 STACK (all in Docker):
@@ -7,7 +7,7 @@ STACK (all in Docker):
   Frontend        : Angular 19 SPA (built inside Docker image, served by backend)
   Database        : PostgreSQL 15 (Docker ace-postgres)
   Video           : LiveKit (Docker ace-livekit)
-  NO ace-mobile, NO Java, NO separate dev servers.
+  No Java, no separate dev servers.
 
 ============================================================
 1. QUICK START (Docker — recommended)
@@ -21,9 +21,9 @@ STACK (all in Docker):
     Backend     →  localhost:8000
 
   Auto-seeds on first run:
-    - Demo org (slug: demo)
+    - Demo org (slug: demo, name: ACE)
     - Admin:  admin / test123
-    - AI qualifier with Slovenian beauty salon prompt
+    - AI Svetovalec qualifier (Slovenian B2B sales qualification)
 
   Health check:  curl -sf http://127.0.0.1:8000/
 
@@ -35,7 +35,7 @@ STACK (all in Docker):
 
   Visitor chatbot  →  http://localhost:8000/demo
   Login            →  http://localhost:8000/login
-  Org dashboard    →  http://localhost:8000/demo/dashboard
+  Staff dashboard  →  http://localhost:8000/demo/dashboard
   Admin dashboard  →  http://localhost:8000/admin/dashboard
 
   Credentials:  admin / test123
@@ -90,8 +90,11 @@ KEY ENDPOINTS
 
   POST /login              form: username, password  →  JWT
   POST /chat               JSON: {message, sid, tenant_slug}
+  POST /chat/stream        SSE streaming version
   POST /chat/staff         JWT-protected staff takeover
   GET  /chat-events/poll   real-time event polling
   GET  /api/public/organizations/{slug}/live-session
+  GET  /api/organizations/{id}/leads
   POST /api/organizations/{id}/live-sessions/go-live
   POST /api/organizations/{id}/live-sessions/end
+  GET  /api/organizations/{id}/bookings

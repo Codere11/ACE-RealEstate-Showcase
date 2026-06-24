@@ -1,43 +1,23 @@
-# ACE Reception Services — Project Goal
+# ACE — Product Goal
 
 ## North Star
 
-Make ACE a **no-brainer** for Slovenian beauty salons (kozmeticni saloni) and similar appointment-based service businesses.
+Make ACE a **no-brainer** for B2B companies that want to capture and qualify leads from their website — automatically, instantly, with AI.
 
-## Why Beauty Salons
+## What ACE Is
 
-They already have the perfect business model to digitalize: someone walks in → talks with the receptionist → asks a few questions → selects a service → gets it done. ACE replicates this exact flow online with an AI receptionist.
+An AI SDR that lives on your B2B website. It greets visitors, qualifies them in 2-3 turns, and pushes for an instant live meeting with your sales team. If the team is offline, it books a discovery call for the next working day.
 
-Higher transaction volume = faster revenue via commissions.
+## Core Value
 
-## What We're Building
+- **No forms** — visitors chat, AI qualifies
+- **Insta-meetings** — qualified leads get a live salesperson within 2 turns
+- **24/7 coverage** — AI works when your team sleeps
+- **Multi-tenant** — each B2B client is a separate org with its own qualifier
 
-### Visitor-Side Demo (3 services, basic AI-generated photos)
+## Target Customers
 
-An AI receptionist sits middle-bottom of the page — highly inviting opening message. It can:
-- Greet and guide visitors conversationally
-- Navigate them to relevant sections of the page, explaining services
-- Answer questions about services, pricing, availability
-- Help select and book a service
-
-**Open/Closed hours awareness:**
-- **"We are open — a human can join you"** — staff can hop into the conversation
-- **"We are closed — but I can handle the basics"** — AI covers everything until staff returns
-
-### Customer Controls for Human Handoff
-
-- **Accept/Deny** when a staff member wants to join (some visitors don't want it)
-- **Request a staff member** — the visitor can explicitly ask for a human
-- When staff joins: a slow, premium fade-in of the black camera rectangle — feels like "streaming tokens," not a jarring pop-in
-
-### Agent/Salon Dashboard
-
-- Calendar + appointment management
-- Qualified lead overview
-- Handoff controls (join/leave conversations)
-- Service and hours management
-
-## The Feel
-
-Like walking into a real store with a real receptionist — just digital. Instantly relatable. Instantly understandable. A no-brainer for any salon owner.
-
+B2B companies with at least one salesperson. Anyone who:
+- Gets website traffic from potential buyers
+- Has a sales team that wants more qualified conversations
+- Is tired of "Contact Us" forms that go nowhere

@@ -1,4 +1,4 @@
-# Architecture — ACE Reception Services
+# Architecture — ACE
 
 See **[CONTEXT.md](CONTEXT.md)** for the complete project overview including data model, API surface, AI flow, and file-by-file explanation.
 
@@ -8,14 +8,14 @@ See **[CONTEXT.md](CONTEXT.md)** for the complete project overview including dat
 Visitor Browser
     │
     ▼
-┌─────────────────────────────┐
-│  Python FastAPI backend/    │  Single process, port 8000
-│  • REST API                 │
-│  • Auth (JWT)               │
-│  • AI chat (LangGraph)      │
-│  • Camera takeover (LiveKit)│
-│  • Serves Angular SPA       │
-└──────┬──────────┬───────────┘
+┌─────────────────────────────────┐
+│  Python FastAPI backend/        │  Single process, port 8000
+│  • REST API                     │
+│  • Auth (JWT)                   │
+│  • AI qualification (LangGraph) │
+│  • Video takeover (LiveKit)     │
+│  • Serves Angular SPA           │
+└──────┬──────────┬───────────────┘
        │          │
        ▼          ▼
   PostgreSQL   LiveKit
@@ -26,15 +26,16 @@ Visitor Browser
 
 ```
 backend/          ★ The server — FastAPI app, all routes, models, auth, events, LiveKit tokens
-app/              ★ AI library — LangGraph qualification graph, prompts, salon tools, LLM client
-angular-visitor/  ★ Frontend — Angular 19 SPA with chat widget, video overlay, calendar picker
+app/              ★ AI library — LangGraph qualification graph, B2B tools, LLM client
+angular-visitor/  ★ Frontend — Angular 19 SPA with chat widget, video overlay, booking timeline
 docker/           LiveKit server config
-docs/             Specs and contracts (see CONTEXT.md for which are current vs legacy)
+docs/             Specs and contracts
+scripts/          B2B conversation simulator, demo data seeding
 ```
 
 ## Responsibility Split
 
-### `backend/` — The Server (662 lines)
+### `backend/` — The Server (~700 lines)
 Everything the visitor or dashboard needs:
 - REST API (`routes_chat.py`, `routes_admin.py`)
 - Auth with JWT (`auth.py`)
@@ -46,19 +47,19 @@ Everything the visitor or dashboard needs:
 
 ### `app/` — AI Library (~550 lines)
 Imported directly by `backend/routes_chat.py`. No separate process.
-- LangGraph conversation graph: classify intent → route → generate reply
-- Slovenian prompts per stage (greeting, discovery, availability, booking, handoff, idle)
-- Deterministic salon tools (services list, availability, booking, staff request)
+- LangGraph conversation flow: build prompt → run tools → generate reply
+- Turn-based system prompt (aggressive takeover push on turn 1)
+- B2B tools (get_context, check_contact, schedule_call, request_team, update_profile)
 - OpenAI client wrapper (JSON, text, stream, tool calls)
 - Runtime context builder from qualifier config
 
-### `angular-visitor/` — Frontend (~1200 lines)
+### `angular-visitor/` — Frontend (~1,200 lines)
 Angular 19 standalone SPA. Key components:
 - **ReceptionistChatComponent** — Main chat UI with messages, input, action buttons
-- **StaffVideoComponent** — LiveKit video overlay (polls live-session endpoint, renders remote video)
-- **ServiceCardsComponent** — Service browsing cards
-- **CalendarPickerComponent** — Date/time slot selection
-- **HeaderComponent** — Salon name, open/closed status
+- **StaffVideoComponent** — LiveKit video overlay (16:9, fade-in)
+- **CalendarPickerComponent** — Date/time slot selection for discovery calls
+- **HeaderComponent** — Status bar (open/closed)
+- **OrgDashboardComponent** — 3-tab dashboard: conversations, AI qualifier editor, bookings
 
 Services:
 - **SalonService** — Central state (messages, staffState, connection, send, poll)
