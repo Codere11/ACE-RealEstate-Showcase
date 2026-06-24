@@ -8,7 +8,7 @@
   </div>
   <nav class="tabs">
     <a [class.active]="activeTab==='leads'" (click)="activeTab='leads'">KONVERZACIJE</a>
-    <a [class.active]="activeTab==='receptor'" (click)="activeTab='receptor'">AI RECEPTOR</a>
+    <a [class.active]="activeTab==='cards'" (click)="activeTab='cards'">LEAD CARDS</a>
     <a [class.active]="activeTab==='rezervacije'" (click)="activeTab='rezervacije'">REZERVACIJE @if (bookings().length) { <span style="background:#22c55e;color:#000;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px;">{{ bookings().length }}</span> }</a>
     <a [class.active]="activeTab==='analize'" (click)="activeTab='analize'">ANALIZE</a>
   </nav>
@@ -18,7 +18,7 @@
 <div class="dashboard-background">
   <div class="dashboard-container">
     <h1 class="title">ACE Reception Services — {{ slug() }}</h1>
-    <p class="subtitle">{{ slug() }} · AI Receptor aktiviran</p>
+    <p class="subtitle">{{ slug() }} · AI SDR aktiviran</p>
 
     @if (activeTab === 'leads') {
       <!-- LIVE PREVIEW (inline, shown when idle or minimized) -->
@@ -206,22 +206,144 @@
       </div>
     }
 
-    @if (activeTab === 'receptor') {
+    @if (activeTab === 'cards') {
       <section class="stack">
-        <div class="leads-grid dashboard-split dashboard-split--builder">
-          <aside class="sidebar">
-            <div class="card stack"><div><h3>AI Receptor</h3><p class="muted">Ustvarite, prilagodite in objavite AI Receptorja za to organizacijo.</p></div>
-              <div class="actions"><button class="btn primary">Nov receptor</button></div>
-              <div class="note-card"><strong>Kako deluje</strong> AI Receptor pozdravlja obiskovalce, odgovarja na vprašanja o storitvah, pomaga pri rezervaciji terminov in povezuje z osebjem.</div>
+        <div class="lead-cards-grid">
+          @if (allLeads().length === 0) {
+            <div class="empty-card" style="grid-column:1/-1;">
+              <strong>No leads yet</strong>
+              <p class="muted">When visitors start chatting with ACE, their lead cards will appear here with contact info, budget, problem, and meeting status.</p>
             </div>
-            <div class="card"><h3>Receptorji</h3><p class="muted">Odprite receptorja za urejanje in objavo.</p>
-              <div class="lead-list"><div class="empty-card">Nalaganje receptorjev…</div></div>
+          }
+          @for (l of allLeads(); track l.sid) {
+            <div class="lead-card" [class.selected]="l.sid === selectedSid" (click)="select(l.sid)">
+              <!-- Header: score + name -->
+              <div class="lead-card__header">
+                <div class="lead-card__score" [class.hot]="(l.score || 0) >= 70" [class.warm]="(l.score || 0) >= 40 && (l.score || 0) < 70" [class.cold]="(l.score || 0) < 40">
+                  {{ l.score || 0 }}
+                </div>
+                <div class="lead-card__name">
+                  <strong>{{ l.businessName || l.name }}</strong>
+                  @if (l.businessName && l.name && l.name !== l.businessName) {
+                    <span class="lead-card__contact-name">{{ l.name }}</span>
+                  }
+                </div>
+                @if (l.booked) {
+                  <span class="lead-card__meeting-badge">📅 Met</span>
+                }
+              </div>
+
+              <!-- Contact -->
+              <div class="lead-card__contact">
+                @if (l.phoneText) { <span>📞 {{ l.phoneText }}</span> }
+                @if (l.emailText) { <span>✉️ {{ l.emailText }}</span> }
+                @if (!l.phoneText && !l.emailText) { <span class="muted">No contact yet</span> }
+              </div>
+
+              <!-- Key fields -->
+              <div class="lead-card__fields">
+                @if (l.budget) { <div class="lead-card__field"><span class="label">Budget</span><span class="value">{{ l.budget }}</span></div> }
+                @if (l.problem) { <div class="lead-card__field"><span class="label">Problem</span><span class="value">{{ l.problem }}</span></div> }
+                @if (l.industry && l.industry !== 'Unknown') { <div class="lead-card__field"><span class="label">Industry</span><span class="value">{{ l.industry }}</span></div> }
+              </div>
+
+              <!-- Status row -->
+              <div class="lead-card__status">
+                <span class="pill" [class.success]="l.status === 'HUMAN_TAKEOVER'" [class.warn]="l.status === 'OPEN_CHAT'">
+                  {{ l.status === 'HUMAN_TAKEOVER' ? 'Met' : l.status === 'OPEN_CHAT' ? 'Open' : l.status }}
+                </span>
+                @if (l.turn_count) { <span class="pill dark">{{ l.turn_count }} msgs</span> }
+                @if (l.eur_amount) { <span class="pill dark">€{{ l.eur_amount }}</span> }
+                @if (l.booking_time) { <span class="pill dark">{{ l.booking_time }}</span> }
+              </div>
+
+              <!-- Last message preview -->
+              @if (l.lastMessage) {
+                <div class="lead-card__preview">{{ l.lastMessage }}</div>
+              }
             </div>
-          </aside>
-          <main class="stack">
-            <div class="empty-card">Ustvarite ali izberite receptorja za konfiguracijo.</div>
-          </main>
+          }
         </div>
+
+        <!-- Selected lead detail -->
+        @if (selectedSid) {
+          @let ld = selectedLead();
+          @if (ld) {
+            <div class="lead-card-detail">
+              <div class="detail-header">
+                <h2>{{ ld.businessName || ld.name }}</h2>
+                <button class="btn" (click)="selectedSid = ''">✕ Close</button>
+              </div>
+
+              <div class="detail-grid">
+                <!-- Left: profile + conversation -->
+                <div class="detail-left">
+                  <div class="card">
+                    <h3>Profile</h3>
+                    <div class="detail-fields">
+                      @if (ld.name && ld.name !== ld.businessName) { <div><span class="label">Contact</span><span>{{ ld.name }}</span></div> }
+                      @if (ld.phoneText) { <div><span class="label">Phone</span><span>{{ ld.phoneText }}</span></div> }
+                      @if (ld.emailText) { <div><span class="label">Email</span><span>{{ ld.emailText }}</span></div> }
+                      @if (ld.budget) { <div><span class="label">Budget</span><span>{{ ld.budget }}</span></div> }
+                      @if (ld.problem) { <div><span class="label">Problem</span><span>{{ ld.problem }}</span></div> }
+                      @if (ld.industry && ld.industry !== 'Unknown') { <div><span class="label">Industry</span><span>{{ ld.industry }}</span></div> }
+                      <div><span class="label">Score</span><span>{{ ld.score || 0 }}/100</span></div>
+                      <div><span class="label">Status</span><span>{{ ld.status }}</span></div>
+                      @if (ld.booking_time) { <div><span class="label">Meeting</span><span>{{ ld.booking_time }}</span></div> }
+                      @if (ld.turn_count) { <div><span class="label">Messages</span><span>{{ ld.turn_count }}</span></div> }
+                    </div>
+                  </div>
+
+                  <div class="card">
+                    <h3>Conversation</h3>
+                    <div class="thread">
+                      @for (m of messages(); track $index) {
+                        <div class="bubble" [class]="'bubble ' + m.role">
+                          <div class="meta">{{ m.role === 'user' ? 'Lead' : m.role === 'staff' ? 'Sales' : m.role === 'system' ? 'System' : 'AI' }}</div>
+                          <div class="bubble__body">{{ m.text }}</div>
+                        </div>
+                      }
+                      @if (messages().length === 0) {
+                        <p class="muted">Click a lead in KONVERZACIJE tab to load messages.</p>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right: meeting notes + actions -->
+                <div class="detail-right">
+                  <div class="card stack">
+                    <h3>Meeting Notes</h3>
+                    <p class="muted" style="font-size:13px;">After a meeting, write quick notes here. ACE will format them into a structured summary using the chat history and lead profile.</p>
+                    <textarea [(ngModel)]="meetingNotesText" placeholder="e.g.: marko, techcorp, 15 people, wants video handoff, intercom competitor, price concern, thursday demo" rows="5" style="width:100%;resize:vertical;"></textarea>
+                    <div class="actions">
+                      <button class="btn primary" (click)="saveMeetingNotes()" [disabled]="!meetingNotesText.trim() || meetingNotesSaving()">
+                        {{ meetingNotesSaving() ? '⏳ Formatting...' : 'Save & Format' }}
+                      </button>
+                    </div>
+                    @if (meetingNotesFormatted()) {
+                      <div class="note-card" style="margin-top:12px;">
+                        <strong>📝 Formatted Summary</strong>
+                        <p style="font-size:13px;line-height:1.5;white-space:pre-wrap;margin:8px 0 0;">{{ meetingNotesFormatted() }}</p>
+                      </div>
+                    } @else {
+                      <div class="note-card" style="margin-top:12px;">
+                        <strong>📝 No notes yet</strong>
+                        <p class="muted" style="font-size:12px;">Notes will be formatted and displayed here after saving.</p>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="card stack">
+                    <h3>Actions</h3>
+                    <button class="btn primary" (click)="activeTab='leads'; select(ld.sid)">💬 Open in Conversations</button>
+                    <button class="btn danger" (click)="deleteLead(ld.sid)">🗑 Delete lead</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        }
       </section>
     }
 
@@ -570,3 +692,35 @@
 
   </div>
 </div>
+
+<!-- MEETING NOTES POPUP (appears after End Live) -->
+@if (showMeetingNotesPopup()) {
+  <div class="modal-overlay" (click)="showMeetingNotesPopup.set(false)">
+    <div class="modal-card" (click)="$event.stopPropagation()" style="max-width:480px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;font-size:1.1rem;">📝 Meeting Notes</h3>
+        <button class="btn" (click)="showMeetingNotesPopup.set(false)">✕</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin:0 0 12px;">
+        Quick notes about what happened. ACE will format them using the chat history and lead profile.
+      </p>
+      <textarea
+        [(ngModel)]="meetingNotesText"
+        placeholder="e.g.: marko, techcorp, 15 people, wants video handoff, intercom competitor, budget 30-40k, thursday demo"
+        rows="5"
+        style="width:100%;resize:vertical;font:inherit;padding:10px;border:1px solid #E6E2D6;border-radius:10px;"
+        autofocus
+      ></textarea>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+        <button class="btn" (click)="showMeetingNotesPopup.set(false)">Skip</button>
+        <button
+          class="btn primary"
+          (click)="saveMeetingNotes(); showMeetingNotesPopup.set(false)"
+          [disabled]="!meetingNotesText.trim() || meetingNotesSaving()"
+        >
+          {{ meetingNotesSaving() ? '⏳ Saving...' : 'Save & Format' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

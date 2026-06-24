@@ -672,3 +672,63 @@ async def login(username: str = Form(...), password: str = Form(...), db: AsyncS
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "Invalid credentials")
     return {"token": create_token(user.id, user.username, user.role), "role": user.role}
+
+# ══════ MEETING NOTES ══════
+class MeetingNotesRequest(BaseModel):
+    notes: str
+
+@router.post("/api/organizations/{org_id}/leads/{sid}/meeting-notes")
+async def save_meeting_notes(org_id: int, sid: str, req: MeetingNotesRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await check_org_access(user, org_id)
+    lead = await get_lead(db, org_id, sid)
+    if not req.notes.strip():
+        raise HTTPException(400, "Notes cannot be empty")
+
+    # Load chat history for context
+    msgs_result = await db.execute(
+        select(ConversationMessage).where(ConversationMessage.lead_id == lead.id)
+        .order_by(ConversationMessage.created_at).limit(30)
+    )
+    recent = [f"{m.role}: {m.text[:200]}" for m in msgs_result.scalars().all()]
+    chat_context = "\n".join(recent[-20:])
+
+    # Load lead profile fields
+    profile = lead.qualifier_profile or {}
+    profile_bits = []
+    for k in ["business_name", "budget", "problem", "company_type", "scale", "timeline"]:
+        v = profile.get(k, "")
+        if v:
+            profile_bits.append(f"{k}: {v}")
+    profile_text = ", ".join(profile_bits) if profile_bits else "(no profile yet)"
+
+    # Call LLM to format notes
+    formatted = req.notes  # fallback
+    try:
+        from app.services.llm_service import LLMService
+        llm = LLMService()
+        prompt = f"""You are formatting meeting notes for a CRM. The language of your response MUST match the language of the salesperson's notes below.
+
+LEAD PROFILE: {profile_text}
+
+CHAT HISTORY (visitor + AI conversation before the meeting):
+{chat_context[:1500]}
+
+SALESPERSON'S RAW NOTES (written quickly after the meeting):
+{req.notes}
+
+Turn these raw notes into a clean, professional meeting summary in 2-3 sentences. Include: who they are, what was discussed, any objections, and agreed next steps. Write in the SAME language as the raw notes."""
+        formatted = llm.call_text(prompt, req.notes[:200])
+        if not formatted or len(formatted) < 10:
+            formatted = req.notes
+    except Exception as e:
+        print(f"[meeting-notes] LLM failed: {e}")
+        formatted = req.notes
+
+    # Save to lead profile
+    profile = dict(lead.qualifier_profile or {})
+    profile["meeting_notes_raw"] = req.notes
+    profile["meeting_notes_formatted"] = formatted
+    lead.qualifier_profile = profile
+    await db.commit()
+
+    return {"ok": True, "raw": req.notes, "formatted": formatted}

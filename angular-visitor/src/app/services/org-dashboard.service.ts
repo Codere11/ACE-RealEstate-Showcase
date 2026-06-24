@@ -44,4 +44,8 @@ export class OrgDashboardService {
   personaChat(orgId: number, personaId: string, message: string, leads: any[], history: any[]) {
     return this.http.post<any>('/api/organizations/' + orgId + '/analize/chat', { persona_id: personaId, message, leads, history });
   }
+
+  saveMeetingNotes(orgId: number, sid: string, notes: string) {
+    return this.http.post<any>('/api/organizations/' + orgId + '/leads/' + sid + '/meeting-notes', { notes });
+  }
 }

@@ -1,100 +1,58 @@
-============================================================
-  ACE — Startup Runbook
-============================================================
+# ACE — Startup Runbook
 
-STACK (all in Docker):
-  Backend         : FastAPI + LangGraph (Docker ace-backend container)
-  Frontend        : Angular 19 SPA (built inside Docker image, served by backend)
-  Database        : PostgreSQL 15 (Docker ace-postgres)
-  Video           : LiveKit (Docker ace-livekit)
-  No Java, no separate dev servers.
+## Quick Start
 
-============================================================
-1. QUICK START (Docker — recommended)
-============================================================
+```bash
+docker compose -f docker-compose-simple.yml up -d
+```
 
-  docker compose -f docker-compose-simple.yml up -d
+Starts PostgreSQL (5433), LiveKit (7880), Backend (8000).
 
-  Starts everything:
-    PostgreSQL  →  localhost:5433
-    LiveKit     →  localhost:7880
-    Backend     →  localhost:8000
+Auto-seeds: demo org, admin user (`admin`/`test123`), AI qualifier.
 
-  Auto-seeds on first run:
-    - Demo org (slug: demo, name: ACE)
-    - Admin:  admin / test123
-    - AI Svetovalec qualifier (Slovenian B2B sales qualification)
+## Open
 
-  Health check:  curl -sf http://127.0.0.1:8000/
+| URL | What |
+|---|---|
+| `http://localhost:8000/demo` | Visitor chatbot |
+| `http://localhost:8000/demo/dashboard` | Staff dashboard |
+| `http://localhost:8000/login` | Login (admin / test123) |
 
-============================================================
-2. OPEN IN BROWSER
-============================================================
+## Local Dev
 
-  Everything is served from http://localhost:8000
+```bash
+# Stop Docker backend, run locally with reload
+docker compose -f docker-compose-simple.yml stop backend
+cd backend && source ../venv/bin/activate
+PYTHONPATH=.. uvicorn main:app --port 8000 --reload
+```
 
-  Visitor chatbot  →  http://localhost:8000/demo
-  Login            →  http://localhost:8000/login
-  Staff dashboard  →  http://localhost:8000/demo/dashboard
-  Admin dashboard  →  http://localhost:8000/admin/dashboard
+## Angular Dev
 
-  Credentials:  admin / test123
+```bash
+cd angular-visitor && npm start   # port 4200, proxies API to :8000
+```
 
-============================================================
-3. LOCAL DEV MODE (without Docker backend)
-============================================================
+Use `http://localhost:8000` for the real app. Dev server is for editing components.
 
-  First stop the Docker backend container:
-    docker compose -f docker-compose-simple.yml stop backend
+## Rebuild Frontend
 
-  Then run the backend locally:
-    cd backend
-    source ../venv/bin/activate
-    PYTHONPATH=.. uvicorn main:app --port 8000 --reload
+```bash
+cd angular-visitor && npm run build
+cp -r dist/angular-visitor/browser/* ../backend/static/
+```
 
-  This gives you auto-reload on Python changes.
+## Key Endpoints
 
-============================================================
-4. ANGULAR DEV (only if editing frontend)
-============================================================
-
-  cd angular-visitor
-  npm start
-
-  Opens on http://localhost:4200 with proxy to :8000 for
-  /api, /chat, /chat-events, /login.
-
-  WARNING: The proxy also sends GET /login to :8000, which
-  returns the production index.html. The production JS files
-  won't load from :4200. Use :8000 for the real app. The
-  dev server is only for editing components, then rebuild.
-
-============================================================
-5. REBUILD FRONTEND (after Angular changes)
-============================================================
-
-  For Docker deployment:
-    docker compose -f docker-compose-simple.yml build backend
-    docker compose -f docker-compose-simple.yml up -d backend
-
-  For local dev (no Docker backend):
-    cd angular-visitor
-    npm run build
-    cp -r dist/angular-visitor/browser/* ../backend/static/
-
-  Either way, restart/reload after rebuilding.
-
-============================================================
-KEY ENDPOINTS
-============================================================
-
-  POST /login              form: username, password  →  JWT
-  POST /chat               JSON: {message, sid, tenant_slug}
-  POST /chat/stream        SSE streaming version
-  POST /chat/staff         JWT-protected staff takeover
-  GET  /chat-events/poll   real-time event polling
-  GET  /api/public/organizations/{slug}/live-session
-  GET  /api/organizations/{id}/leads
-  POST /api/organizations/{id}/live-sessions/go-live
-  POST /api/organizations/{id}/live-sessions/end
-  GET  /api/organizations/{id}/bookings
+| Method | Path | Auth |
+|---|---|---|
+| POST | `/chat` | No |
+| POST | `/chat/stream` | No |
+| POST | `/login` | No |
+| GET | `/chat-events/poll` | No |
+| POST | `/chat/staff` | JWT |
+| GET | `/api/organizations/{id}/leads` | JWT |
+| POST | `/api/organizations/{id}/live-sessions/go-live` | JWT |
+| POST | `/api/organizations/{id}/live-sessions/end` | JWT |
+| POST | `/api/organizations/{id}/leads/{sid}/meeting-notes` | JWT |
+| GET | `/api/organizations/{id}/bookings` | JWT |

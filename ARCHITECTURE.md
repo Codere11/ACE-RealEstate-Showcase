@@ -1,66 +1,32 @@
 # Architecture — ACE
 
-See **[CONTEXT.md](CONTEXT.md)** for the complete project overview including data model, API surface, AI flow, and file-by-file explanation.
+See **[CONTEXT.md](CONTEXT.md)** for full data model, API, and AI flow.
 
 ## High-level
 
 ```
-Visitor Browser
-    │
-    ▼
-┌─────────────────────────────────┐
-│  Python FastAPI backend/        │  Single process, port 8000
-│  • REST API                     │
-│  • Auth (JWT)                   │
-│  • AI qualification (LangGraph) │
-│  • Video takeover (LiveKit)     │
-│  • Serves Angular SPA           │
-└──────┬──────────┬───────────────┘
-       │          │
-       ▼          ▼
-  PostgreSQL   LiveKit
-  (5433)       (7880)
+Visitor Browser → FastAPI :8000 → PostgreSQL :5433
+                                  → LiveKit :7880
 ```
 
-## Directory Map
+## Stack
+
+| Layer | Tech |
+|---|---|
+| Backend | Python FastAPI |
+| AI | LangGraph + OpenAI/DeepSeek |
+| Frontend | Angular 19 SPA |
+| DB | PostgreSQL 15 |
+| Video | LiveKit |
+
+Single Python process. No Java. Angular SPA served as static files.
+
+## Directories
 
 ```
-backend/          ★ The server — FastAPI app, all routes, models, auth, events, LiveKit tokens
-app/              ★ AI library — LangGraph qualification graph, B2B tools, LLM client
-angular-visitor/  ★ Frontend — Angular 19 SPA with chat widget, video overlay, booking timeline
-docker/           LiveKit server config
-docs/             Specs and contracts
-scripts/          B2B conversation simulator, demo data seeding
+backend/          Server — routes, auth, events, LiveKit tokens, models
+app/              AI library — LangGraph graph, B2B tools, LLM client
+angular-visitor/  Frontend — chat widget, video overlay, staff dashboard
+scripts/          B2B simulator, demo seed data
+docs/             Specs
 ```
-
-## Responsibility Split
-
-### `backend/` — The Server (~700 lines)
-Everything the visitor or dashboard needs:
-- REST API (`routes_chat.py`, `routes_admin.py`)
-- Auth with JWT (`auth.py`)
-- Async PostgreSQL via SQLAlchemy (`models.py`, `database.py`)
-- Event pub/sub with WebSocket fanout (`events.py`)
-- LiveKit token generation (`livekit_token.py`)
-- Auto-seeds demo org, admin user, qualifier on first start (`main.py`)
-- Serves built Angular SPA from `static/`
-
-### `app/` — AI Library (~550 lines)
-Imported directly by `backend/routes_chat.py`. No separate process.
-- LangGraph conversation flow: build prompt → run tools → generate reply
-- Turn-based system prompt (aggressive takeover push on turn 1)
-- B2B tools (get_context, check_contact, schedule_call, request_team, update_profile)
-- OpenAI client wrapper (JSON, text, stream, tool calls)
-- Runtime context builder from qualifier config
-
-### `angular-visitor/` — Frontend (~1,200 lines)
-Angular 19 standalone SPA. Key components:
-- **ReceptionistChatComponent** — Main chat UI with messages, input, action buttons
-- **StaffVideoComponent** — LiveKit video overlay (16:9, fade-in)
-- **CalendarPickerComponent** — Date/time slot selection for discovery calls
-- **HeaderComponent** — Status bar (open/closed)
-- **OrgDashboardComponent** — 3-tab dashboard: conversations, AI qualifier editor, bookings
-
-Services:
-- **SalonService** — Central state (messages, staffState, connection, send, poll)
-- **ChatApiService** — HTTP layer with retry logic

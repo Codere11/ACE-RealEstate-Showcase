@@ -55,6 +55,12 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   staffCallMinimized = signal(false);
   @ViewChild('staffVideoFull') staffVideoFullEl!: ElementRef<HTMLVideoElement>;
   private staffLkVideo: LocalVideoTrack | null = null;
+
+  // Meeting notes
+  meetingNotesText = '';
+  meetingNotesFormatted = signal('');
+  meetingNotesSaving = signal(false);
+  showMeetingNotesPopup = signal(false);
   private staffLkAudio: LocalAudioTrack | null = null;
   private staffStream: MediaStream | null = null;
 
@@ -170,6 +176,10 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
       await firstValueFrom(this.api.endLive(this.orgId, this.selectedSid));
     } catch (e) { console.error('End live API failed:', e); }
     this.disconnectLive();
+    // Show meeting notes popup
+    this.meetingNotesText = '';
+    this.meetingNotesFormatted.set('');
+    this.showMeetingNotesPopup.set(true);
   }
 
   private disconnectLive() {
@@ -337,9 +347,20 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
   }
 
   async select(sid: string) {
+    const isSame = this.selectedSid === sid;
     this.selectedSid = sid;
     const lead = this.allLeads().find(l => l.sid === sid);
     this.takeoverActive.set(lead?.takeoverActive || false);
+    // Only load meeting notes on first selection, not on poll refresh
+    if (!isSame) {
+      this.meetingNotesText = '';
+      this.meetingNotesFormatted.set('');
+      if (lead?.qualifier_profile) {
+        const p = typeof lead.qualifier_profile === 'string' ? JSON.parse(lead.qualifier_profile) : lead.qualifier_profile;
+        if (p?.meeting_notes_raw) this.meetingNotesText = p.meeting_notes_raw;
+        if (p?.meeting_notes_formatted) this.meetingNotesFormatted.set(p.meeting_notes_formatted);
+      }
+    }
     try {
       this.messages.set(await firstValueFrom(this.api.getMessages(this.orgId, sid)));
     } catch {}
@@ -373,7 +394,20 @@ export class OrgDashboardComponent implements OnInit, OnDestroy {
 
   async deleteSelected() { await this.deleteLead(this.selectedSid); }
 
+  async saveMeetingNotes() {
+    if (!this.selectedSid || !this.meetingNotesText.trim() || this.meetingNotesSaving()) return;
+    this.meetingNotesSaving.set(true);
+    try {
+      const res = await firstValueFrom(this.api.saveMeetingNotes(this.orgId, this.selectedSid, this.meetingNotesText));
+      this.meetingNotesFormatted.set(res.formatted);
+    } catch (e: any) {
+      console.error('Save meeting notes failed:', e);
+    }
+    this.meetingNotesSaving.set(false);
+  }
+
   selectedLeadName() { return this.allLeads().find(l => l.sid === this.selectedSid)?.name || 'Visitor'; }
+  selectedLead() { return this.allLeads().find(l => l.sid === this.selectedSid) || null; }
   get now() { return new Date().toISOString(); }
   toggleLead(sid: string) {
     this.expandedLeads.update(set => {
